@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Loan Book - Dropbox Sync</title>
+    <title>Pro Loan Book - Dropbox Auto Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -173,7 +173,6 @@
             margin-left: 4px;
         }
 
-        /* Dropbox sync status indicator */
         .sync-dot {
             width: 8px;
             height: 8px;
@@ -185,36 +184,36 @@
         .sync-dot.pending { background: #f59e0b; animation: pulse 1.5s infinite; }
         .sync-dot.error { background: #f43f5e; }
         .sync-dot.loading { background: #3b82f6; animation: pulse 1s infinite; }
+        .sync-dot.disconnected { background: #64748b; }
 
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.3; }
         }
 
-        /* Dropbox upload modal */
-        .dropbox-upload-modal {
-            background: rgba(15, 23, 42, 0.98);
-            border: 1px solid rgba(0, 97, 255, 0.3);
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
         }
+        .spin { animation: spin 1s linear infinite; }
 
-        .dropbox-btn {
+        .dropbox-btn-main {
             background: #0061FF;
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
+            padding: 0.625rem 1.25rem;
             border-radius: 0.5rem;
             font-weight: 700;
-            font-size: 0.875rem;
+            font-size: 0.8rem;
             cursor: pointer;
             display: flex;
             align-items: center;
             gap: 0.5rem;
-            transition: background 0.2s;
-            text-decoration: none;
+            transition: all 0.2s;
         }
-        .dropbox-btn:hover { background: #0052d9; }
+        .dropbox-btn-main:hover { background: #0052d9; transform: translateY(-1px); }
+        .dropbox-btn-main:disabled { background: #334155; cursor: not-allowed; transform: none; opacity: 0.6; }
 
-        /* Unsaved changes banner */
         #unsaved-banner {
             display: none;
             position: fixed;
@@ -222,6 +221,36 @@
             right: 1.5rem;
             z-index: 500;
             animation: fadeIn 0.3s ease;
+        }
+
+        /* Setup modal */
+        .setup-step {
+            background: rgba(15,23,42,0.8);
+            border: 1px solid rgba(255,255,255,0.06);
+            border-radius: 0.75rem;
+            padding: 1rem;
+        }
+        .step-num {
+            width: 24px; height: 24px;
+            background: #3b82f6;
+            color: white;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 800;
+            flex-shrink: 0;
+        }
+
+        .connected-pill {
+            background: rgba(16,185,129,0.1);
+            border: 1px solid rgba(16,185,129,0.3);
+            color: #10b981;
+            padding: 0.25rem 0.75rem;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
         }
     </style>
 </head>
@@ -232,61 +261,114 @@
         <div class="glass-card border border-amber-500/30 p-3 flex items-center gap-3 shadow-2xl">
             <span class="sync-dot pending"></span>
             <span class="text-xs text-amber-400 font-bold">Unsaved changes</span>
-            <button onclick="triggerDropboxSave()" class="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L6.5 7.5h3.5V14h4V7.5H17.5L12 2zm-7 16v2h14v-2H5z"/></svg>
-                Save to Dropbox
+            <button onclick="saveToDropbox()" class="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                Auto-Save to Dropbox
             </button>
         </div>
     </div>
 
-    <!-- Dropbox Save Modal -->
-    <div id="dropbox-save-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeModal('dropbox-save-modal')"></div>
-        <div class="dropbox-upload-modal glass-card w-full max-w-md relative z-10 p-6 rounded-2xl">
+    <!-- DROPBOX SETUP MODAL -->
+    <div id="dropbox-setup-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md"></div>
+        <div class="glass-card w-full max-w-lg relative z-10 p-6 rounded-2xl border border-blue-500/20">
             <div class="text-center mb-6">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <svg class="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2L6.5 7.5h3.5V14h4V7.5H17.5L12 2zm-7 16v2h14v-2H5z"/>
+                <div class="w-14 h-14 mx-auto mb-3 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
+                    <svg class="w-7 h-7 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/>
                     </svg>
                 </div>
-                <h3 class="text-lg font-bold text-white mb-1">Save to Dropbox</h3>
-                <p class="text-slate-500 text-xs">ඔබේ data Dropbox file එකට upload කරන්න</p>
+                <h3 class="text-lg font-bold text-white">Dropbox Setup</h3>
+                <p class="text-slate-500 text-xs mt-1">එක් වරයක් setup කළාම, Save button click කළාම automatically Dropbox update වේවි</p>
             </div>
 
-            <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 mb-5 space-y-3">
-                <div class="flex items-center gap-2">
-                    <span class="text-lg">1️⃣</span>
-                    <div>
-                        <p class="text-xs font-bold text-white">Download updated JSON</p>
-                        <p class="text-[10px] text-slate-500">Updated data file downlaod කරන්න</p>
+            <div class="space-y-3 mb-5">
+                <div class="setup-step">
+                    <div class="flex items-start gap-3">
+                        <div class="step-num">1</div>
+                        <div class="flex-1">
+                            <p class="text-xs font-bold text-white mb-1">Dropbox App Key ලබා ගන්න</p>
+                            <p class="text-[10px] text-slate-500 mb-2">dropbox.com/developers → App Console → Create App</p>
+                            <div class="bg-slate-950 rounded-lg p-2 text-[9px] text-slate-400 font-mono space-y-1">
+                                <div>✓ API: <span class="text-blue-400">Scoped access</span></div>
+                                <div>✓ Type: <span class="text-blue-400">Full Dropbox</span></div>
+                                <div>✓ Redirect URI: <span class="text-amber-400" id="current-origin-display"></span></div>
+                                <div>✓ Permissions: <span class="text-emerald-400">files.content.write, files.content.read</span></div>
+                            </div>
+                            <a href="https://www.dropbox.com/developers/apps/create" target="_blank" class="inline-flex items-center gap-1 mt-2 text-[10px] text-blue-400 hover:text-blue-300 font-bold">
+                                Open App Console →
+                            </a>
+                        </div>
                     </div>
                 </div>
-                <button onclick="downloadJSONForDropbox()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2">
-                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
-                    Download data.json
-                </button>
 
-                <div class="border-t border-slate-800 pt-3 flex items-center gap-2">
-                    <span class="text-lg">2️⃣</span>
-                    <div>
-                        <p class="text-xs font-bold text-white">Upload to Dropbox</p>
-                        <p class="text-[10px] text-slate-500">Dropbox folder open කරලා file replace කරන්න</p>
+                <div class="setup-step">
+                    <div class="flex items-start gap-3">
+                        <div class="step-num">2</div>
+                        <div class="flex-1">
+                            <p class="text-xs font-bold text-white mb-2">App Key & File Path දාන්න</p>
+                            <div class="space-y-2">
+                                <div>
+                                    <label class="text-[9px] text-slate-500 font-bold uppercase">App Key</label>
+                                    <input type="text" id="setup-app-key" placeholder="xxxxxxxxxxxxxxx" class="w-full neo-input p-2 rounded-lg text-xs mt-1 font-mono">
+                                </div>
+                                <div>
+                                    <label class="text-[9px] text-slate-500 font-bold uppercase">Dropbox File Path</label>
+                                    <input type="text" id="setup-file-path" value="/data.json" placeholder="/data.json" class="w-full neo-input p-2 rounded-lg text-xs mt-1 font-mono">
+                                    <p class="text-[9px] text-slate-600 mt-1">e.g: /LoanBook/data.json</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <a href="https://www.dropbox.com/home" target="_blank" class="dropbox-btn w-full justify-center text-xs">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
-                    Open Dropbox
-                </a>
+
+                <div class="setup-step">
+                    <div class="flex items-start gap-3">
+                        <div class="step-num">3</div>
+                        <div class="flex-1">
+                            <p class="text-xs font-bold text-white mb-1">Dropbox Login කරන්න</p>
+                            <p class="text-[10px] text-slate-500">OAuth window open වෙයි, login කර allow කරන්න</p>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="flex gap-2">
-                <button onclick="markAsSaved()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all">
-                    ✓ Mark as Saved
+                <button onclick="startDropboxOAuth()" class="flex-1 dropbox-btn-main justify-center py-3">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
+                    Connect Dropbox
                 </button>
-                <button onclick="closeModal('dropbox-save-modal')" class="px-4 py-2.5 bg-slate-800 text-slate-400 rounded-lg font-bold text-xs">
-                    Later
+                <button onclick="closeModal('dropbox-setup-modal')" class="px-4 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-xs">
+                    Skip
                 </button>
             </div>
+        </div>
+    </div>
+
+    <!-- OAUTH CALLBACK HANDLER MODAL -->
+    <div id="oauth-processing-modal" class="hidden fixed inset-0 z-[400] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-md"></div>
+        <div class="glass-card w-full max-w-sm relative z-10 p-8 rounded-2xl border border-blue-500/20 text-center">
+            <div class="w-14 h-14 mx-auto mb-4 rounded-xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
+                <svg class="w-7 h-7 text-blue-400 spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+            </div>
+            <h3 class="text-base font-bold text-white mb-2">Connecting to Dropbox...</h3>
+            <p class="text-slate-500 text-xs" id="oauth-status-msg">Authorization code processing...</p>
+        </div>
+    </div>
+
+    <!-- SAVE PROGRESS MODAL -->
+    <div id="save-progress-modal" class="hidden fixed inset-0 z-[400] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/80 backdrop-blur-sm"></div>
+        <div class="glass-card w-full max-w-xs relative z-10 p-6 rounded-2xl border border-emerald-500/20 text-center">
+            <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
+                <svg class="w-6 h-6 text-emerald-400 spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 12a9 9 0 11-6.219-8.56"/>
+                </svg>
+            </div>
+            <p class="text-white font-bold text-sm" id="save-progress-msg">Saving to Dropbox...</p>
         </div>
     </div>
 
@@ -300,28 +382,52 @@
                 <p class="text-slate-500 text-xs font-medium flex items-center gap-2">
                     ණය කළමනාකරණ පද්ධතිය
                     <span id="sync-status" class="flex items-center gap-1 ml-2">
-                        <span class="sync-dot loading" id="sync-dot"></span>
-                        <span id="sync-label" class="text-[10px] font-bold text-blue-400">Connecting to Dropbox...</span>
+                        <span class="sync-dot disconnected" id="sync-dot"></span>
+                        <span id="sync-label" class="text-[10px] font-bold text-slate-500">Not connected</span>
                     </span>
                 </p>
             </div>
             
             <div class="flex flex-wrap gap-2">
                 <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
-                    <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN / නව ණය
+                    <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN
                 </button>
-                <button onclick="reloadFromDropbox()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all">
-                    <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
-                    Reload Dropbox
-                </button>
-                <button onclick="triggerDropboxSave()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-blue-600 transition-all">
-                    <i data-lucide="upload-cloud" class="w-4 h-4"></i> SAVE / සුරකින්න
-                </button>
+                <!-- Dropbox Status Button -->
+                <div id="dropbox-not-connected" class="">
+                    <button onclick="openModal('dropbox-setup-modal')" class="dropbox-btn-main px-4 py-2">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
+                        Connect Dropbox
+                    </button>
+                </div>
+                <div id="dropbox-connected" class="hidden flex gap-2">
+                    <button onclick="saveToDropbox()" id="save-btn" class="dropbox-btn-main px-4 py-2">
+                        <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+                        SAVE / සුරකින්න
+                    </button>
+                    <button onclick="loadFromDropboxAPI()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all">
+                        <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.51"/></svg>
+                        Reload
+                    </button>
+                    <button onclick="disconnectDropbox()" class="bg-slate-800 text-slate-500 px-3 py-2 rounded-lg text-xs border border-slate-700 hover:border-rose-500 hover:text-rose-400 transition-all">
+                        Disconnect
+                    </button>
+                </div>
                 <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
                     <i data-lucide="download" class="w-4 h-4"></i> EXPORT
                 </button>
             </div>
         </header>
+
+        <!-- Dropbox Account Info Bar -->
+        <div id="dropbox-account-bar" class="hidden mb-4 glass-card p-3 flex items-center gap-3 border border-emerald-500/10">
+            <span class="connected-pill">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
+                Dropbox Connected
+            </span>
+            <span class="text-xs text-slate-500" id="dropbox-account-name"></span>
+            <span class="text-[10px] text-slate-600 font-mono" id="dropbox-file-path-display"></span>
+            <span class="ml-auto text-[10px] text-slate-600" id="last-saved-label"></span>
+        </div>
 
         <div class="flex flex-col lg:flex-row gap-6">
             
@@ -331,7 +437,7 @@
                 <!-- Quick Stats Row -->
                 <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
                     <div class="glass-card p-4 border-l-2 border-violet-500">
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Active Clients / සක්‍රිය</p>
+                        <p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Active Clients</p>
                         <h3 id="total-clients" class="text-lg font-bold text-violet-400">0</h3>
                     </div>
                     <div class="glass-card p-4 border-l-2 border-blue-500">
@@ -389,7 +495,7 @@
                     <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/20 deactive-section-header">
                         <h2 class="text-sm font-bold flex items-center gap-2 text-slate-500">
                             <i data-lucide="archive" class="w-4 h-4 text-slate-500"></i>
-                            Deactive Clients / නිමිත්ත ගනුදෙනුකරුවන්
+                            Completed Clients
                             <span id="deactive-count-badge" class="bg-slate-700 text-slate-400 text-[9px] font-bold px-2 py-0.5 rounded-full"></span>
                         </h2>
                         <button onclick="toggleDeactiveSection()" id="deactive-toggle-btn" class="text-slate-600 hover:text-slate-400 text-[10px] font-bold flex items-center gap-1 transition-colors">
@@ -424,13 +530,13 @@
                         </div>
                     </div>
                     <div class="glass-card p-5">
-                        <h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Comparison / සැසඳීම</h4>
+                        <h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Comparison</h4>
                         <div class="chart-mini-container">
                             <canvas id="comparisonBarChart"></canvas>
                         </div>
                     </div>
                     <div class="glass-card p-5">
-                        <h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Loan Volume / මාසික ණය</h4>
+                        <h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Loan Volume</h4>
                         <div class="chart-mini-container">
                             <canvas id="growthLineChart"></canvas>
                         </div>
@@ -534,7 +640,7 @@
                     <input type="date" id="edit-date" required class="w-full neo-input p-3 rounded-lg text-sm">
                 </div>
                 <div class="md:col-span-2 pt-4 flex gap-2">
-                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm transition-all">Save Changes / සුරකින්න</button>
+                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm transition-all">Save Changes</button>
                     <button type="button" onclick="closeModal('edit-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
                 </div>
             </form>
@@ -570,19 +676,18 @@
 
             <div class="flex gap-1 px-5 pt-4 pb-0 flex-shrink-0">
                 <button onclick="switchTab('payments-tab')" id="tab-payments" class="tab-btn active px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
-                    💰 Payments / ගෙවීම්
+                    💰 Payments
                 </button>
                 <button onclick="switchTab('attachments-tab')" id="tab-attachments" class="tab-btn px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
-                    📎 Attachments / ලේඛන <span id="att-count-badge" class="att-count hidden">0</span>
+                    📎 Attachments <span id="att-count-badge" class="att-count hidden">0</span>
                 </button>
             </div>
 
             <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
-                <!-- PAYMENTS TAB -->
                 <div id="payments-tab" class="tab-content">
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
-                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 self-start">Recovery / ප්‍රතිලාභය</p>
+                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 self-start">Recovery</p>
                             <div class="relative w-36 h-36">
                                 <canvas id="client-donut-chart"></canvas>
                                 <div id="client-donut-center" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
@@ -590,13 +695,9 @@
                                     <span class="text-[8px] text-slate-500 font-bold uppercase">Paid</span>
                                 </div>
                             </div>
-                            <div class="flex gap-3 mt-3">
-                                <span class="flex items-center gap-1 text-[9px] text-emerald-400"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Paid</span>
-                                <span class="flex items-center gap-1 text-[9px] text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Due</span>
-                            </div>
                         </div>
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
-                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Breakdown / ගණනය</p>
+                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Breakdown</p>
                             <div class="relative h-36"><canvas id="client-bar-chart"></canvas></div>
                         </div>
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
@@ -608,7 +709,7 @@
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
                         <div class="lg:col-span-4 space-y-3">
                             <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                                <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-3">Add Payment / ගෙවීමක් එකතු කරන්න</h3>
+                                <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-3">Add Payment</h3>
                                 <div class="space-y-2">
                                     <input type="number" id="pay-amount" placeholder="Rs. Amount" class="w-full neo-input p-2.5 rounded-lg text-xs">
                                     <input type="date" id="pay-date" class="w-full neo-input p-2.5 rounded-lg text-xs">
@@ -618,11 +719,11 @@
                             </div>
                             <div class="grid grid-cols-1 gap-2">
                                 <div class="p-3 bg-rose-600/5 rounded-xl border border-rose-500/20 flex justify-between items-center">
-                                    <p class="text-[9px] text-rose-500 font-bold uppercase">Due / හිඟය</p>
+                                    <p class="text-[9px] text-rose-500 font-bold uppercase">Due</p>
                                     <p id="sheet-balance-due" class="text-base font-bold text-rose-400">Rs. 0</p>
                                 </div>
                                 <div class="p-3 bg-emerald-600/5 rounded-xl border border-emerald-500/20 flex justify-between items-center">
-                                    <p class="text-[9px] text-emerald-500 font-bold uppercase">Paid / ගෙවූ</p>
+                                    <p class="text-[9px] text-emerald-500 font-bold uppercase">Paid</p>
                                     <p id="sheet-total-paid" class="text-base font-bold text-emerald-400">Rs. 0</p>
                                 </div>
                                 <div class="p-3 bg-blue-600/5 rounded-xl border border-blue-500/20 flex justify-between items-center">
@@ -650,13 +751,8 @@
                     </div>
                 </div>
 
-                <!-- ATTACHMENTS TAB -->
                 <div id="attachments-tab" class="tab-content hidden">
                     <div class="space-y-4">
-                        <div id="storage-info" class="hidden bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2 text-[10px] text-amber-400 flex items-center gap-2">
-                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 flex-shrink-0"></i>
-                            <span id="storage-info-text"></span>
-                        </div>
                         <div id="drop-zone" class="drop-zone rounded-xl p-8 text-center cursor-pointer"
                             onclick="document.getElementById('doc-input').click()"
                             ondragover="handleDragOver(event)"
@@ -665,10 +761,10 @@
                             <input type="file" id="doc-input" hidden multiple onchange="attachDocs(this)">
                             <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto text-slate-600 mb-3"></i>
                             <p class="text-sm font-bold text-slate-400 mb-1">Drop files here or click to upload</p>
-                            <p class="text-[10px] text-slate-600">PDFs, Images, Documents — Any file type</p>
+                            <p class="text-[10px] text-slate-600">PDFs, Images, Documents</p>
                         </div>
                         <div id="attachment-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
-                        <div id="no-attachments" class="text-center py-6 text-slate-600 text-xs">No attachments yet. / ලේඛන නොමැත.</div>
+                        <div id="no-attachments" class="text-center py-6 text-slate-600 text-xs">No attachments yet.</div>
                     </div>
                 </div>
             </div>
@@ -685,949 +781,899 @@
     </div>
 
     <script>
-        // ============================================================
-        // DROPBOX CONFIG
-        // ============================================================
-        // Your Dropbox shared link converted to direct download URL
-        // dl=0 → dl=1 (direct download), and use dl.dropboxusercontent.com
-        const DROPBOX_DIRECT_URL = 'https://dl.dropboxusercontent.com/scl/fi/e81y21fn6xxfig19pvgw5/data.json?rlkey=3f02baxpxd9bhrbm5u15leqdo&st=l4jqqut9&dl=1';
-        const DROPBOX_UPLOAD_PAGE = 'https://www.dropbox.com/home';
-        
-        // ============================================================
-        // STATE
-        // ============================================================
-        let loans = []; 
-        let activeLoanIndex = null;
-        let fileHandle = null;
-        let currentPhoto = "";
-        let editPhoto = "";
-        let recoveryChart, growthChart, comparisonChart;
-        let clientDonutChart, clientBarChart, clientLineChart;
-        let selectedDeactiveClient = null;
-        let deactiveSectionOpen = false;
-        let hasUnsavedChanges = false;
-        let dropboxLoadedSuccessfully = false;
+    // ================================================================
+    // DROPBOX OAUTH 2.0 - PKCE FLOW
+    // ================================================================
+    // No client secret needed — uses PKCE for security
+    // Works directly from browser, no backend required
+    // ================================================================
 
-        const LS_KEY = 'loanTrackerPro_v3_dropbox';
+    const LS_KEY        = 'loanTrackerPro_v4';
+    const LS_DBX_KEY    = 'loanTrackerPro_dbx_config';
+    const LS_TOKEN_KEY  = 'loanTrackerPro_dbx_token';
+    const LS_PKCE_KEY   = 'loanTrackerPro_pkce';
 
-        // ============================================================
-        // SYNC STATUS UI
-        // ============================================================
-        function setSyncStatus(status, label) {
-            const dot = document.getElementById('sync-dot');
-            const lbl = document.getElementById('sync-label');
-            dot.className = `sync-dot ${status}`;
-            lbl.textContent = label;
-            const colors = {
-                synced: 'text-emerald-400',
-                pending: 'text-amber-400',
-                error: 'text-rose-400',
-                loading: 'text-blue-400'
-            };
-            lbl.className = `text-[10px] font-bold ${colors[status] || 'text-slate-400'}`;
+    let loans = [];
+    let activeLoanIndex = null;
+    let currentPhoto = "";
+    let editPhoto = "";
+    let recoveryChart, growthChart, comparisonChart;
+    let clientDonutChart, clientBarChart, clientLineChart;
+    let selectedDeactiveClient = null;
+    let deactiveSectionOpen = false;
+    let hasUnsavedChanges = false;
+
+    // Dropbox config state
+    let dbxConfig = { appKey: '', filePath: '/data.json' };
+    let dbxToken  = null; // { access_token, account_id, expires_at }
+
+    // ----------------------------------------------------------------
+    // PKCE Helpers
+    // ----------------------------------------------------------------
+    function generateCodeVerifier() {
+        const array = new Uint8Array(32);
+        crypto.getRandomValues(array);
+        return btoa(String.fromCharCode(...array))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    async function generateCodeChallenge(verifier) {
+        const encoder = new TextEncoder();
+        const data = encoder.encode(verifier);
+        const digest = await crypto.subtle.digest('SHA-256', data);
+        return btoa(String.fromCharCode(...new Uint8Array(digest)))
+            .replace(/\+/g, '-').replace(/\//g, '_').replace(/=/g, '');
+    }
+
+    // ----------------------------------------------------------------
+    // Config persistence
+    // ----------------------------------------------------------------
+    function loadConfig() {
+        try {
+            const c = localStorage.getItem(LS_DBX_KEY);
+            if (c) dbxConfig = JSON.parse(c);
+        } catch(e) {}
+        try {
+            const t = localStorage.getItem(LS_TOKEN_KEY);
+            if (t) dbxToken = JSON.parse(t);
+        } catch(e) {}
+    }
+
+    function saveConfig() {
+        localStorage.setItem(LS_DBX_KEY, JSON.stringify(dbxConfig));
+    }
+
+    function saveToken(token) {
+        dbxToken = token;
+        localStorage.setItem(LS_TOKEN_KEY, JSON.stringify(token));
+    }
+
+    // ----------------------------------------------------------------
+    // START OAUTH
+    // ----------------------------------------------------------------
+    async function startDropboxOAuth() {
+        const appKey = document.getElementById('setup-app-key').value.trim();
+        const filePath = document.getElementById('setup-file-path').value.trim() || '/data.json';
+
+        if (!appKey) {
+            showToast('⚠️ App Key ඇතුළු කරන්න!', 'amber');
+            return;
         }
 
-        function markUnsaved() {
-            hasUnsavedChanges = true;
-            document.getElementById('unsaved-banner').style.display = 'block';
-            setSyncStatus('pending', 'Unsaved changes');
+        dbxConfig.appKey  = appKey;
+        dbxConfig.filePath = filePath;
+        saveConfig();
+
+        // Generate PKCE
+        const verifier   = generateCodeVerifier();
+        const challenge  = await generateCodeChallenge(verifier);
+
+        // Store verifier for after redirect
+        sessionStorage.setItem(LS_PKCE_KEY, JSON.stringify({ verifier, appKey, filePath }));
+
+        const redirectUri = window.location.href.split('?')[0].split('#')[0];
+        const params = new URLSearchParams({
+            client_id:             appKey,
+            response_type:         'code',
+            redirect_uri:          redirectUri,
+            code_challenge:        challenge,
+            code_challenge_method: 'S256',
+            token_access_type:     'offline',
+        });
+
+        window.location.href = `https://www.dropbox.com/oauth2/authorize?${params}`;
+    }
+
+    // ----------------------------------------------------------------
+    // HANDLE OAUTH CALLBACK (runs on page load if ?code= present)
+    // ----------------------------------------------------------------
+    async function handleOAuthCallback() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const error = urlParams.get('error');
+
+        if (error) {
+            showToast(`❌ Dropbox error: ${error}`, 'rose');
+            window.history.replaceState({}, '', window.location.pathname);
+            return;
         }
 
-        function markAsSaved() {
+        if (!code) return; // No callback
+
+        // Show processing modal
+        openModal('oauth-processing-modal');
+        document.getElementById('oauth-status-msg').textContent = 'Dropbox authorization code received...';
+
+        // Clean URL
+        window.history.replaceState({}, '', window.location.pathname);
+
+        // Retrieve PKCE verifier
+        const pkceData = sessionStorage.getItem(LS_PKCE_KEY);
+        if (!pkceData) {
+            document.getElementById('oauth-status-msg').textContent = 'Error: PKCE verifier not found.';
+            showToast('❌ PKCE error. Try again.', 'rose');
+            closeModal('oauth-processing-modal');
+            return;
+        }
+
+        const { verifier, appKey, filePath } = JSON.parse(pkceData);
+        sessionStorage.removeItem(LS_PKCE_KEY);
+
+        dbxConfig.appKey   = appKey;
+        dbxConfig.filePath = filePath;
+        saveConfig();
+
+        document.getElementById('oauth-status-msg').textContent = 'Exchanging token...';
+
+        try {
+            const redirectUri = window.location.href.split('?')[0].split('#')[0];
+            const tokenRes = await fetch('https://api.dropboxapi.com/oauth2/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    code,
+                    grant_type:    'authorization_code',
+                    client_id:     appKey,
+                    redirect_uri:  redirectUri,
+                    code_verifier: verifier,
+                }),
+            });
+
+            if (!tokenRes.ok) {
+                const err = await tokenRes.text();
+                throw new Error(err);
+            }
+
+            const tokenData = await tokenRes.json();
+            saveToken({
+                access_token:  tokenData.access_token,
+                refresh_token: tokenData.refresh_token || null,
+                account_id:    tokenData.account_id,
+                expires_at:    Date.now() + ((tokenData.expires_in || 14400) * 1000),
+            });
+
+            document.getElementById('oauth-status-msg').textContent = 'Getting account info...';
+
+            // Fetch account name
+            await fetchDropboxAccountInfo();
+
+            closeModal('oauth-processing-modal');
+            closeModal('dropbox-setup-modal');
+            updateDropboxUI();
+            showToast('✅ Dropbox connected successfully!', 'emerald');
+
+            // Auto-load data from Dropbox
+            await loadFromDropboxAPI();
+
+        } catch(err) {
+            console.error('Token exchange error:', err);
+            document.getElementById('oauth-status-msg').textContent = 'Error: ' + err.message;
+            showToast('❌ OAuth failed. Check App Key & Redirect URI.', 'rose');
+            setTimeout(() => closeModal('oauth-processing-modal'), 3000);
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // FETCH ACCOUNT INFO
+    // ----------------------------------------------------------------
+    async function fetchDropboxAccountInfo() {
+        if (!dbxToken?.access_token) return;
+        try {
+            const res = await fetch('https://api.dropboxapi.com/2/users/get_current_account', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${dbxToken.access_token}`,
+                    'Content-Type': 'application/json',
+                },
+                body: 'null',
+            });
+            if (res.ok) {
+                const data = await res.json();
+                dbxToken.displayName = data.name?.display_name || data.email || '';
+                dbxToken.email = data.email || '';
+                saveToken(dbxToken);
+            }
+        } catch(e) {}
+    }
+
+    // ----------------------------------------------------------------
+    // SAVE TO DROPBOX (Upload file)
+    // ----------------------------------------------------------------
+    async function saveToDropbox() {
+        if (!dbxToken?.access_token) {
+            showToast('⚠️ Dropbox not connected!', 'amber');
+            openModal('dropbox-setup-modal');
+            return;
+        }
+
+        const btn = document.getElementById('save-btn');
+        if (btn) btn.disabled = true;
+        document.getElementById('save-progress-modal').classList.remove('hidden');
+        document.getElementById('save-progress-msg').textContent = 'Saving to Dropbox...';
+        setSyncStatus('loading', 'Saving...');
+
+        try {
+            const jsonContent = JSON.stringify(loans, null, 2);
+            const blob = new Blob([jsonContent], { type: 'application/json' });
+
+            const res = await fetch('https://content.dropboxapi.com/2/files/upload', {
+                method: 'POST',
+                headers: {
+                    'Authorization':   `Bearer ${dbxToken.access_token}`,
+                    'Content-Type':    'application/octet-stream',
+                    'Dropbox-API-Arg': JSON.stringify({
+                        path:       dbxConfig.filePath,
+                        mode:       'overwrite',
+                        autorename: false,
+                        mute:       false,
+                    }),
+                },
+                body: blob,
+            });
+
+            if (!res.ok) {
+                const errText = await res.text();
+                // Try to refresh token if 401
+                if (res.status === 401 && dbxToken.refresh_token) {
+                    document.getElementById('save-progress-msg').textContent = 'Refreshing token...';
+                    await refreshAccessToken();
+                    // Retry once
+                    document.getElementById('save-progress-modal').classList.add('hidden');
+                    if (btn) btn.disabled = false;
+                    return saveToDropbox();
+                }
+                throw new Error(errText);
+            }
+
+            const result = await res.json();
             hasUnsavedChanges = false;
             document.getElementById('unsaved-banner').style.display = 'none';
-            setSyncStatus('synced', 'Synced with Dropbox ✓');
-            closeModal('dropbox-save-modal');
-        }
+            const now = new Date().toLocaleTimeString();
+            setSyncStatus('synced', `Saved ✓ ${now}`);
+            document.getElementById('last-saved-label').textContent = `Last saved: ${now}`;
+            showToast('✅ Dropbox-ට save කරා!', 'emerald');
+            saveToLocalStorage();
 
-        // ============================================================
-        // DROPBOX AUTO-LOAD
-        // ============================================================
-        async function loadFromDropbox() {
-            setSyncStatus('loading', 'Loading from Dropbox...');
-            try {
-                // Add cache buster to force fresh fetch
-                const url = DROPBOX_DIRECT_URL + '&_t=' + Date.now();
-                const response = await fetch(url, {
-                    method: 'GET',
-                    headers: { 'Accept': 'application/json' }
-                });
-                
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
-                const text = await response.text();
-                
-                // Handle empty file
-                if (!text || text.trim() === '') {
-                    loans = [];
-                    dropboxLoadedSuccessfully = true;
-                    setSyncStatus('synced', 'Dropbox connected (empty)');
-                    saveToLocalStorage();
-                    return true;
+        } catch(err) {
+            console.error('Save error:', err);
+            setSyncStatus('error', 'Save failed');
+            showToast('❌ Save failed: ' + err.message.substring(0, 60), 'rose');
+        } finally {
+            document.getElementById('save-progress-modal').classList.add('hidden');
+            if (btn) btn.disabled = false;
+        }
+    }
+
+    // ----------------------------------------------------------------
+    // LOAD FROM DROPBOX
+    // ----------------------------------------------------------------
+    async function loadFromDropboxAPI() {
+        if (!dbxToken?.access_token) return;
+
+        setSyncStatus('loading', 'Loading from Dropbox...');
+        showToast('⏳ Loading from Dropbox...', 'blue');
+
+        try {
+            const res = await fetch('https://content.dropboxapi.com/2/files/download', {
+                method: 'POST',
+                headers: {
+                    'Authorization':   `Bearer ${dbxToken.access_token}`,
+                    'Dropbox-API-Arg': JSON.stringify({ path: dbxConfig.filePath }),
+                },
+            });
+
+            if (res.status === 409) {
+                // File not found — first time
+                setSyncStatus('synced', 'Connected (no file yet)');
+                showToast('ℹ️ Dropbox file නැත. Save කළාම create වේවි.', 'blue');
+                return;
+            }
+
+            if (!res.ok) {
+                if (res.status === 401 && dbxToken.refresh_token) {
+                    await refreshAccessToken();
+                    return loadFromDropboxAPI();
                 }
-                
+                throw new Error(`HTTP ${res.status}`);
+            }
+
+            const text = await res.text();
+            if (text && text.trim()) {
                 const data = JSON.parse(text);
                 loans = Array.isArray(data) ? data : [];
                 loans.forEach(ensureDefaults);
-                dropboxLoadedSuccessfully = true;
-                
-                saveToLocalStorage(); // Backup to localStorage
-                setSyncStatus('synced', `Dropbox synced — ${loans.length} records`);
+                saveToLocalStorage();
+                refreshUI();
+                setSyncStatus('synced', `Loaded ✓ ${loans.length} records`);
                 showToast(`✅ Dropbox data loaded! ${loans.length} records`, 'emerald');
-                return true;
-            } catch (err) {
-                console.warn('Dropbox load failed:', err);
-                // Fallback to localStorage
-                loadFromLocalStorage();
-                if (loans.length > 0) {
-                    setSyncStatus('error', 'Dropbox offline — using local cache');
-                    showToast('⚠️ Dropbox offline. Local cache loaded.', 'amber');
-                } else {
-                    setSyncStatus('error', 'Dropbox offline — no local data');
-                    showToast('⚠️ Dropbox offline. No cached data found.', 'amber');
-                }
-                return false;
+            } else {
+                loans = [];
+                setSyncStatus('synced', 'Connected (empty file)');
             }
+        } catch(err) {
+            console.error('Load error:', err);
+            setSyncStatus('error', 'Load failed');
+            showToast('❌ Load failed: ' + err.message.substring(0, 50), 'rose');
         }
+    }
 
-        async function reloadFromDropbox() {
-            setSyncStatus('loading', 'Reloading...');
-            const ok = await loadFromDropbox();
-            if (ok) refreshUI();
-        }
-
-        // ============================================================
-        // DROPBOX SAVE WORKFLOW
-        // ============================================================
-        function triggerDropboxSave() {
-            openModal('dropbox-save-modal');
-            setTimeout(initIcons, 50);
-        }
-
-        function downloadJSONForDropbox() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", "data.json"); // Same filename as Dropbox
-            dl.click();
-            showToast('📥 data.json downloaded! Now upload to Dropbox.', 'blue');
-        }
-
-        // ============================================================
-        // PERSISTENCE — localStorage (backup)
-        // ============================================================
-        function saveToLocalStorage() {
-            try {
-                localStorage.setItem(LS_KEY, JSON.stringify(loans));
-            } catch(e) {
-                showToast('⚠️ Local storage full! Export JSON.', 'amber');
+    // ----------------------------------------------------------------
+    // REFRESH ACCESS TOKEN
+    // ----------------------------------------------------------------
+    async function refreshAccessToken() {
+        if (!dbxToken?.refresh_token || !dbxConfig.appKey) return;
+        try {
+            const res = await fetch('https://api.dropboxapi.com/oauth2/token', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                    grant_type:    'refresh_token',
+                    refresh_token: dbxToken.refresh_token,
+                    client_id:     dbxConfig.appKey,
+                }),
+            });
+            if (res.ok) {
+                const data = await res.json();
+                dbxToken.access_token = data.access_token;
+                dbxToken.expires_at   = Date.now() + ((data.expires_in || 14400) * 1000);
+                saveToken(dbxToken);
             }
-        }
+        } catch(e) { console.error('Token refresh failed:', e); }
+    }
 
-        function loadFromLocalStorage() {
-            try {
-                const raw = localStorage.getItem(LS_KEY);
-                if (raw) loans = JSON.parse(raw);
-            } catch(e) { loans = []; }
-        }
+    // ----------------------------------------------------------------
+    // DISCONNECT
+    // ----------------------------------------------------------------
+    function disconnectDropbox() {
+        if (!confirm('Dropbox disconnect කරන්නද?')) return;
+        localStorage.removeItem(LS_TOKEN_KEY);
+        dbxToken = null;
+        updateDropboxUI();
+        setSyncStatus('disconnected', 'Disconnected');
+        showToast('Dropbox disconnected', 'amber');
+    }
 
-        function persistAll() {
-            saveToLocalStorage();
-            markUnsaved();
-        }
+    // ----------------------------------------------------------------
+    // UPDATE UI BASED ON CONNECTION STATE
+    // ----------------------------------------------------------------
+    function updateDropboxUI() {
+        const isConnected = !!dbxToken?.access_token;
+        document.getElementById('dropbox-not-connected').classList.toggle('hidden', isConnected);
+        document.getElementById('dropbox-connected').classList.toggle('hidden', !isConnected);
+        document.getElementById('dropbox-account-bar').classList.toggle('hidden', !isConnected);
 
-        // ============================================================
-        // TOAST
-        // ============================================================
-        function showToast(msg, color = 'emerald') {
-            const colors = { emerald: 'bg-emerald-600', amber: 'bg-amber-600', rose: 'bg-rose-600', blue: 'bg-blue-600' };
-            const el = document.createElement('div');
-            el.className = `toast ${colors[color] || colors.emerald} text-white`;
-            el.textContent = msg;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 4000);
+        if (isConnected) {
+            document.getElementById('dropbox-account-name').textContent =
+                dbxToken.displayName || dbxToken.email || dbxToken.account_id || '';
+            document.getElementById('dropbox-file-path-display').textContent =
+                `📁 ${dbxConfig.filePath}`;
+            setSyncStatus('synced', 'Dropbox connected');
         }
+    }
 
-        function initIcons() { lucide.createIcons(); }
+    // ----------------------------------------------------------------
+    // SYNC STATUS UI
+    // ----------------------------------------------------------------
+    function setSyncStatus(status, label) {
+        const dot = document.getElementById('sync-dot');
+        const lbl = document.getElementById('sync-label');
+        dot.className = `sync-dot ${status}`;
+        lbl.textContent = label;
+        const colors = { synced: 'text-emerald-400', pending: 'text-amber-400', error: 'text-rose-400', loading: 'text-blue-400', disconnected: 'text-slate-500' };
+        lbl.className = `text-[10px] font-bold ${colors[status] || 'text-slate-400'}`;
+    }
 
-        // ============================================================
-        // MODALS
-        // ============================================================
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            setTimeout(initIcons, 50);
+    function markUnsaved() {
+        if (!dbxToken?.access_token) return;
+        hasUnsavedChanges = true;
+        document.getElementById('unsaved-banner').style.display = 'block';
+        setSyncStatus('pending', 'Unsaved changes');
+    }
+
+    // ----------------------------------------------------------------
+    // TOAST
+    // ----------------------------------------------------------------
+    function showToast(msg, color = 'emerald') {
+        const colors = { emerald: 'bg-emerald-600', amber: 'bg-amber-600', rose: 'bg-rose-600', blue: 'bg-blue-600' };
+        const el = document.createElement('div');
+        el.className = `toast ${colors[color] || colors.emerald} text-white`;
+        el.textContent = msg;
+        document.body.appendChild(el);
+        setTimeout(() => el.remove(), 4000);
+    }
+
+    function initIcons() { lucide.createIcons(); }
+
+    // ----------------------------------------------------------------
+    // MODALS
+    // ----------------------------------------------------------------
+    function openModal(id) {
+        document.getElementById(id).classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+        setTimeout(initIcons, 50);
+    }
+    function closeModal(id) {
+        document.getElementById(id).classList.add('hidden');
+        document.body.style.overflow = 'auto';
+    }
+
+    function switchTab(tabId) {
+        document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById(tabId).classList.remove('hidden');
+        const btnId = tabId === 'payments-tab' ? 'tab-payments' : 'tab-attachments';
+        document.getElementById(btnId).classList.add('active');
+        if (tabId === 'attachments-tab') renderAttachments();
+    }
+
+    function previewPhoto(input, previewId, placeholderId) {
+        if (input.files && input.files[0]) {
+            const reader = new FileReader();
+            reader.onload = e => {
+                if (previewId === 'edit-photo-preview') editPhoto = e.target.result;
+                else currentPhoto = e.target.result;
+                document.getElementById(previewId).src = e.target.result;
+                document.getElementById(previewId).classList.remove('hidden');
+                document.getElementById(placeholderId).classList.add('hidden');
+            };
+            reader.readAsDataURL(input.files[0]);
         }
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
+    }
 
-        // ============================================================
-        // TABS
-        // ============================================================
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.remove('hidden');
-            const btnId = tabId === 'payments-tab' ? 'tab-payments' : 'tab-attachments';
-            document.getElementById(btnId).classList.add('active');
-            if (tabId === 'attachments-tab') renderAttachments();
-        }
+    // ----------------------------------------------------------------
+    // LOAN HELPERS
+    // ----------------------------------------------------------------
+    function getLoanDue(loan) {
+        const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+        const total = loan.amount + interest;
+        const paid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
+        return total - paid;
+    }
+    function isLoanPaid(loan) { return getLoanDue(loan) <= 0; }
+    function getDeactiveClients() { return groupByClient(loans).filter(g => g.loans.every(l => isLoanPaid(l))); }
+    function getActiveClients()   { return groupByClient(loans).filter(g => !g.loans.every(l => isLoanPaid(l))); }
+    function ensureDefaults(loan) {
+        if (!loan.payments)  loan.payments  = [];
+        if (!loan.documents) loan.documents = [];
+        return loan;
+    }
 
-        // ============================================================
-        // PHOTO PREVIEW
-        // ============================================================
-        function previewPhoto(input, previewId, placeholderId) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    if (previewId === 'edit-photo-preview') editPhoto = e.target.result;
-                    else currentPhoto = e.target.result;
-                    document.getElementById(previewId).src = e.target.result;
-                    document.getElementById(previewId).classList.remove('hidden');
-                    document.getElementById(placeholderId).classList.add('hidden');
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
+    // ----------------------------------------------------------------
+    // AUTOCOMPLETE
+    // ----------------------------------------------------------------
+    function handleNameInput(val) {
+        if (!val || !val.trim()) { hideSuggestions(); return; }
+        const filtered = getDeactiveClients().filter(g => g.displayName.toLowerCase().includes(val.toLowerCase()));
+        filtered.length ? showSuggestions(filtered) : hideSuggestions();
+    }
+    function showSuggestions(clients) {
+        const box = document.getElementById('name-suggestions');
+        box.innerHTML = '';
+        clients.forEach(client => {
+            const photoSrc = client.loans[0].photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.innerHTML = `<img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0"><div class="flex-1 min-w-0"><div class="text-xs font-bold text-white truncate">${client.displayName}</div><div class="text-[9px] text-slate-500">${client.loans.length} ණය</div></div><span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">✓ Paid</span>`;
+            div.onclick = () => selectDeactiveClient(client);
+            box.appendChild(div);
+        });
+        box.classList.remove('hidden');
+        initIcons();
+    }
+    function hideSuggestions() { document.getElementById('name-suggestions').classList.add('hidden'); }
+    function selectDeactiveClient(client) {
+        selectedDeactiveClient = client;
+        document.getElementById('borrower-name').value = client.displayName;
+        hideSuggestions();
+        const photoSrc = client.loans[0].photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
+        document.getElementById('selected-deactive-photo').src = photoSrc;
+        document.getElementById('selected-deactive-label').textContent = `"${client.displayName}" නැවත සක්‍රිය — නව ණය`;
+        document.getElementById('selected-deactive-hint').classList.remove('hidden');
+        if (client.loans[0].photo) { currentPhoto = client.loans[0].photo; const p = document.getElementById('photo-preview'); p.src = client.loans[0].photo; p.classList.remove('hidden'); document.getElementById('photo-placeholder').classList.add('hidden'); }
+        initIcons();
+    }
+    function clearSelectedDeactive() { selectedDeactiveClient = null; document.getElementById('selected-deactive-hint').classList.add('hidden'); document.getElementById('borrower-name').value = ''; }
 
-        // ============================================================
-        // LOAN STATUS HELPERS
-        // ============================================================
-        function getLoanDue(loan) {
+    // ----------------------------------------------------------------
+    // CRUD
+    // ----------------------------------------------------------------
+    document.getElementById('loan-form').onsubmit = function(e) {
+        e.preventDefault();
+        loans.push({ id: Date.now(), name: document.getElementById('borrower-name').value, amount: parseFloat(document.getElementById('loan-amount').value), interest: parseFloat(document.getElementById('loan-interest').value), period: parseInt(document.getElementById('loan-period').value), date: document.getElementById('loan-date').value, photo: currentPhoto, payments: [], documents: [] });
+        refreshUI(); closeModal('new-loan-modal'); this.reset();
+        currentPhoto = ""; selectedDeactiveClient = null;
+        document.getElementById('photo-preview').classList.add('hidden');
+        document.getElementById('photo-placeholder').classList.remove('hidden');
+        document.getElementById('selected-deactive-hint').classList.add('hidden');
+        persistAll();
+    };
+
+    function openEditModal(index) {
+        activeLoanIndex = index;
+        const loan = loans[index];
+        editPhoto = loan.photo || "";
+        document.getElementById('edit-name').value    = loan.name;
+        document.getElementById('edit-amount').value  = loan.amount;
+        document.getElementById('edit-interest').value = loan.interest;
+        document.getElementById('edit-period').value  = loan.period;
+        document.getElementById('edit-date').value    = loan.date;
+        const p = document.getElementById('edit-photo-preview');
+        p.src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+        p.classList.remove('hidden');
+        document.getElementById('edit-photo-placeholder').classList.add('hidden');
+        openModal('edit-loan-modal');
+    }
+
+    function openEditFromSheet() { closeModal('sheet-modal'); openEditModal(activeLoanIndex); }
+
+    document.getElementById('edit-form').onsubmit = function(e) {
+        e.preventDefault();
+        const loan = loans[activeLoanIndex];
+        loan.name     = document.getElementById('edit-name').value;
+        loan.amount   = parseFloat(document.getElementById('edit-amount').value);
+        loan.interest = parseFloat(document.getElementById('edit-interest').value);
+        loan.period   = parseInt(document.getElementById('edit-period').value);
+        loan.date     = document.getElementById('edit-date').value;
+        if (editPhoto) loan.photo = editPhoto;
+        refreshUI(); closeModal('edit-loan-modal'); persistAll();
+        setTimeout(() => openSheet(activeLoanIndex), 100);
+    };
+
+    function deleteLoan(index) {
+        if (confirm('Delete this client?')) { loans.splice(index, 1); refreshUI(); persistAll(); }
+    }
+
+    // ----------------------------------------------------------------
+    // GROUPING & RENDERING
+    // ----------------------------------------------------------------
+    function groupByClient(data) {
+        const map = {};
+        data.forEach(loan => {
+            const key = loan.name.trim().toLowerCase();
+            if (!map[key]) map[key] = { displayName: loan.name, loans: [] };
+            map[key].loans.push(loan);
+        });
+        return Object.values(map);
+    }
+
+    function renderDashboard(data = loans) {
+        const tbody = document.getElementById('loan-table-body');
+        const empty = document.getElementById('empty-state');
+        tbody.innerHTML = '';
+        const allGroups = groupByClient(data);
+        const activeGroups = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
+        const deactiveGroups = allGroups.filter(g => g.loans.every(l => isLoanPaid(l)));
+        if (activeGroups.length === 0 && deactiveGroups.length === 0) { empty.classList.remove('hidden'); initIcons(); renderDeactiveTable([]); return; }
+        empty.classList.add('hidden');
+        activeGroups.forEach(group => renderGroupRows(tbody, group, false));
+        renderDeactiveTable(deactiveGroups);
+        initIcons();
+    }
+
+    function renderGroupRows(tbody, group, isDeactive) {
+        const isMulti = group.loans.length > 1;
+        const groupKey = group.displayName.trim().toLowerCase().replace(/\s+/g, '_') + '_' + (isDeactive ? 'd' : 'a');
+        const firstLoan = group.loans[0];
+        const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
+
+        if (!isMulti) {
+            const loan = group.loans[0];
+            const idx = loans.indexOf(loan);
             const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
             const total = loan.amount + interest;
-            const paid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
-            return total - paid;
+            const paid = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
+            const due = total - paid;
+            tbody.innerHTML += `<tr class="group hover:bg-white/[0.02] transition-all cursor-pointer ${isDeactive ? 'deactive-row' : ''}" onclick="openSheet(${idx})"><td class="px-6 py-4"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover"><div><div class="font-bold text-white text-xs">${loan.name}</div><div class="text-[8px] text-slate-500 uppercase">${loan.date}</div></div></div></td><td class="px-6 py-4 text-slate-400 text-xs font-medium">Rs. ${loan.amount.toLocaleString()}</td><td class="px-6 py-4 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold ${due <= 0 ? 'bg-emerald-500/10 text-emerald-400 paid-badge' : 'bg-rose-500/10 text-rose-400'}">${due <= 0 ? '✓ PAID' : 'Rs. ' + due.toLocaleString()}</span></td><td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;
+        } else {
+            tbody.innerHTML += `<tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all" onclick="toggleClientGroup('${groupKey}')"><td class="px-6 py-4" colspan="3"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-violet-500/40"><div><div class="font-bold text-white text-xs flex items-center gap-2">${group.displayName}<span class="bg-violet-500/20 text-violet-300 text-[8px] font-bold px-2 py-0.5 rounded-full">${group.loans.length} ණය</span></div><div class="text-[8px] text-slate-500">Click to expand</div></div></div></td><td class="px-6 py-4"></td><td class="px-6 py-4 text-right"><i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline transition-transform" id="chevron-${groupKey}"></i></td></tr><tr id="subrows-${groupKey}" class="hidden"><td colspan="5" class="p-0"><table class="w-full"><tbody>${group.loans.map(loan => { const idx = loans.indexOf(loan); const interest = Math.round((loan.amount*(loan.interest/100))*loan.period); const total = loan.amount+interest; const paid = (loan.payments||[]).reduce((s,p)=>s+p.amount,0); const due = total-paid; return `<tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all" onclick="openSheet(${idx})"><td class="px-6 py-3 pl-16"><div class="text-[10px] font-bold text-slate-300">ණය #${idx+1} — ${loan.date}</div><div class="text-[8px] text-slate-600">${loan.period} මාස | ${loan.interest}%</div></td><td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td><td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td><td class="px-6 py-3 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`; }).join('')}</tbody></table></td></tr>`;
         }
+    }
 
-        function isLoanPaid(loan) { return getLoanDue(loan) <= 0; }
-
-        function getDeactiveClients() {
-            return groupByClient(loans).filter(g => g.loans.every(l => isLoanPaid(l)));
-        }
-
-        function getActiveClients() {
-            return groupByClient(loans).filter(g => !g.loans.every(l => isLoanPaid(l)));
-        }
-
-        function ensureDefaults(loan) {
-            if (!loan.payments)  loan.payments  = [];
-            if (!loan.documents) loan.documents = [];
-            return loan;
-        }
-
-        // ============================================================
-        // AUTOCOMPLETE: DEACTIVE CLIENTS
-        // ============================================================
-        function handleNameInput(val) {
-            if (!val || !val.trim()) { hideSuggestions(); return; }
-            const filtered = getDeactiveClients().filter(g =>
-                g.displayName.toLowerCase().includes(val.toLowerCase())
-            );
-            filtered.length ? showSuggestions(filtered) : hideSuggestions();
-        }
-
-        function showSuggestions(clients) {
-            const box = document.getElementById('name-suggestions');
-            box.innerHTML = '';
-            clients.forEach(client => {
-                const photoSrc = client.loans[0].photo || 
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
-                const div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = `
-                    <img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs font-bold text-white truncate">${client.displayName}</div>
-                        <div class="text-[9px] text-slate-500">${client.loans.length} ණය — ගෙවා ඉවරයි</div>
-                    </div>
-                    <span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">✓ Paid</span>
-                `;
-                div.onclick = () => selectDeactiveClient(client);
-                box.appendChild(div);
-            });
-            box.classList.remove('hidden');
-            initIcons();
-        }
-
-        function hideSuggestions() {
-            document.getElementById('name-suggestions').classList.add('hidden');
-        }
-
-        function selectDeactiveClient(client) {
-            selectedDeactiveClient = client;
-            document.getElementById('borrower-name').value = client.displayName;
-            hideSuggestions();
-            const photoSrc = client.loans[0].photo || 
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
-            document.getElementById('selected-deactive-photo').src = photoSrc;
-            document.getElementById('selected-deactive-label').textContent = 
-                `"${client.displayName}" නැවත සක්‍රිය වේ — නව ණය ලබා දෙන්න`;
-            document.getElementById('selected-deactive-hint').classList.remove('hidden');
-            if (client.loans[0].photo) {
-                currentPhoto = client.loans[0].photo;
-                const preview = document.getElementById('photo-preview');
-                preview.src = client.loans[0].photo;
-                preview.classList.remove('hidden');
-                document.getElementById('photo-placeholder').classList.add('hidden');
-            }
-            initIcons();
-        }
-
-        function clearSelectedDeactive() {
-            selectedDeactiveClient = null;
-            document.getElementById('selected-deactive-hint').classList.add('hidden');
-            document.getElementById('borrower-name').value = '';
-        }
-
-        // ============================================================
-        // CREATE LOAN
-        // ============================================================
-        document.getElementById('loan-form').onsubmit = function(e) {
-            e.preventDefault();
-            loans.push({
-                id: Date.now(),
-                name: document.getElementById('borrower-name').value,
-                amount: parseFloat(document.getElementById('loan-amount').value),
-                interest: parseFloat(document.getElementById('loan-interest').value),
-                period: parseInt(document.getElementById('loan-period').value),
-                date: document.getElementById('loan-date').value,
-                photo: currentPhoto,
-                payments: [],
-                documents: []
-            });
-            refreshUI();
-            closeModal('new-loan-modal');
-            this.reset();
-            currentPhoto = "";
-            selectedDeactiveClient = null;
-            document.getElementById('photo-preview').classList.add('hidden');
-            document.getElementById('photo-placeholder').classList.remove('hidden');
-            document.getElementById('selected-deactive-hint').classList.add('hidden');
-            persistAll();
-        };
-
-        // ============================================================
-        // EDIT LOAN
-        // ============================================================
-        function openEditModal(index) {
-            activeLoanIndex = index;
-            const loan = loans[index];
-            editPhoto = loan.photo || "";
-            document.getElementById('edit-name').value = loan.name;
-            document.getElementById('edit-amount').value = loan.amount;
-            document.getElementById('edit-interest').value = loan.interest;
-            document.getElementById('edit-period').value = loan.period;
-            document.getElementById('edit-date').value = loan.date;
-            const previewImg = document.getElementById('edit-photo-preview');
-            previewImg.src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-            previewImg.classList.remove('hidden');
-            document.getElementById('edit-photo-placeholder').classList.add('hidden');
-            openModal('edit-loan-modal');
-        }
-
-        function openEditFromSheet() {
-            closeModal('sheet-modal');
-            openEditModal(activeLoanIndex);
-        }
-
-        document.getElementById('edit-form').onsubmit = function(e) {
-            e.preventDefault();
-            const loan = loans[activeLoanIndex];
-            loan.name = document.getElementById('edit-name').value;
-            loan.amount = parseFloat(document.getElementById('edit-amount').value);
-            loan.interest = parseFloat(document.getElementById('edit-interest').value);
-            loan.period = parseInt(document.getElementById('edit-period').value);
-            loan.date = document.getElementById('edit-date').value;
-            if (editPhoto) loan.photo = editPhoto;
-            refreshUI();
-            closeModal('edit-loan-modal');
-            persistAll();
-            setTimeout(() => openSheet(activeLoanIndex), 100);
-        };
-
-        // ============================================================
-        // GROUP BY CLIENT
-        // ============================================================
-        function groupByClient(data) {
-            const map = {};
-            data.forEach(loan => {
-                const key = loan.name.trim().toLowerCase();
-                if (!map[key]) map[key] = { displayName: loan.name, loans: [] };
-                map[key].loans.push(loan);
-            });
-            return Object.values(map);
-        }
-
-        // ============================================================
-        // RENDER DASHBOARD
-        // ============================================================
-        function renderDashboard(data = loans) {
-            const tbody = document.getElementById('loan-table-body');
-            const empty = document.getElementById('empty-state');
-            tbody.innerHTML = '';
-
-            const allGroups = groupByClient(data);
-            const activeGroups = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
-            const deactiveGroups = allGroups.filter(g => g.loans.every(l => isLoanPaid(l)));
-
-            if (activeGroups.length === 0 && deactiveGroups.length === 0) {
-                empty.classList.remove('hidden');
-                initIcons();
-                renderDeactiveTable([]);
-                return;
-            }
-            empty.classList.add('hidden');
-            activeGroups.forEach(group => renderGroupRows(tbody, group, false));
-            renderDeactiveTable(deactiveGroups);
-            initIcons();
-        }
-
-        function renderGroupRows(tbody, group, isDeactive) {
-            const isMulti = group.loans.length > 1;
-            const groupKey = group.displayName.trim().toLowerCase().replace(/\s+/g, '_') + '_' + (isDeactive ? 'd' : 'a');
+    function renderDeactiveTable(deactiveGroups) {
+        const section = document.getElementById('deactive-section');
+        const tbody = document.getElementById('deactive-table-body');
+        const badge = document.getElementById('deactive-count-badge');
+        if (deactiveGroups.length === 0) { section.classList.add('hidden'); return; }
+        section.classList.remove('hidden');
+        badge.textContent = deactiveGroups.length;
+        tbody.innerHTML = '';
+        deactiveGroups.forEach(group => {
             const firstLoan = group.loans[0];
-            const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
+            const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
+            const totalPaid = group.loans.reduce((s, l) => s + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
+            const totalPrincipal = group.loans.reduce((s, l) => s + l.amount, 0);
+            const latestLoan = group.loans[group.loans.length - 1];
+            const latestIdx = loans.indexOf(latestLoan);
+            tbody.innerHTML += `<tr class="deactive-row hover:bg-white/[0.02] transition-all cursor-pointer" onclick="openSheet(${latestIdx})"><td class="px-6 py-4"><div class="flex items-center gap-3"><div class="relative"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover grayscale opacity-60"><div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border border-slate-900 flex items-center justify-center"><span class="text-[6px] text-white font-bold">✓</span></div></div><div><div class="font-bold text-slate-400 text-xs">${group.displayName}</div><div class="text-[8px] text-slate-600">${group.loans.length} ණය | ${firstLoan.date}</div></div></div></td><td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td><td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span></td><td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation(); openNewLoanForDeactive('${group.displayName.replace(/'/g,"\\'")}');" class="text-slate-600 hover:text-blue-400 transition-colors text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded"><i data-lucide="plus" class="w-3 h-3"></i> නව ණය</button><button onclick="event.stopPropagation(); deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;
+        });
+        initIcons();
+    }
 
-            if (!isMulti) {
-                const loan = group.loans[0];
-                const idx = loans.indexOf(loan);
-                const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-                const total = loan.amount + interest;
-                const paid = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
-                const due = total - paid;
-                tbody.innerHTML += `
-                    <tr class="group hover:bg-white/[0.02] transition-all cursor-pointer ${isDeactive ? 'deactive-row' : ''}" onclick="openSheet(${idx})">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover">
-                                <div>
-                                    <div class="font-bold text-white text-xs">${loan.name}</div>
-                                    <div class="text-[8px] text-slate-500 uppercase">${loan.date}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-slate-400 text-xs font-medium">Rs. ${loan.amount.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 rounded text-[8px] font-bold ${due <= 0 ? 'bg-emerald-500/10 text-emerald-400 paid-badge' : 'bg-rose-500/10 text-rose-400'}">
-                                ${due <= 0 ? '✓ PAID' : 'Rs. ' + due.toLocaleString()}
-                            </span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                                <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            } else {
-                tbody.innerHTML += `
-                    <tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all ${isDeactive ? 'deactive-row' : ''}"
-                        onclick="toggleClientGroup('${groupKey}')">
-                        <td class="px-6 py-4" colspan="3">
-                            <div class="flex items-center gap-3">
-                                <img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-violet-500/40">
-                                <div>
-                                    <div class="font-bold text-white text-xs flex items-center gap-2">
-                                        ${group.displayName}
-                                        <span class="bg-violet-500/20 text-violet-300 text-[8px] font-bold px-2 py-0.5 rounded-full">${group.loans.length} ණය</span>
-                                    </div>
-                                    <div class="text-[8px] text-slate-500">ක්ලික් කරන්න / Click to expand</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4">
-                            ${isDeactive ? '<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>' : ''}
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline transition-transform" id="chevron-${groupKey}"></i>
-                        </td>
-                    </tr>
-                    <tr id="subrows-${groupKey}" class="hidden">
-                        <td colspan="5" class="p-0">
-                            <table class="w-full"><tbody>
-                                ${group.loans.map(loan => {
-                                    const idx = loans.indexOf(loan);
-                                    const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-                                    const total = loan.amount + interest;
-                                    const paid = (loan.payments||[]).reduce((s, p) => s + p.amount, 0);
-                                    const due = total - paid;
-                                    return `
-                                        <tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all" onclick="openSheet(${idx})">
-                                            <td class="px-6 py-3 pl-16">
-                                                <div class="text-[10px] font-bold text-slate-300">ණය #${idx+1} — ${loan.date}</div>
-                                                <div class="text-[8px] text-slate-600">${loan.period} මාස | ${loan.interest}%</div>
-                                            </td>
-                                            <td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td>
-                                            <td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
-                                            <td class="px-6 py-3">
-                                                <span class="px-2 py-1 rounded text-[8px] font-bold ${due <= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
-                                                    ${due <= 0 ? '✓ PAID' : 'Rs. ' + due.toLocaleString()}
-                                                </span>
-                                            </td>
-                                            <td class="px-6 py-3 text-right">
-                                                <div class="flex items-center justify-end gap-2">
-                                                    <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                                                    <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    `;
-                                }).join('')}
-                            </tbody></table>
-                        </td>
-                    </tr>
-                `;
-            }
+    function toggleDeactiveSection() {
+        deactiveSectionOpen = !deactiveSectionOpen;
+        const wrapper = document.getElementById('deactive-table-wrapper');
+        const chevron = document.getElementById('deactive-chevron');
+        const label = document.getElementById('deactive-toggle-label');
+        wrapper.classList.toggle('hidden', !deactiveSectionOpen);
+        chevron.style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
+        label.textContent = deactiveSectionOpen ? 'Hide' : 'Show';
+    }
+
+    function openNewLoanForDeactive(name) {
+        openModal('new-loan-modal');
+        setTimeout(() => {
+            document.getElementById('borrower-name').value = name;
+            const client = getDeactiveClients().find(g => g.displayName === name);
+            if (client) selectDeactiveClient(client);
+        }, 100);
+    }
+
+    function toggleClientGroup(key) {
+        const subrows = document.getElementById(`subrows-${key}`);
+        const chevron = document.getElementById(`chevron-${key}`);
+        const isHidden = subrows.classList.contains('hidden');
+        subrows.classList.toggle('hidden', !isHidden);
+        chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
+        initIcons();
+    }
+
+    function searchLoans(val) { renderDashboard(loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase()))); }
+
+    // ----------------------------------------------------------------
+    // SHEET
+    // ----------------------------------------------------------------
+    function openSheet(index) {
+        activeLoanIndex = index;
+        const loan = ensureDefaults(loans[index]);
+        const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+        const total = loan.amount + interest;
+        const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
+        const due = total - paid;
+        const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+        document.getElementById('sheet-photo').src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+        document.getElementById('sheet-title').innerText = loan.name;
+        document.getElementById('sheet-subtitle').innerText = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
+        document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
+        document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
+        document.getElementById('sheet-total-with-interest').innerText = `Rs. ${total.toLocaleString()}`;
+        setTimeout(() => { document.getElementById('sheet-progress-bar').style.width = pct + '%'; document.getElementById('sheet-progress-label').textContent = pct + '% Recovered'; }, 100);
+        updateAttachmentBadge();
+        switchTab('payments-tab');
+        renderPaymentHistory();
+        openModal('sheet-modal');
+        setTimeout(() => renderClientCharts(loan, paid, due, total, interest), 120);
+    }
+
+    function updateAttachmentBadge() {
+        if (activeLoanIndex === null) return;
+        const count = (loans[activeLoanIndex].documents || []).length;
+        const badge = document.getElementById('att-count-badge');
+        if (count > 0) { badge.textContent = count; badge.classList.remove('hidden'); } else { badge.classList.add('hidden'); }
+    }
+
+    function renderClientCharts(loan, paid, due, total, interest) {
+        if (clientDonutChart) { clientDonutChart.destroy(); clientDonutChart = null; }
+        if (clientBarChart)   { clientBarChart.destroy();   clientBarChart = null; }
+        if (clientLineChart)  { clientLineChart.destroy();  clientLineChart = null; }
+        const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+        animateCount('donut-pct', 0, pct, '%', 900);
+        const donutCtx = document.getElementById('client-donut-chart');
+        if (donutCtx) clientDonutChart = new Chart(donutCtx, { type: 'doughnut', data: { labels: ['Paid', 'Due'], datasets: [{ data: paid > 0 || due > 0 ? [paid, Math.max(0, due)] : [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0, hoverOffset: 6 }] }, options: { responsive: true, maintainAspectRatio: true, cutout: '72%', animation: { animateRotate: true, duration: 900 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } } } });
+        const barCtx = document.getElementById('client-bar-chart');
+        if (barCtx) clientBarChart = new Chart(barCtx, { type: 'bar', data: { labels: ['Principal', 'Interest', 'Paid', 'Balance'], datasets: [{ data: [loan.amount, interest, paid, Math.max(0, due)], backgroundColor: ['rgba(59,130,246,0.75)', 'rgba(245,158,11,0.75)', 'rgba(16,185,129,0.75)', 'rgba(244,63,94,0.75)'], borderRadius: 5, borderSkipped: false }] }, options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } } } } });
+        const lineCtx = document.getElementById('client-line-chart');
+        if (lineCtx) { const sorted = [...(loan.payments||[])].sort((a, b) => new Date(a.date)-new Date(b.date)); let running = 0; const labels = ['Start']; const cumData = [0]; sorted.forEach(p => { labels.push(p.date.substring(5)); running += p.amount; cumData.push(running); }); clientLineChart = new Chart(lineCtx, { type: 'line', data: { labels, datasets: [{ label: 'Paid', data: cumData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', borderWidth: 2 }, { label: 'Total', data: labels.map(() => total), borderColor: 'rgba(244,63,94,0.3)', borderDash: [4,4], borderWidth: 1, pointRadius: 0, fill: false }] }, options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 7 }, maxTicksLimit: 5 } } } } }); }
+    }
+
+    function animateCount(elemId, from, to, suffix, duration) {
+        const el = document.getElementById(elemId);
+        if (!el) return;
+        const start = performance.now();
+        function step(now) { const progress = Math.min((now-start)/duration, 1); const ease = 1-Math.pow(1-progress, 3); el.textContent = Math.round(from+(to-from)*ease)+suffix; if (progress < 1) requestAnimationFrame(step); }
+        requestAnimationFrame(step);
+    }
+
+    // ----------------------------------------------------------------
+    // PAYMENTS
+    // ----------------------------------------------------------------
+    function addPayment() {
+        const amtIn = document.getElementById('pay-amount');
+        const dateIn = document.getElementById('pay-date');
+        const noteIn = document.getElementById('pay-note');
+        if (!amtIn.value || !dateIn.value) return alert('Please enter amount and date.');
+        ensureDefaults(loans[activeLoanIndex]);
+        loans[activeLoanIndex].payments.push({ amount: parseFloat(amtIn.value), date: dateIn.value, note: noteIn.value || '' });
+        const loan = loans[activeLoanIndex];
+        const interest = Math.round((loan.amount * (loan.interest/100)) * loan.period);
+        const total = loan.amount + interest;
+        const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
+        const due = total - paid;
+        const pct = total > 0 ? Math.min(100, Math.round((paid/total)*100)) : 0;
+        document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
+        document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
+        document.getElementById('sheet-progress-bar').style.width = pct + '%';
+        document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
+        renderClientCharts(loan, paid, due, total, interest);
+        if (due <= 0) showToast(`🎉 ${loan.name} — ණය ගෙවා ඉවරයි!`, 'emerald');
+        refreshUI(); renderPaymentHistory();
+        amtIn.value = ''; noteIn.value = '';
+        persistAll();
+    }
+
+    function deletePayment(idx) {
+        if (!confirm('Delete this payment?')) return;
+        loans[activeLoanIndex].payments.splice(idx, 1);
+        const loan = loans[activeLoanIndex];
+        const interest = Math.round((loan.amount*(loan.interest/100))*loan.period);
+        const total = loan.amount+interest;
+        const paid = loan.payments.reduce((sum, p) => sum+p.amount, 0);
+        const due = total-paid;
+        const pct = total>0?Math.min(100,Math.round((paid/total)*100)):0;
+        document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
+        document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
+        document.getElementById('sheet-progress-bar').style.width = pct+'%';
+        document.getElementById('sheet-progress-label').textContent = pct+'% Recovered';
+        renderClientCharts(loan, paid, due, total, interest);
+        refreshUI(); renderPaymentHistory(); persistAll();
+    }
+
+    function renderPaymentHistory() {
+        const tbody = document.getElementById('payment-history-body');
+        const noPayments = document.getElementById('no-payments');
+        tbody.innerHTML = '';
+        const payments = (loans[activeLoanIndex].payments || []);
+        if (payments.length === 0) { noPayments.classList.remove('hidden'); return; }
+        noPayments.classList.add('hidden');
+        const sorted = [...payments].map((p, i) => ({ ...p, i })).sort((a, b) => new Date(b.date)-new Date(a.date));
+        sorted.forEach(p => { tbody.innerHTML += `<tr class="hover:bg-white/[0.02] transition-all"><td class="px-5 py-3 text-slate-400 text-[11px]">${p.date}</td><td class="px-5 py-3 text-slate-500 text-[10px] italic">${p.note||'—'}</td><td class="px-5 py-3 text-right font-bold text-emerald-400 text-[11px]">Rs. ${p.amount.toLocaleString()}</td><td class="px-5 py-3 text-right"><button onclick="deletePayment(${p.i})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button></td></tr>`; });
+        initIcons();
+    }
+
+    // ----------------------------------------------------------------
+    // ATTACHMENTS
+    // ----------------------------------------------------------------
+    function handleDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+    function handleDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+    function handleDrop(e)      { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files); }
+    function attachDocs(input)  { if (input.files && input.files.length) processFiles(input.files); input.value = ''; }
+    function processFiles(files) {
+        ensureDefaults(loans[activeLoanIndex]);
+        let processed = 0; const total = files.length;
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = e => { loans[activeLoanIndex].documents.push({ name: file.name, data: e.target.result, size: file.size, type: file.type||'', addedDate: new Date().toISOString().split('T')[0] }); processed++; if (processed===total) { updateAttachmentBadge(); renderAttachments(); persistAll(); showToast(`📎 ${total} file(s) added!`, 'blue'); } };
+            reader.onerror = () => { processed++; showToast(`❌ "${file.name}" read failed.`, 'rose'); };
+            reader.readAsDataURL(file);
+        });
+    }
+    function getFileIcon(type, name) { if (type.startsWith('image/')) return '🖼️'; if (type==='application/pdf') return '📄'; if (type.includes('word')||name.endsWith('.docx')) return '📝'; if (type.includes('excel')||name.endsWith('.xlsx')) return '📊'; return '📎'; }
+    function formatSize(bytes) { if (!bytes) return ''; if (bytes<1024) return bytes+' B'; if (bytes<1048576) return (bytes/1024).toFixed(1)+' KB'; return (bytes/1048576).toFixed(1)+' MB'; }
+    function renderAttachments() {
+        if (activeLoanIndex===null) return;
+        ensureDefaults(loans[activeLoanIndex]);
+        const grid = document.getElementById('attachment-grid');
+        const noAtt = document.getElementById('no-attachments');
+        const docs = loans[activeLoanIndex].documents;
+        grid.innerHTML = '';
+        if (docs.length===0) { noAtt.classList.remove('hidden'); return; }
+        noAtt.classList.add('hidden');
+        docs.forEach((doc, idx) => {
+            const isImage = doc.type && doc.type.startsWith('image/');
+            const icon = getFileIcon(doc.type||'', doc.name);
+            grid.innerHTML += `<div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">${isImage?`<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')"><img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"></div>`:`<div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2"><span class="text-4xl">${icon}</span><span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center">${doc.type||'File'}</span></div>`}<div class="p-3"><p class="text-[10px] font-bold text-slate-300 truncate mb-1">${doc.name}</p><div class="flex items-center justify-between"><span class="text-[8px] text-slate-600">${formatSize(doc.size)}${doc.addedDate?' · '+doc.addedDate:''}</span><div class="flex gap-2"><a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors"><i data-lucide="download" class="w-3 h-3"></i></a><button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div></div></div>`;
+        });
+        initIcons();
+    }
+    function previewImage(src) { document.getElementById('preview-img').src = src; openModal('image-preview-modal'); }
+    function removeDoc(idx) { if (!confirm('Remove this attachment?')) return; loans[activeLoanIndex].documents.splice(idx, 1); updateAttachmentBadge(); renderAttachments(); persistAll(); }
+
+    // ----------------------------------------------------------------
+    // STATS & CHARTS
+    // ----------------------------------------------------------------
+    function updateStats() {
+        const principal = loans.reduce((sum, l) => sum+l.amount, 0);
+        const collected = loans.reduce((sum, l) => sum+(l.payments||[]).reduce((ps,p)=>ps+p.amount, 0), 0);
+        const totalInt  = loans.reduce((sum, l) => sum+Math.round((l.amount*(l.interest/100))*l.period), 0);
+        const outstanding = principal+totalInt-collected;
+        document.getElementById('total-clients').innerText    = getActiveClients().length;
+        document.getElementById('total-loaned').innerText     = `Rs. ${principal.toLocaleString()}`;
+        document.getElementById('total-collected').innerText  = `Rs. ${collected.toLocaleString()}`;
+        document.getElementById('total-outstanding').innerText= `Rs. ${outstanding.toLocaleString()}`;
+        document.getElementById('total-interest').innerText   = `Rs. ${totalInt.toLocaleString()}`;
+    }
+
+    function initCharts() {
+        const opts = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#64748b', font: { size: 9 } } } } };
+        recoveryChart    = new Chart(document.getElementById('recoveryPieChart'), { type: 'doughnut', data: { labels: ['Paid', 'Due'], datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] }, options: { ...opts, cutout: '75%' } });
+        growthChart      = new Chart(document.getElementById('growthLineChart'),  { type: 'line', data: { labels: [], datasets: [{ label: 'Loans', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.05)', fill: true, tension: 0.4 }] }, options: { ...opts, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } } }, plugins: { legend: { display: false } } } });
+        comparisonChart  = new Chart(document.getElementById('comparisonBarChart'),{ type: 'bar', data: { labels: ['Prin.', 'Paid', 'Int.'], datasets: [{ data: [0,0,0], backgroundColor: ['#3b82f6','#10b981','#f59e0b'], borderRadius: 4 }] }, options: { ...opts, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } } }, plugins: { legend: { display: false } } } });
+    }
+
+    function updateCharts() {
+        const principal  = loans.reduce((sum, l) => sum+l.amount, 0);
+        const collected  = loans.reduce((sum, l) => sum+(l.payments||[]).reduce((ps,p)=>ps+p.amount, 0), 0);
+        const totalInt   = loans.reduce((sum, l) => sum+Math.round((l.amount*(l.interest/100))*l.period), 0);
+        const outstanding= principal+totalInt-collected;
+        recoveryChart.data.datasets[0].data = [collected, outstanding>0?outstanding:0]; recoveryChart.update();
+        comparisonChart.data.datasets[0].data = [principal, collected, totalInt]; comparisonChart.update();
+        const monthlyData = {};
+        loans.forEach(l => { const month = l.date.substring(0,7); monthlyData[month] = (monthlyData[month]||0)+l.amount; });
+        const sortedMonths = Object.keys(monthlyData).sort();
+        growthChart.data.labels = sortedMonths.map(m => m.split('-')[1]);
+        growthChart.data.datasets[0].data = sortedMonths.map(m => monthlyData[m]);
+        growthChart.update();
+    }
+
+    // ----------------------------------------------------------------
+    // PERSISTENCE
+    // ----------------------------------------------------------------
+    function saveToLocalStorage() { try { localStorage.setItem(LS_KEY, JSON.stringify(loans)); } catch(e) { showToast('⚠️ Local storage full!', 'amber'); } }
+    function loadFromLocalStorage() { try { const raw = localStorage.getItem(LS_KEY); if (raw) loans = JSON.parse(raw); } catch(e) { loans = []; } }
+
+    function persistAll() {
+        saveToLocalStorage();
+        markUnsaved();
+    }
+
+    function downloadJSON() {
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
+        const dl = document.createElement('a');
+        dl.setAttribute("href", dataStr);
+        dl.setAttribute("download", `loan_book_${new Date().toISOString().split('T')[0]}.json`);
+        dl.click();
+    }
+
+    function refreshUI() { renderDashboard(); updateStats(); updateCharts(); }
+
+    // ----------------------------------------------------------------
+    // INIT
+    // ----------------------------------------------------------------
+    window.onload = async () => {
+        // Set redirect URI display
+        const origin = window.location.href.split('?')[0].split('#')[0];
+        const el = document.getElementById('current-origin-display');
+        if (el) el.textContent = origin;
+
+        initCharts();
+        loadConfig();
+
+        // Load local data first
+        loadFromLocalStorage();
+        loans.forEach(ensureDefaults);
+        if (loans.length > 0) refreshUI();
+
+        updateDropboxUI();
+
+        // Handle OAuth callback
+        await handleOAuthCallback();
+
+        // If connected, load from Dropbox
+        if (dbxToken?.access_token) {
+            await loadFromDropboxAPI();
         }
 
-        // ============================================================
-        // DEACTIVE TABLE
-        // ============================================================
-        function renderDeactiveTable(deactiveGroups) {
-            const section = document.getElementById('deactive-section');
-            const tbody = document.getElementById('deactive-table-body');
-            const badge = document.getElementById('deactive-count-badge');
-
-            if (deactiveGroups.length === 0) { section.classList.add('hidden'); return; }
-
-            section.classList.remove('hidden');
-            badge.textContent = deactiveGroups.length;
-            tbody.innerHTML = '';
-
-            deactiveGroups.forEach(group => {
-                const firstLoan = group.loans[0];
-                const photoSrc = firstLoan.photo || 
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
-                const totalPaid = group.loans.reduce((s, l) => s + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
-                const totalPrincipal = group.loans.reduce((s, l) => s + l.amount, 0);
-                const latestLoan = group.loans[group.loans.length - 1];
-                const latestIdx = loans.indexOf(latestLoan);
-
-                tbody.innerHTML += `
-                    <tr class="deactive-row hover:bg-white/[0.02] transition-all cursor-pointer" onclick="openSheet(${latestIdx})">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center gap-3">
-                                <div class="relative">
-                                    <img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover grayscale opacity-60">
-                                    <div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border border-slate-900 flex items-center justify-center">
-                                        <span class="text-[6px] text-white font-bold">✓</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <div class="font-bold text-slate-400 text-xs">${group.displayName}</div>
-                                    <div class="text-[8px] text-slate-600">${group.loans.length} ණය | ${firstLoan.date}</div>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span>
-                        </td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end gap-2">
-                                <button onclick="event.stopPropagation(); openNewLoanForDeactive('${group.displayName.replace(/'/g, "\\'")}')" 
-                                    class="text-slate-600 hover:text-blue-400 transition-colors text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded">
-                                    <i data-lucide="plus" class="w-3 h-3"></i> නව ණය
-                                </button>
-                                <button onclick="event.stopPropagation(); deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                            </div>
-                        </td>
-                    </tr>
-                `;
-            });
-            initIcons();
-        }
-
-        function toggleDeactiveSection() {
-            deactiveSectionOpen = !deactiveSectionOpen;
-            const wrapper = document.getElementById('deactive-table-wrapper');
-            const chevron = document.getElementById('deactive-chevron');
-            const label = document.getElementById('deactive-toggle-label');
-            wrapper.classList.toggle('hidden', !deactiveSectionOpen);
-            chevron.style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
-            label.textContent = deactiveSectionOpen ? 'Hide' : 'Show';
-        }
-
-        function openNewLoanForDeactive(name) {
-            openModal('new-loan-modal');
-            setTimeout(() => {
-                document.getElementById('borrower-name').value = name;
-                const client = getDeactiveClients().find(g => g.displayName === name);
-                if (client) selectDeactiveClient(client);
-            }, 100);
-        }
-
-        function toggleClientGroup(key) {
-            const subrows = document.getElementById(`subrows-${key}`);
-            const chevron = document.getElementById(`chevron-${key}`);
-            const isHidden = subrows.classList.contains('hidden');
-            subrows.classList.toggle('hidden', !isHidden);
-            chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
-            initIcons();
-        }
-
-        function searchLoans(val) {
-            renderDashboard(loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase())));
-        }
-
-        // ============================================================
-        // OPEN SHEET
-        // ============================================================
-        function openSheet(index) {
-            activeLoanIndex = index;
-            const loan = ensureDefaults(loans[index]);
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
-            const due = total - paid;
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-
-            document.getElementById('sheet-photo').src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-            document.getElementById('sheet-title').innerText = loan.name;
-            document.getElementById('sheet-subtitle').innerText = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
-            document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-total-with-interest').innerText = `Rs. ${total.toLocaleString()}`;
-
-            setTimeout(() => {
-                document.getElementById('sheet-progress-bar').style.width = pct + '%';
-                document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-            }, 100);
-
-            updateAttachmentBadge();
-            switchTab('payments-tab');
-            renderPaymentHistory();
-            openModal('sheet-modal');
-            setTimeout(() => renderClientCharts(loan, paid, due, total, interest), 120);
-        }
-
-        function updateAttachmentBadge() {
-            if (activeLoanIndex === null) return;
-            const loan = loans[activeLoanIndex];
-            const count = (loan.documents || []).length;
-            const badge = document.getElementById('att-count-badge');
-            if (count > 0) {
-                badge.textContent = count;
-                badge.classList.remove('hidden');
-            } else {
-                badge.classList.add('hidden');
-            }
-        }
-
-        // ============================================================
-        // CLIENT CHARTS
-        // ============================================================
-        function renderClientCharts(loan, paid, due, total, interest) {
-            if (clientDonutChart) { clientDonutChart.destroy(); clientDonutChart = null; }
-            if (clientBarChart)   { clientBarChart.destroy();   clientBarChart = null; }
-            if (clientLineChart)  { clientLineChart.destroy();  clientLineChart = null; }
-
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-            animateCount('donut-pct', 0, pct, '%', 900);
-
-            const donutCtx = document.getElementById('client-donut-chart');
-            if (donutCtx) {
-                clientDonutChart = new Chart(donutCtx, {
-                    type: 'doughnut',
-                    data: {
-                        labels: ['Paid', 'Due'],
-                        datasets: [{ data: paid > 0 || due > 0 ? [paid, Math.max(0, due)] : [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0, hoverOffset: 6 }]
-                    },
-                    options: { responsive: true, maintainAspectRatio: true, cutout: '72%', animation: { animateRotate: true, duration: 900 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } } }
-                });
-            }
-
-            const barCtx = document.getElementById('client-bar-chart');
-            if (barCtx) {
-                clientBarChart = new Chart(barCtx, {
-                    type: 'bar',
-                    data: { labels: ['Principal', 'Interest', 'Paid', 'Balance'], datasets: [{ data: [loan.amount, interest, paid, Math.max(0, due)], backgroundColor: ['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'], borderRadius: 5, borderSkipped: false }] },
-                    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } } } }
-                });
-            }
-
-            const lineCtx = document.getElementById('client-line-chart');
-            if (lineCtx) {
-                const sorted = [...(loan.payments||[])].sort((a, b) => new Date(a.date) - new Date(b.date));
-                let running = 0;
-                const labels = ['Start'];
-                const cumData = [0];
-                sorted.forEach(p => { labels.push(p.date.substring(5)); running += p.amount; cumData.push(running); });
-                clientLineChart = new Chart(lineCtx, {
-                    type: 'line',
-                    data: { labels, datasets: [
-                        { label: 'Cumulative Paid', data: cumData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', borderWidth: 2 },
-                        { label: 'Total Due', data: labels.map(() => total), borderColor: 'rgba(244,63,94,0.3)', borderDash: [4,4], borderWidth: 1, pointRadius: 0, fill: false }
-                    ]},
-                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 7 }, maxTicksLimit: 5 } } } }
-                });
-            }
-        }
-
-        function animateCount(elemId, from, to, suffix, duration) {
-            const el = document.getElementById(elemId);
-            if (!el) return;
-            const start = performance.now();
-            function step(now) {
-                const progress = Math.min((now - start) / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 3);
-                el.textContent = Math.round(from + (to - from) * ease) + suffix;
-                if (progress < 1) requestAnimationFrame(step);
-            }
-            requestAnimationFrame(step);
-        }
-
-        // ============================================================
-        // PAYMENTS
-        // ============================================================
-        function addPayment() {
-            const amtIn = document.getElementById('pay-amount');
-            const dateIn = document.getElementById('pay-date');
-            const noteIn = document.getElementById('pay-note');
-            if (!amtIn.value || !dateIn.value) return alert('Please enter amount and date.');
-            
-            ensureDefaults(loans[activeLoanIndex]);
-            loans[activeLoanIndex].payments.push({ amount: parseFloat(amtIn.value), date: dateIn.value, note: noteIn.value || '' });
-
-            const loan = loans[activeLoanIndex];
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
-            const due = total - paid;
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-
-            document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-progress-bar').style.width = pct + '%';
-            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-            
-            renderClientCharts(loan, paid, due, total, interest);
-            if (due <= 0) showToast(`🎉 ${loan.name} — ණය ගෙවා ඉවරයි! Auto-deactivated.`, 'emerald');
-            
-            refreshUI();
-            renderPaymentHistory();
-            amtIn.value = '';
-            noteIn.value = '';
-            persistAll();
-        }
-
-        function deletePayment(idx) {
-            if (!confirm('Delete this payment?')) return;
-            loans[activeLoanIndex].payments.splice(idx, 1);
-            const loan = loans[activeLoanIndex];
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
-            const due = total - paid;
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-            document.getElementById('sheet-balance-due').innerText = `Rs. ${(total - paid).toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-progress-bar').style.width = pct + '%';
-            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-            renderClientCharts(loan, paid, due, total, interest);
-            refreshUI();
-            renderPaymentHistory();
-            persistAll();
-        }
-
-        function renderPaymentHistory() {
-            const tbody = document.getElementById('payment-history-body');
-            const noPayments = document.getElementById('no-payments');
-            tbody.innerHTML = '';
-            const payments = (loans[activeLoanIndex].payments || []);
-            if (payments.length === 0) { noPayments.classList.remove('hidden'); return; }
-            noPayments.classList.add('hidden');
-            const sorted = [...payments].map((p, i) => ({ ...p, i })).sort((a, b) => new Date(b.date) - new Date(a.date));
-            sorted.forEach(p => {
-                tbody.innerHTML += `
-                    <tr class="hover:bg-white/[0.02] transition-all">
-                        <td class="px-5 py-3 text-slate-400 text-[11px]">${p.date}</td>
-                        <td class="px-5 py-3 text-slate-500 text-[10px] italic">${p.note || '—'}</td>
-                        <td class="px-5 py-3 text-right font-bold text-emerald-400 text-[11px]">Rs. ${p.amount.toLocaleString()}</td>
-                        <td class="px-5 py-3 text-right">
-                            <button onclick="deletePayment(${p.i})" class="text-slate-600 hover:text-rose-500 transition-colors">
-                                <i data-lucide="trash-2" class="w-3 h-3"></i>
-                            </button>
-                        </td>
-                    </tr>
-                `;
-            });
-            initIcons();
-        }
-
-        // ============================================================
-        // ATTACHMENTS
-        // ============================================================
-        function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
-        function handleDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
-        function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files); }
-        function attachDocs(input) { if (input.files && input.files.length) processFiles(input.files); input.value = ''; }
-
-        function processFiles(files) {
-            ensureDefaults(loans[activeLoanIndex]);
-            let processed = 0;
-            const total = files.length;
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    loans[activeLoanIndex].documents.push({ name: file.name, data: e.target.result, size: file.size, type: file.type || '', addedDate: new Date().toISOString().split('T')[0] });
-                    processed++;
-                    if (processed === total) { updateAttachmentBadge(); renderAttachments(); persistAll(); showToast(`📎 ${total} file(s) added!`, 'blue'); }
-                };
-                reader.onerror = () => { processed++; showToast(`❌ "${file.name}" read failed.`, 'rose'); };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function getFileIcon(type, name) {
-            if (type.startsWith('image/')) return '🖼️';
-            if (type === 'application/pdf') return '📄';
-            if (type.includes('word') || name.endsWith('.doc') || name.endsWith('.docx')) return '📝';
-            if (type.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return '📊';
-            return '📎';
-        }
-
-        function formatSize(bytes) {
-            if (!bytes) return '';
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / 1048576).toFixed(1) + ' MB';
-        }
-
-        function renderAttachments() {
-            if (activeLoanIndex === null) return;
-            ensureDefaults(loans[activeLoanIndex]);
-            const grid = document.getElementById('attachment-grid');
-            const noAtt = document.getElementById('no-attachments');
-            const docs = loans[activeLoanIndex].documents;
-            grid.innerHTML = '';
-            if (docs.length === 0) { noAtt.classList.remove('hidden'); return; }
-            noAtt.classList.add('hidden');
-            docs.forEach((doc, idx) => {
-                const isImage = doc.type && doc.type.startsWith('image/');
-                const icon = getFileIcon(doc.type || '', doc.name);
-                grid.innerHTML += `
-                    <div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">
-                        ${isImage ? `<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')"><img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"></div>` : `<div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2"><span class="text-4xl">${icon}</span><span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center">${doc.type || 'File'}</span></div>`}
-                        <div class="p-3">
-                            <p class="text-[10px] font-bold text-slate-300 truncate mb-1">${doc.name}</p>
-                            <div class="flex items-center justify-between">
-                                <span class="text-[8px] text-slate-600">${formatSize(doc.size)}${doc.addedDate ? ' · ' + doc.addedDate : ''}</span>
-                                <div class="flex gap-2">
-                                    <a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors"><i data-lucide="download" class="w-3 h-3"></i></a>
-                                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-            });
-            initIcons();
-        }
-
-        function previewImage(src) { document.getElementById('preview-img').src = src; openModal('image-preview-modal'); }
-
-        function removeDoc(idx) {
-            if (!confirm('Remove this attachment?')) return;
-            loans[activeLoanIndex].documents.splice(idx, 1);
-            updateAttachmentBadge();
-            renderAttachments();
-            persistAll();
-        }
-
-        // ============================================================
-        // DELETE LOAN
-        // ============================================================
-        function deleteLoan(index) {
-            if (confirm('මෙම ගනුදෙනුකරු ඉවත් කිරීමට ඔබට විශ්වාසද?')) {
-                loans.splice(index, 1);
-                refreshUI();
-                persistAll();
-            }
-        }
-
-        // ============================================================
-        // STATS
-        // ============================================================
-        function updateStats() {
-            const principal = loans.reduce((sum, l) => sum + l.amount, 0);
-            const collected = loans.reduce((sum, l) => sum + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
-            const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
-            const outstanding = (principal + totalInt - collected);
-            const activeCount = getActiveClients().length;
-            document.getElementById('total-clients').innerText = activeCount;
-            document.getElementById('total-loaned').innerText = `Rs. ${principal.toLocaleString()}`;
-            document.getElementById('total-collected').innerText = `Rs. ${collected.toLocaleString()}`;
-            document.getElementById('total-outstanding').innerText = `Rs. ${outstanding.toLocaleString()}`;
-            document.getElementById('total-interest').innerText = `Rs. ${totalInt.toLocaleString()}`;
-        }
-
-        // ============================================================
-        // CHARTS
-        // ============================================================
-        function initCharts() {
-            const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#64748b', font: { size: 9 } } } } };
-            recoveryChart = new Chart(document.getElementById('recoveryPieChart'), { type: 'doughnut', data: { labels: ['Paid', 'Due'], datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] }, options: { ...commonOptions, cutout: '75%' } });
-            growthChart = new Chart(document.getElementById('growthLineChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Loans', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.05)', fill: true, tension: 0.4 }] }, options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } } }, plugins: { legend: { display: false } } } });
-            comparisonChart = new Chart(document.getElementById('comparisonBarChart'), { type: 'bar', data: { labels: ['Prin.', 'Paid', 'Int.'], datasets: [{ data: [0,0,0], backgroundColor: ['#3b82f6','#10b981','#f59e0b'], borderRadius: 4 }] }, options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } } }, plugins: { legend: { display: false } } } });
-        }
-
-        function updateCharts() {
-            const principal = loans.reduce((sum, l) => sum + l.amount, 0);
-            const collected = loans.reduce((sum, l) => sum + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
-            const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
-            const outstanding = (principal + totalInt - collected);
-            recoveryChart.data.datasets[0].data = [collected, outstanding > 0 ? outstanding : 0]; recoveryChart.update();
-            comparisonChart.data.datasets[0].data = [principal, collected, totalInt]; comparisonChart.update();
-            const monthlyData = {};
-            loans.forEach(l => { const month = l.date.substring(0, 7); monthlyData[month] = (monthlyData[month] || 0) + l.amount; });
-            const sortedMonths = Object.keys(monthlyData).sort();
-            growthChart.data.labels = sortedMonths.map(m => m.split('-')[1]);
-            growthChart.data.datasets[0].data = sortedMonths.map(m => monthlyData[m]);
-            growthChart.update();
-        }
-
-        // ============================================================
-        // EXPORT
-        // ============================================================
-        function downloadJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `loan_book_${new Date().toISOString().split('T')[0]}.json`);
-            dl.click();
-        }
-
-        // ============================================================
-        // MAIN
-        // ============================================================
-        function refreshUI() {
-            renderDashboard();
-            updateStats();
-            updateCharts();
-        }
-
-        window.onload = async () => {
-            initCharts();
-            // Load from localStorage first (instant display)
-            loadFromLocalStorage();
-            loans.forEach(ensureDefaults);
-            if (loans.length > 0) refreshUI();
-            
-            // Then fetch from Dropbox (fresh data)
-            const ok = await loadFromDropbox();
-            if (ok) {
-                loans.forEach(ensureDefaults);
-                refreshUI();
-            }
-            initIcons();
-        };
+        initIcons();
+    };
     </script>
 </body>
 </html>
