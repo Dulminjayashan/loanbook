@@ -3,323 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Loan Book - Dropbox Sync</title>
+    <title>Pro Loan Book - Dropbox OAuth2</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Orbitron:wght@700&display=swap');
-        
-        :root {
-            --primary: #3b82f6;
-            --secondary: #6366f1;
-            --bg: #020617;
-        }
-
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-            background-color: var(--bg); 
-            color: #f8fafc;
-            background-image: radial-gradient(circle at 10% 20%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
-            min-height: 100vh;
-        }
-
-        .glass-card {
-            background: rgba(15, 23, 42, 0.4);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            border-radius: 1.25rem;
-        }
-
-        .neo-input {
-            background: rgba(2, 6, 23, 0.6) !important;
-            border: 1px solid rgba(255, 255, 255, 0.1) !important;
-            color: white !important;
-        }
-
-        .neo-input:focus {
-            border-color: rgba(59, 130, 246, 0.5) !important;
-            outline: none;
-        }
-
-        .chart-mini-container {
-            position: relative;
-            height: 180px;
-            width: 100%;
-        }
-
+        :root { --primary: #3b82f6; --secondary: #6366f1; --bg: #020617; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; background-color: var(--bg); color: #f8fafc; background-image: radial-gradient(circle at 10% 20%, rgba(59,130,246,0.05) 0%, transparent 40%); min-height: 100vh; }
+        .glass-card { background: rgba(15,23,42,0.4); backdrop-filter: blur(10px); border: 1px solid rgba(255,255,255,0.05); border-radius: 1.25rem; }
+        .neo-input { background: rgba(2,6,23,0.6) !important; border: 1px solid rgba(255,255,255,0.1) !important; color: white !important; }
+        .neo-input:focus { border-color: rgba(59,130,246,0.5) !important; outline: none; }
+        .chart-mini-container { position: relative; height: 180px; width: 100%; }
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.2); border-radius: 10px; }
-
-        .sidebar-sticky {
-            position: sticky;
-            top: 2rem;
-            max-height: calc(100vh - 4rem);
-            overflow-y: auto;
-        }
-
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.2); border-radius: 10px; }
+        .sidebar-sticky { position: sticky; top: 2rem; max-height: calc(100vh - 4rem); overflow-y: auto; }
         .tab-btn { transition: all 0.2s; }
-        .tab-btn.active {
-            background: rgba(59,130,246,0.15);
-            color: #60a5fa;
-            border-color: rgba(59,130,246,0.4);
-        }
-
-        .drop-zone {
-            border: 2px dashed rgba(255,255,255,0.1);
-            transition: all 0.2s;
-        }
-        .drop-zone.drag-over {
-            border-color: #3b82f6;
-            background: rgba(59,130,246,0.05);
-        }
-
+        .tab-btn.active { background: rgba(59,130,246,0.15); color: #60a5fa; border-color: rgba(59,130,246,0.4); }
+        .drop-zone { border: 2px dashed rgba(255,255,255,0.1); transition: all 0.2s; }
+        .drop-zone.drag-over { border-color: #3b82f6; background: rgba(59,130,246,0.05); }
         .doc-item { transition: background 0.15s; }
         .doc-item:hover { background: rgba(255,255,255,0.04); }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .fade-in { animation: fadeIn 0.2s ease; }
-
         .deactive-row { opacity: 0.6; }
         .deactive-row:hover { opacity: 0.85; }
-
-        #name-suggestions {
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            z-index: 9999;
-            background: #0f172a;
-            border: 1px solid rgba(59,130,246,0.3);
-            border-radius: 0.5rem;
-            margin-top: 2px;
-            max-height: 200px;
-            overflow-y: auto;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.6);
-        }
-
-        .suggestion-item {
-            padding: 10px 14px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            transition: background 0.15s;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-        }
+        #name-suggestions { position: absolute; top: 100%; left: 0; right: 0; z-index: 9999; background: #0f172a; border: 1px solid rgba(59,130,246,0.3); border-radius: 0.5rem; margin-top: 2px; max-height: 200px; overflow-y: auto; box-shadow: 0 8px 24px rgba(0,0,0,0.6); }
+        .suggestion-item { padding: 10px 14px; cursor: pointer; display: flex; align-items: center; gap: 10px; transition: background 0.15s; border-bottom: 1px solid rgba(255,255,255,0.04); }
         .suggestion-item:last-child { border-bottom: none; }
         .suggestion-item:hover { background: rgba(59,130,246,0.15); }
-
-        .deactive-section-header {
-            background: rgba(100, 116, 139, 0.08);
-            border-top: 1px solid rgba(100, 116, 139, 0.15);
-        }
-
-        @keyframes paidPulse {
-            0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.3); }
-            50% { box-shadow: 0 0 0 4px rgba(16,185,129,0); }
-        }
+        .deactive-section-header { background: rgba(100,116,139,0.08); border-top: 1px solid rgba(100,116,139,0.15); }
+        @keyframes paidPulse { 0%,100%{box-shadow:0 0 0 0 rgba(16,185,129,0.3);}50%{box-shadow:0 0 0 4px rgba(16,185,129,0);} }
         .paid-badge { animation: paidPulse 2s ease infinite; }
-
-        @keyframes countUp {
-            from { opacity: 0; transform: scale(0.7); }
-            to   { opacity: 1; transform: scale(1); }
-        }
+        @keyframes countUp { from{opacity:0;transform:scale(0.7);}to{opacity:1;transform:scale(1);} }
         #donut-pct { animation: countUp 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
-
-        .progress-track {
-            height: 4px;
-            background: rgba(255,255,255,0.06);
-            border-radius: 99px;
-            overflow: hidden;
-        }
-        .progress-fill {
-            height: 100%;
-            border-radius: 99px;
-            transition: width 1s cubic-bezier(0.4,0,0.2,1);
-            background: linear-gradient(90deg, #10b981, #3b82f6);
-        }
-
-        .toast {
-            position: fixed;
-            top: 1.5rem;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 9999;
-            padding: 0.75rem 1.25rem;
-            border-radius: 0.75rem;
-            font-size: 0.8rem;
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            animation: fadeIn 0.25s ease;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
-            white-space: nowrap;
-        }
-
-        .att-count {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-width: 16px;
-            height: 16px;
-            padding: 0 4px;
-            font-size: 9px;
-            font-weight: 800;
-            background: #3b82f6;
-            color: white;
-            border-radius: 99px;
-            margin-left: 4px;
-        }
-
-        .sync-dot {
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-right: 4px;
-        }
+        .progress-track { height: 4px; background: rgba(255,255,255,0.06); border-radius: 99px; overflow: hidden; }
+        .progress-fill { height: 100%; border-radius: 99px; transition: width 1s cubic-bezier(0.4,0,0.2,1); background: linear-gradient(90deg,#10b981,#3b82f6); }
+        .toast { position: fixed; top: 1.5rem; left: 50%; transform: translateX(-50%); z-index: 9999; padding: 0.75rem 1.25rem; border-radius: 0.75rem; font-size: 0.8rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; animation: fadeIn 0.25s ease; box-shadow: 0 8px 32px rgba(0,0,0,0.5); white-space: nowrap; }
+        .att-count { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; font-size: 9px; font-weight: 800; background: #3b82f6; color: white; border-radius: 99px; margin-left: 4px; }
+        .sync-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 4px; }
         .sync-dot.synced { background: #10b981; box-shadow: 0 0 6px #10b981; }
         .sync-dot.pending { background: #f59e0b; animation: pulse 1.5s infinite; }
         .sync-dot.error { background: #f43f5e; }
         .sync-dot.loading { background: #3b82f6; animation: pulse 1s infinite; }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
-        }
-
-        .dropbox-btn {
-            background: #0061FF;
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 0.5rem;
-            font-weight: 700;
-            font-size: 0.875rem;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: background 0.2s;
-            text-decoration: none;
-        }
-        .dropbox-btn:hover { background: #0052d9; }
-
-        #unsaved-banner {
-            display: none;
-            position: fixed;
-            bottom: 1.5rem;
-            right: 1.5rem;
-            z-index: 500;
-            animation: fadeIn 0.3s ease;
-        }
-
-        /* Setup wizard steps */
-        .step-circle {
-            width: 28px;
-            height: 28px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 11px;
-            font-weight: 800;
-            flex-shrink: 0;
-        }
+        @keyframes pulse { 0%,100%{opacity:1;}50%{opacity:0.3;} }
+        #unsaved-banner { display: none; position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 500; animation: fadeIn 0.3s ease; }
+        .step-circle { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
         .step-done { background: #10b981; color: white; }
         .step-active { background: #3b82f6; color: white; }
         .step-pending { background: rgba(255,255,255,0.08); color: #64748b; }
-
-        /* Upload progress */
-        @keyframes uploading {
-            0% { background-position: 0% 50%; }
-            100% { background-position: 200% 50%; }
-        }
-        .uploading-btn {
-            background: linear-gradient(90deg, #0061FF, #10b981, #0061FF);
-            background-size: 200% 100%;
-            animation: uploading 1.2s linear infinite;
-        }
-
-        .token-input-wrapper {
-            position: relative;
-        }
-        .token-input-wrapper input {
-            padding-right: 80px !important;
-        }
-        .token-toggle {
-            position: absolute;
-            right: 8px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255,255,255,0.06);
-            border: none;
-            color: #64748b;
-            font-size: 9px;
-            font-weight: 700;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-            text-transform: uppercase;
-        }
+        @keyframes uploading { 0%{background-position:0% 50%;}100%{background-position:200% 50%;} }
+        .uploading-btn { background: linear-gradient(90deg,#0061FF,#10b981,#0061FF); background-size: 200% 100%; animation: uploading 1.2s linear infinite; }
+        .oauth-connected { background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(59,130,246,0.05)); border-color: rgba(16,185,129,0.3) !important; }
     </style>
 </head>
 <body class="p-4 md:p-6 custom-scrollbar">
 
-    <!-- Unsaved Changes Banner -->
-    <div id="unsaved-banner">
-        <div class="glass-card border border-amber-500/30 p-3 flex items-center gap-3 shadow-2xl">
-            <span class="sync-dot pending"></span>
-            <span class="text-xs text-amber-400 font-bold">Unsaved changes</span>
-            <button onclick="saveToDropbox()" class="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
-                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L6.5 7.5h3.5V14h4V7.5H17.5L12 2zm-7 16v2h14v-2H5z"/></svg>
-                Save to Dropbox
-            </button>
-        </div>
+<!-- Unsaved Changes Banner -->
+<div id="unsaved-banner">
+    <div class="glass-card border border-amber-500/30 p-3 flex items-center gap-3 shadow-2xl">
+        <span class="sync-dot pending"></span>
+        <span class="text-xs text-amber-400 font-bold">Unsaved changes</span>
+        <button onclick="saveToDropbox()" class="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+            <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L6.5 7.5h3.5V14h4V7.5H17.5L12 2zm-7 16v2h14v-2H5z"/></svg>
+            Save to Dropbox
+        </button>
     </div>
+</div>
 
-    <!-- ===== MODAL: DROPBOX SETUP ===== -->
-    <div id="dropbox-setup-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-md"></div>
-        <div class="glass-card w-full max-w-lg relative z-10 p-6 rounded-2xl border border-blue-500/20">
-            
-            <!-- Header -->
+<!-- ===== MODAL: DROPBOX OAUTH SETUP ===== -->
+<div id="dropbox-setup-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-md"></div>
+    <div class="glass-card w-full max-w-lg relative z-10 p-6 rounded-2xl border border-blue-500/20" id="setup-card">
+
+        <!-- Connected state -->
+        <div id="connected-view" class="hidden">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-1">Dropbox Connected ✓</h3>
+                <p class="text-slate-500 text-xs">Permanent access token active — never expires</p>
+            </div>
+            <div class="bg-slate-900/60 rounded-xl border border-emerald-500/20 p-4 mb-4 space-y-2">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-slate-500 font-bold">App Key</span>
+                    <span id="info-app-key" class="text-[11px] text-slate-300 font-mono"></span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-slate-500 font-bold">Refresh Token</span>
+                    <span class="text-[11px] text-emerald-400 font-bold">✓ Stored (permanent)</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] text-slate-500 font-bold">Save Path</span>
+                    <span id="info-path" class="text-[11px] text-slate-300 font-mono"></span>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="closeModal('dropbox-setup-modal')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold text-sm transition-all">Done</button>
+                <button onclick="showSetupView()" class="px-5 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-sm hover:text-white transition-all">Reconnect</button>
+                <button onclick="disconnectDropbox()" class="px-5 py-3 bg-rose-900/30 text-rose-400 rounded-xl font-bold text-sm hover:bg-rose-900/50 transition-all">Disconnect</button>
+            </div>
+        </div>
+
+        <!-- Setup view -->
+        <div id="setup-view">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
-                    <svg class="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
-                        <path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/>
-                    </svg>
+                    <svg class="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
                 </div>
-                <h3 class="text-lg font-bold text-white mb-1">Dropbox Setup</h3>
-                <p class="text-slate-500 text-xs">එකවරක් setup කළාම save button click කළාම auto-upload වෙයි</p>
+                <h3 class="text-lg font-bold text-white mb-1">Dropbox OAuth2 Setup</h3>
+                <p class="text-slate-500 text-xs">App Key පමණයි ඕනෑ — Refresh Token permanent ✓</p>
             </div>
 
-            <!-- Steps -->
-            <div class="space-y-4 mb-6">
+            <div class="space-y-3 mb-5">
                 <!-- Step 1 -->
                 <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                     <div class="flex items-start gap-3 mb-3">
                         <div class="step-circle step-active">1</div>
                         <div>
-                            <p class="text-xs font-bold text-white">Dropbox App Console එකට යන්න</p>
-                            <p class="text-[10px] text-slate-500 mt-0.5">App එකක් create කරලා Access Token එකක් ගන්න</p>
+                            <p class="text-xs font-bold text-white">Dropbox App Console — App Create කරන්න</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">App Key copy කරලා paste කරන්න</p>
                         </div>
                     </div>
-                    <a href="https://www.dropbox.com/developers/apps" target="_blank" 
-                       class="dropbox-btn w-full justify-center text-xs py-2">
+                    <a href="https://www.dropbox.com/developers/apps" target="_blank"
+                       class="flex items-center justify-center gap-2 bg-[#0061FF] hover:bg-[#0052d9] text-white py-2 px-4 rounded-lg font-bold text-xs w-full transition-all">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
-                        Dropbox App Console → Open
+                        Open Dropbox App Console
                     </a>
                     <div class="mt-3 bg-slate-950/60 rounded-lg p-3 text-[10px] text-slate-400 space-y-1.5">
                         <p class="text-slate-300 font-bold">Step by Step:</p>
-                        <p>① "Create app" click කරන්න</p>
-                        <p>② "Scoped access" → "Full Dropbox" select කරන්න</p>
-                        <p>③ App name දෙන්න (eg: <span class="text-blue-400">MyLoanApp</span>)</p>
-                        <p>④ App settings → "Permissions" tab → <span class="text-emerald-400">files.content.write</span> ✓ tick කරන්න → Submit</p>
-                        <p>⑤ "Settings" tab → "Generated access token" → <span class="text-emerald-400">Generate</span> button click කරන්න</p>
-                        <p>⑥ Token copy කරලා below paste කරන්න</p>
+                        <p>① "Create app" → "Scoped access" → "Full Dropbox"</p>
+                        <p>② App name දෙන්න (eg: <span class="text-blue-400">MyLoanBook</span>)</p>
+                        <p>③ <span class="text-amber-300 font-bold">Permissions tab</span> → <span class="text-emerald-400">files.content.write</span> + <span class="text-emerald-400">files.content.read</span> → Submit</p>
+                        <p>④ <span class="text-amber-300 font-bold">Settings tab</span> → <span class="text-blue-300">OAuth 2 → Redirect URIs</span> box — current page URL add කරන්න:</p>
+                        <div class="bg-slate-900 rounded p-2 mt-1">
+                            <p class="text-emerald-400 font-mono text-[9px] break-all" id="current-url-display"></p>
+                        </div>
+                        <p>⑤ <span class="text-blue-300">App key</span> copy කරන්න (Settings tab top)</p>
                     </div>
                 </div>
 
@@ -328,1291 +149,1078 @@
                     <div class="flex items-start gap-3 mb-3">
                         <div class="step-circle step-active">2</div>
                         <div>
-                            <p class="text-xs font-bold text-white">Access Token Paste කරන්න</p>
-                            <p class="text-[10px] text-slate-500 mt-0.5">ඔබේ device එකේ locally save වෙයි</p>
+                            <p class="text-xs font-bold text-white">App Key & Path</p>
                         </div>
                     </div>
-                    <div class="token-input-wrapper">
-                        <input type="password" id="dropbox-token-input" 
-                            class="w-full neo-input p-3 rounded-lg text-xs font-mono"
-                            placeholder="sl.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx">
-                        <button class="token-toggle" onclick="toggleTokenVisibility()">SHOW</button>
+                    <div class="space-y-2">
+                        <input type="text" id="app-key-input" placeholder="App Key (eg: abc123xyz789)"
+                            class="w-full neo-input p-3 rounded-lg text-xs font-mono">
+                        <input type="text" id="dropbox-path-input" value="/data.json"
+                            class="w-full neo-input p-3 rounded-lg text-xs font-mono" placeholder="/data.json">
+                        <p class="text-[9px] text-slate-600">Save path: /LoanBook/data.json ලෙසත් දෙන්න පුළුවන්</p>
                     </div>
-                </div>
-
-                <!-- Step 3 -->
-                <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
-                    <div class="flex items-start gap-3 mb-3">
-                        <div class="step-circle step-active">3</div>
-                        <div>
-                            <p class="text-xs font-bold text-white">Dropbox Path දෙන්න</p>
-                            <p class="text-[10px] text-slate-500 mt-0.5">File save වෙන path (default: /data.json)</p>
-                        </div>
-                    </div>
-                    <input type="text" id="dropbox-path-input" value="/data.json"
-                        class="w-full neo-input p-3 rounded-lg text-xs font-mono"
-                        placeholder="/data.json">
-                    <p class="text-[9px] text-slate-600 mt-1.5">Folder ඇතුලේ නම්: /LoanBook/data.json</p>
                 </div>
             </div>
 
-            <!-- Actions -->
             <div class="flex gap-2">
-                <button onclick="saveDropboxSetup()" 
-                    class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <button onclick="startOAuthFlow()"
+                    class="flex-1 bg-[#0061FF] hover:bg-[#0052d9] text-white py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
-                    Connect & Save
+                    Connect with Dropbox
                 </button>
-                <button onclick="closeModal('dropbox-setup-modal')" 
-                    class="px-5 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-sm">
-                    Later
-                </button>
+                <button onclick="closeModal('dropbox-setup-modal')" class="px-5 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-sm">Later</button>
             </div>
-            <p class="text-center text-[9px] text-slate-600 mt-3">⚠️ Token ඔබේ browser localStorage එකේ store වෙයි. Share කරන PC වල use කරන්නේ නැතිව ඉන්න.</p>
+            <p class="text-center text-[9px] text-slate-600 mt-3">⚠️ App Key + Refresh Token ඔබේ browser localStorage එකේ store වෙයි.</p>
         </div>
     </div>
+</div>
 
-    <div class="max-w-[1600px] mx-auto">
-        <!-- Header -->
-        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-slate-800 pb-6">
-            <div>
-                <h1 class="text-2xl font-bold tracking-tight text-white mb-1">
-                    LOAN TRACKER <span class="text-blue-500">PRO</span>
-                </h1>
-                <p class="text-slate-500 text-xs font-medium flex items-center gap-2">
-                    ණය කළමනාකරණ පද්ධතිය
-                    <span id="sync-status" class="flex items-center gap-1 ml-2">
-                        <span class="sync-dot loading" id="sync-dot"></span>
-                        <span id="sync-label" class="text-[10px] font-bold text-blue-400">Connecting to Dropbox...</span>
-                    </span>
-                </p>
-            </div>
-            
-            <div class="flex flex-wrap gap-2">
-                <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
-                    <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN / නව ණය
-                </button>
-                <button onclick="reloadFromDropbox()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all">
-                    <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
-                    Reload
-                </button>
-                <button onclick="saveToDropbox()" id="save-btn" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-blue-600 transition-all">
-                    <i data-lucide="upload-cloud" class="w-4 h-4"></i> SAVE / සුරකින්න
-                </button>
-                <button onclick="openModal('dropbox-setup-modal')" class="bg-slate-800 text-slate-400 px-3 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all" title="Dropbox Settings">
-                    <i data-lucide="settings" class="w-4 h-4"></i>
-                </button>
-                <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
-                    <i data-lucide="download" class="w-4 h-4"></i> EXPORT
-                </button>
-            </div>
-        </header>
-
-        <div class="flex flex-col lg:flex-row gap-6">
-            
-            <!-- LEFT COLUMN -->
-            <div class="flex-1 space-y-6">
-                
-                <!-- Quick Stats Row -->
-                <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
-                    <div class="glass-card p-4 border-l-2 border-violet-500">
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Active Clients / සක්‍රිය</p>
-                        <h3 id="total-clients" class="text-lg font-bold text-violet-400">0</h3>
-                    </div>
-                    <div class="glass-card p-4 border-l-2 border-blue-500">
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Total / මුළු මුදල</p>
-                        <h3 id="total-loaned" class="text-lg font-bold">Rs. 0</h3>
-                    </div>
-                    <div class="glass-card p-4 border-l-2 border-emerald-500">
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Collected / අය කළ</p>
-                        <h3 id="total-collected" class="text-lg font-bold text-emerald-400">Rs. 0</h3>
-                    </div>
-                    <div class="glass-card p-4 border-l-2 border-rose-500">
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Due / හිඟය</p>
-                        <h3 id="total-outstanding" class="text-lg font-bold text-rose-400">Rs. 0</h3>
-                    </div>
-                    <div class="glass-card p-4 border-l-2 border-amber-500">
-                        <p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Interest / පොලිය</p>
-                        <h3 id="total-interest" class="text-lg font-bold text-amber-400">Rs. 0</h3>
-                    </div>
-                </div>
-
-                <!-- Table Card -->
-                <div class="glass-card overflow-hidden">
-                    <div class="p-5 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/20">
-                        <h2 class="text-sm font-bold flex items-center gap-2">
-                            <i data-lucide="users" class="w-4 h-4 text-blue-500"></i> 
-                            <span>Active Clients / සක්‍රිය ගනුදෙනුකරුවන්</span>
-                        </h2>
-                        <div class="relative w-full md:w-64">
-                            <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500"></i>
-                            <input type="text" oninput="searchLoans(this.value)" placeholder="සොයන්න... / Search..." class="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 pl-9 pr-4 text-xs outline-none focus:border-blue-500 transition-all text-white">
-                        </div>
-                    </div>
-                    <div class="overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-900/50 text-slate-500 uppercase text-[9px] font-bold tracking-widest">
-                                <tr>
-                                    <th class="px-6 py-4">Customer / නම</th>
-                                    <th class="px-6 py-4">Loan / ණය</th>
-                                    <th class="px-6 py-4">Paid / ගෙවා ඇති</th>
-                                    <th class="px-6 py-4">Balance / හිඟය</th>
-                                    <th class="px-6 py-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="loan-table-body" class="divide-y divide-slate-800/40"></tbody>
-                        </table>
-                        <div id="empty-state" class="hidden text-center py-16 text-slate-600">
-                            <i data-lucide="inbox" class="w-8 h-8 mx-auto mb-3 opacity-40"></i>
-                            <p class="text-xs font-semibold">No loans yet. Create one above.</p>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- DEACTIVE CLIENTS SECTION -->
-                <div id="deactive-section" class="glass-card overflow-hidden hidden">
-                    <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/20 deactive-section-header">
-                        <h2 class="text-sm font-bold flex items-center gap-2 text-slate-500">
-                            <i data-lucide="archive" class="w-4 h-4 text-slate-500"></i>
-                            Deactive Clients / නිමිත්ත ගනුදෙනුකරුවන්
-                            <span id="deactive-count-badge" class="bg-slate-700 text-slate-400 text-[9px] font-bold px-2 py-0.5 rounded-full"></span>
-                        </h2>
-                        <button onclick="toggleDeactiveSection()" id="deactive-toggle-btn" class="text-slate-600 hover:text-slate-400 text-[10px] font-bold flex items-center gap-1 transition-colors">
-                            <i data-lucide="chevron-down" class="w-3.5 h-3.5" id="deactive-chevron"></i>
-                            <span id="deactive-toggle-label">Show</span>
-                        </button>
-                    </div>
-                    <div id="deactive-table-wrapper" class="hidden overflow-x-auto">
-                        <table class="w-full text-left">
-                            <thead class="bg-slate-900/50 text-slate-500 uppercase text-[9px] font-bold tracking-widest">
-                                <tr>
-                                    <th class="px-6 py-4">Customer / නම</th>
-                                    <th class="px-6 py-4">Loan / ණය</th>
-                                    <th class="px-6 py-4">Paid / ගෙවූ</th>
-                                    <th class="px-6 py-4">Status</th>
-                                    <th class="px-6 py-4 text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="deactive-table-body" class="divide-y divide-slate-800/30"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIGHT COLUMN: Charts -->
-            <div class="w-full lg:w-80 space-y-6">
-                <div class="sidebar-sticky space-y-4 custom-scrollbar pr-1">
-                    <div class="glass-card p-5">
-                        <h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Recovery / අය කරගැනීම්</h4>
-                        <div class="chart-mini-container">
-                            <canvas id="recoveryPieChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="glass-card p-5">
-                        <h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Comparison / සැසඳීම</h4>
-                        <div class="chart-mini-container">
-                            <canvas id="comparisonBarChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="glass-card p-5">
-                        <h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Loan Volume / මාසික ණය</h4>
-                        <div class="chart-mini-container">
-                            <canvas id="growthLineChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </div>
+<div class="max-w-[1600px] mx-auto">
+    <!-- Header -->
+    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-slate-800 pb-6">
+        <div>
+            <h1 class="text-2xl font-bold tracking-tight text-white mb-1">LOAN TRACKER <span class="text-blue-500">PRO</span></h1>
+            <p class="text-slate-500 text-xs font-medium flex items-center gap-2">
+                ණය කළමනාකරණ පද්ධතිය
+                <span id="sync-status" class="flex items-center gap-1 ml-2">
+                    <span class="sync-dot loading" id="sync-dot"></span>
+                    <span id="sync-label" class="text-[10px] font-bold text-blue-400">Connecting...</span>
+                </span>
+            </p>
         </div>
-    </div>
-
-    <!-- ===== MODAL: NEW LOAN ===== -->
-    <div id="new-loan-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeModal('new-loan-modal')"></div>
-        <div class="glass-card w-full max-w-xl relative z-10 p-6 border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <h2 class="text-xl font-bold flex items-center gap-2 mb-6">
-                <i data-lucide="user-plus" class="text-blue-500"></i> New Account / නව ණය
-            </h2>
-            <form id="loan-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2 flex flex-col items-center justify-center bg-slate-900/50 p-4 rounded-xl border-2 border-dashed border-slate-700 cursor-pointer" onclick="document.getElementById('photo-input').click()">
-                    <input type="file" id="photo-input" hidden accept="image/*" onchange="previewPhoto(this, 'photo-preview', 'photo-placeholder')">
-                    <img id="photo-preview" class="hidden w-16 h-16 rounded-full object-cover border-2 border-blue-500 mb-2">
-                    <div id="photo-placeholder" class="text-center">
-                        <i data-lucide="camera" class="w-6 h-6 text-slate-500 mx-auto"></i>
-                        <p class="text-[9px] text-slate-500 font-bold uppercase">Add Photo</p>
-                    </div>
-                </div>
-                <div class="md:col-span-2 relative">
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Full Name / නම</label>
-                    <input type="text" id="borrower-name" required autocomplete="off"
-                        class="w-full neo-input p-3 rounded-lg text-sm"
-                        oninput="handleNameInput(this.value)"
-                        onfocus="handleNameInput(this.value)"
-                        onblur="setTimeout(()=>hideSuggestions(), 200)">
-                    <div id="name-suggestions" class="hidden"></div>
-                    <div id="selected-deactive-hint" class="hidden mt-2 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
-                        <img id="selected-deactive-photo" class="w-6 h-6 rounded-full object-cover">
-                        <span class="text-[10px] text-amber-400 font-bold" id="selected-deactive-label"></span>
-                        <button type="button" onclick="clearSelectedDeactive()" class="ml-auto text-slate-500 hover:text-white">
-                            <i data-lucide="x" class="w-3 h-3"></i>
-                        </button>
-                    </div>
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Amount / මුදල</label>
-                    <input type="number" id="loan-amount" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Interest % / පොලිය</label>
-                    <input type="number" step="0.01" id="loan-interest" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Months / මාස</label>
-                    <input type="number" id="loan-period" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Date / දිනය</label>
-                    <input type="date" id="loan-date" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div class="md:col-span-2 pt-4 flex gap-2">
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition-all">Create Account</button>
-                    <button type="button" onclick="closeModal('new-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
-                </div>
-            </form>
+        <div class="flex flex-wrap gap-2">
+            <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
+                <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN
+            </button>
+            <button onclick="reloadFromDropbox()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all">
+                <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
+                Reload
+            </button>
+            <button onclick="saveToDropbox()" id="save-btn" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-blue-600 transition-all">
+                <i data-lucide="upload-cloud" class="w-4 h-4"></i> SAVE
+            </button>
+            <button onclick="openDropboxSetup()" class="bg-slate-800 text-slate-400 px-3 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all" title="Dropbox Settings">
+                <i data-lucide="settings" class="w-4 h-4"></i>
+            </button>
+            <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
+                <i data-lucide="download" class="w-4 h-4"></i> EXPORT
+            </button>
         </div>
-    </div>
+    </header>
 
-    <!-- ===== MODAL: EDIT LOAN ===== -->
-    <div id="edit-loan-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeModal('edit-loan-modal')"></div>
-        <div class="glass-card w-full max-w-xl relative z-10 p-6 border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
-            <h2 class="text-xl font-bold flex items-center gap-2 mb-6">
-                <i data-lucide="pencil" class="text-amber-400"></i> Edit Client / සංස්කරණය
-            </h2>
-            <form id="edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div class="md:col-span-2 flex flex-col items-center justify-center bg-slate-900/50 p-4 rounded-xl border-2 border-dashed border-slate-700 cursor-pointer" onclick="document.getElementById('edit-photo-input').click()">
-                    <input type="file" id="edit-photo-input" hidden accept="image/*" onchange="previewPhoto(this, 'edit-photo-preview', 'edit-photo-placeholder')">
-                    <img id="edit-photo-preview" class="w-16 h-16 rounded-full object-cover border-2 border-amber-400 mb-2">
-                    <div id="edit-photo-placeholder" class="text-center hidden">
-                        <i data-lucide="camera" class="w-6 h-6 text-slate-500 mx-auto"></i>
-                        <p class="text-[9px] text-slate-500 font-bold uppercase">Change Photo</p>
-                    </div>
-                    <p class="text-[9px] text-slate-500 mt-1">Click to change photo</p>
-                </div>
-                <div class="md:col-span-2">
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Full Name / නම</label>
-                    <input type="text" id="edit-name" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Amount / මුදල</label>
-                    <input type="number" id="edit-amount" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Interest % / පොලිය</label>
-                    <input type="number" step="0.01" id="edit-interest" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Months / මාස</label>
-                    <input type="number" id="edit-period" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div>
-                    <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Date / දිනය</label>
-                    <input type="date" id="edit-date" required class="w-full neo-input p-3 rounded-lg text-sm">
-                </div>
-                <div class="md:col-span-2 pt-4 flex gap-2">
-                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm transition-all">Save Changes / සුරකින්න</button>
-                    <button type="button" onclick="closeModal('edit-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
+    <div class="flex flex-col lg:flex-row gap-6">
+        <div class="flex-1 space-y-6">
+            <!-- Stats -->
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="glass-card p-4 border-l-2 border-violet-500"><p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Active Clients</p><h3 id="total-clients" class="text-lg font-bold text-violet-400">0</h3></div>
+                <div class="glass-card p-4 border-l-2 border-blue-500"><p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Total / මුළු</p><h3 id="total-loaned" class="text-lg font-bold">Rs. 0</h3></div>
+                <div class="glass-card p-4 border-l-2 border-emerald-500"><p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Collected</p><h3 id="total-collected" class="text-lg font-bold text-emerald-400">Rs. 0</h3></div>
+                <div class="glass-card p-4 border-l-2 border-rose-500"><p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Due / හිඟය</p><h3 id="total-outstanding" class="text-lg font-bold text-rose-400">Rs. 0</h3></div>
+                <div class="glass-card p-4 border-l-2 border-amber-500"><p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Interest</p><h3 id="total-interest" class="text-lg font-bold text-amber-400">Rs. 0</h3></div>
+            </div>
 
-    <!-- ===== MODAL: CLIENT SHEET ===== -->
-    <div id="sheet-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg" onclick="closeModal('sheet-modal')"></div>
-        <div class="glass-card w-full max-w-5xl h-[90vh] relative z-10 flex flex-col overflow-hidden border border-white/5">
-            
-            <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/40 flex-shrink-0">
-                <div class="flex items-center gap-3">
-                    <img id="sheet-photo" class="w-12 h-12 rounded-lg object-cover border border-slate-700">
-                    <div class="flex-1 min-w-0">
-                        <h2 id="sheet-title" class="text-lg font-bold">Client</h2>
-                        <p id="sheet-subtitle" class="text-slate-500 text-[10px] mb-1.5"></p>
-                        <div class="progress-track w-48">
-                            <div class="progress-fill" id="sheet-progress-bar" style="width:0%"></div>
-                        </div>
-                        <p id="sheet-progress-label" class="text-[8px] text-slate-600 mt-0.5">0% Recovered</p>
+            <!-- Table -->
+            <div class="glass-card overflow-hidden">
+                <div class="p-5 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/20">
+                    <h2 class="text-sm font-bold flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i> Active Clients</h2>
+                    <div class="relative w-full md:w-64">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500"></i>
+                        <input type="text" oninput="searchLoans(this.value)" placeholder="Search..." class="w-full bg-slate-950 border border-slate-800 rounded-lg py-1.5 pl-9 pr-4 text-xs outline-none focus:border-blue-500 transition-all text-white">
                     </div>
                 </div>
-                <div class="flex gap-2">
-                    <button onclick="openEditFromSheet()" class="bg-amber-500/10 text-amber-400 px-3 py-2 rounded-lg hover:bg-amber-500 hover:text-black transition-all text-xs font-bold flex items-center gap-1.5">
-                        <i data-lucide="pencil" class="w-3.5 h-3.5"></i> Edit
-                    </button>
-                    <button onclick="closeModal('sheet-modal')" class="bg-slate-800 p-2 rounded-lg text-slate-400 hover:text-white transition-all">
-                        <i data-lucide="x" class="w-4 h-4"></i>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900/50 text-slate-500 uppercase text-[9px] font-bold tracking-widest">
+                            <tr>
+                                <th class="px-6 py-4">Customer</th><th class="px-6 py-4">Loan</th><th class="px-6 py-4">Paid</th><th class="px-6 py-4">Balance</th><th class="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="loan-table-body" class="divide-y divide-slate-800/40"></tbody>
+                    </table>
+                    <div id="empty-state" class="hidden text-center py-16 text-slate-600"><i data-lucide="inbox" class="w-8 h-8 mx-auto mb-3 opacity-40"></i><p class="text-xs font-semibold">No loans yet.</p></div>
+                </div>
+            </div>
+
+            <!-- Deactive -->
+            <div id="deactive-section" class="glass-card overflow-hidden hidden">
+                <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/20 deactive-section-header">
+                    <h2 class="text-sm font-bold flex items-center gap-2 text-slate-500">
+                        <i data-lucide="archive" class="w-4 h-4 text-slate-500"></i> Deactive Clients
+                        <span id="deactive-count-badge" class="bg-slate-700 text-slate-400 text-[9px] font-bold px-2 py-0.5 rounded-full"></span>
+                    </h2>
+                    <button onclick="toggleDeactiveSection()" class="text-slate-600 hover:text-slate-400 text-[10px] font-bold flex items-center gap-1">
+                        <i data-lucide="chevron-down" class="w-3.5 h-3.5" id="deactive-chevron"></i>
+                        <span id="deactive-toggle-label">Show</span>
                     </button>
                 </div>
+                <div id="deactive-table-wrapper" class="hidden overflow-x-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-900/50 text-slate-500 uppercase text-[9px] font-bold tracking-widest">
+                            <tr><th class="px-6 py-4">Customer</th><th class="px-6 py-4">Loan</th><th class="px-6 py-4">Paid</th><th class="px-6 py-4">Status</th><th class="px-6 py-4 text-right">Actions</th></tr>
+                        </thead>
+                        <tbody id="deactive-table-body" class="divide-y divide-slate-800/30"></tbody>
+                    </table>
+                </div>
             </div>
+        </div>
 
-            <div class="flex gap-1 px-5 pt-4 pb-0 flex-shrink-0">
-                <button onclick="switchTab('payments-tab')" id="tab-payments" class="tab-btn active px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
-                    💰 Payments / ගෙවීම්
-                </button>
-                <button onclick="switchTab('attachments-tab')" id="tab-attachments" class="tab-btn px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
-                    📎 Attachments / ලේඛන <span id="att-count-badge" class="att-count hidden">0</span>
-                </button>
+        <!-- Charts sidebar -->
+        <div class="w-full lg:w-80 space-y-6">
+            <div class="sidebar-sticky space-y-4 custom-scrollbar pr-1">
+                <div class="glass-card p-5"><h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Recovery</h4><div class="chart-mini-container"><canvas id="recoveryPieChart"></canvas></div></div>
+                <div class="glass-card p-5"><h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Comparison</h4><div class="chart-mini-container"><canvas id="comparisonBarChart"></canvas></div></div>
+                <div class="glass-card p-5"><h4 class="text-[10px] font-bold text-slate-500 uppercase mb-4">Loan Volume</h4><div class="chart-mini-container"><canvas id="growthLineChart"></canvas></div></div>
             </div>
+        </div>
+    </div>
+</div>
 
-            <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
-                <!-- PAYMENTS TAB -->
-                <div id="payments-tab" class="tab-content">
-                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-                        <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
-                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 self-start">Recovery / ප්‍රතිලාභය</p>
-                            <div class="relative w-36 h-36">
-                                <canvas id="client-donut-chart"></canvas>
-                                <div id="client-donut-center" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                    <span id="donut-pct" class="text-xl font-bold text-white">0%</span>
-                                    <span class="text-[8px] text-slate-500 font-bold uppercase">Paid</span>
-                                </div>
-                            </div>
-                            <div class="flex gap-3 mt-3">
-                                <span class="flex items-center gap-1 text-[9px] text-emerald-400"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Paid</span>
-                                <span class="flex items-center gap-1 text-[9px] text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Due</span>
+<!-- ===== MODAL: NEW LOAN ===== -->
+<div id="new-loan-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeModal('new-loan-modal')"></div>
+    <div class="glass-card w-full max-w-xl relative z-10 p-6 border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <h2 class="text-xl font-bold flex items-center gap-2 mb-6"><i data-lucide="user-plus" class="text-blue-500"></i> New Loan</h2>
+        <form id="loan-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2 flex flex-col items-center justify-center bg-slate-900/50 p-4 rounded-xl border-2 border-dashed border-slate-700 cursor-pointer" onclick="document.getElementById('photo-input').click()">
+                <input type="file" id="photo-input" hidden accept="image/*" onchange="previewPhoto(this,'photo-preview','photo-placeholder')">
+                <img id="photo-preview" class="hidden w-16 h-16 rounded-full object-cover border-2 border-blue-500 mb-2">
+                <div id="photo-placeholder" class="text-center"><i data-lucide="camera" class="w-6 h-6 text-slate-500 mx-auto"></i><p class="text-[9px] text-slate-500 font-bold uppercase">Add Photo</p></div>
+            </div>
+            <div class="md:col-span-2 relative">
+                <label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Full Name</label>
+                <input type="text" id="borrower-name" required autocomplete="off" class="w-full neo-input p-3 rounded-lg text-sm" oninput="handleNameInput(this.value)" onblur="setTimeout(()=>hideSuggestions(),200)">
+                <div id="name-suggestions" class="hidden"></div>
+                <div id="selected-deactive-hint" class="hidden mt-2 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+                    <img id="selected-deactive-photo" class="w-6 h-6 rounded-full object-cover">
+                    <span class="text-[10px] text-amber-400 font-bold" id="selected-deactive-label"></span>
+                    <button type="button" onclick="clearSelectedDeactive()" class="ml-auto text-slate-500 hover:text-white"><i data-lucide="x" class="w-3 h-3"></i></button>
+                </div>
+            </div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Amount</label><input type="number" id="loan-amount" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Interest %</label><input type="number" step="0.01" id="loan-interest" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Months</label><input type="number" id="loan-period" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Date</label><input type="date" id="loan-date" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div class="md:col-span-2 pt-4 flex gap-2">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm">Create Account</button>
+                <button type="button" onclick="closeModal('new-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL: EDIT LOAN ===== -->
+<div id="edit-loan-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeModal('edit-loan-modal')"></div>
+    <div class="glass-card w-full max-w-xl relative z-10 p-6 border border-white/10 max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <h2 class="text-xl font-bold flex items-center gap-2 mb-6"><i data-lucide="pencil" class="text-amber-400"></i> Edit Client</h2>
+        <form id="edit-form" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="md:col-span-2 flex flex-col items-center justify-center bg-slate-900/50 p-4 rounded-xl border-2 border-dashed border-slate-700 cursor-pointer" onclick="document.getElementById('edit-photo-input').click()">
+                <input type="file" id="edit-photo-input" hidden accept="image/*" onchange="previewPhoto(this,'edit-photo-preview','edit-photo-placeholder')">
+                <img id="edit-photo-preview" class="w-16 h-16 rounded-full object-cover border-2 border-amber-400 mb-2">
+                <div id="edit-photo-placeholder" class="text-center hidden"><i data-lucide="camera" class="w-6 h-6 text-slate-500 mx-auto"></i><p class="text-[9px] text-slate-500 font-bold uppercase">Change Photo</p></div>
+                <p class="text-[9px] text-slate-500 mt-1">Click to change photo</p>
+            </div>
+            <div class="md:col-span-2"><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Full Name</label><input type="text" id="edit-name" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Amount</label><input type="number" id="edit-amount" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Interest %</label><input type="number" step="0.01" id="edit-interest" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Months</label><input type="number" id="edit-period" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div><label class="block text-[9px] font-bold text-slate-500 uppercase mb-1">Date</label><input type="date" id="edit-date" required class="w-full neo-input p-3 rounded-lg text-sm"></div>
+            <div class="md:col-span-2 pt-4 flex gap-2">
+                <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm">Save Changes</button>
+                <button type="button" onclick="closeModal('edit-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ===== MODAL: CLIENT SHEET ===== -->
+<div id="sheet-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg" onclick="closeModal('sheet-modal')"></div>
+    <div class="glass-card w-full max-w-5xl h-[90vh] relative z-10 flex flex-col overflow-hidden border border-white/5">
+        <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/40 flex-shrink-0">
+            <div class="flex items-center gap-3">
+                <img id="sheet-photo" class="w-12 h-12 rounded-lg object-cover border border-slate-700">
+                <div class="flex-1 min-w-0">
+                    <h2 id="sheet-title" class="text-lg font-bold">Client</h2>
+                    <p id="sheet-subtitle" class="text-slate-500 text-[10px] mb-1.5"></p>
+                    <div class="progress-track w-48"><div class="progress-fill" id="sheet-progress-bar" style="width:0%"></div></div>
+                    <p id="sheet-progress-label" class="text-[8px] text-slate-600 mt-0.5">0% Recovered</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="openEditFromSheet()" class="bg-amber-500/10 text-amber-400 px-3 py-2 rounded-lg hover:bg-amber-500 hover:text-black transition-all text-xs font-bold flex items-center gap-1.5"><i data-lucide="pencil" class="w-3.5 h-3.5"></i> Edit</button>
+                <button onclick="closeModal('sheet-modal')" class="bg-slate-800 p-2 rounded-lg text-slate-400 hover:text-white transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
+            </div>
+        </div>
+        <div class="flex gap-1 px-5 pt-4 pb-0 flex-shrink-0">
+            <button onclick="switchTab('payments-tab')" id="tab-payments" class="tab-btn active px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">💰 Payments</button>
+            <button onclick="switchTab('attachments-tab')" id="tab-attachments" class="tab-btn px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">📎 Attachments <span id="att-count-badge" class="att-count hidden">0</span></button>
+        </div>
+        <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
+            <div id="payments-tab" class="tab-content">
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+                    <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
+                        <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 self-start">Recovery</p>
+                        <div class="relative w-36 h-36"><canvas id="client-donut-chart"></canvas><div id="client-donut-center" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none"><span id="donut-pct" class="text-xl font-bold text-white">0%</span><span class="text-[8px] text-slate-500 font-bold uppercase">Paid</span></div></div>
+                        <div class="flex gap-3 mt-3"><span class="flex items-center gap-1 text-[9px] text-emerald-400"><span class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>Paid</span><span class="flex items-center gap-1 text-[9px] text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Due</span></div>
+                    </div>
+                    <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4"><p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Breakdown</p><div class="relative h-36"><canvas id="client-bar-chart"></canvas></div></div>
+                    <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4"><p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Timeline</p><div class="relative h-36"><canvas id="client-line-chart"></canvas></div></div>
+                </div>
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                    <div class="lg:col-span-4 space-y-3">
+                        <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
+                            <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-3">Add Payment</h3>
+                            <div class="space-y-2">
+                                <input type="number" id="pay-amount" placeholder="Rs. Amount" class="w-full neo-input p-2.5 rounded-lg text-xs">
+                                <input type="date" id="pay-date" class="w-full neo-input p-2.5 rounded-lg text-xs">
+                                <input type="text" id="pay-note" placeholder="Note (optional)" class="w-full neo-input p-2.5 rounded-lg text-xs">
+                                <button onclick="addPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs">Confirm Payment</button>
                             </div>
                         </div>
-                        <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
-                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Breakdown / ගණනය</p>
-                            <div class="relative h-36"><canvas id="client-bar-chart"></canvas></div>
-                        </div>
-                        <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
-                            <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Payment Timeline</p>
-                            <div class="relative h-36"><canvas id="client-line-chart"></canvas></div>
+                        <div class="grid grid-cols-1 gap-2">
+                            <div class="p-3 bg-rose-600/5 rounded-xl border border-rose-500/20 flex justify-between items-center"><p class="text-[9px] text-rose-500 font-bold uppercase">Due</p><p id="sheet-balance-due" class="text-base font-bold text-rose-400">Rs. 0</p></div>
+                            <div class="p-3 bg-emerald-600/5 rounded-xl border border-emerald-500/20 flex justify-between items-center"><p class="text-[9px] text-emerald-500 font-bold uppercase">Paid</p><p id="sheet-total-paid" class="text-base font-bold text-emerald-400">Rs. 0</p></div>
+                            <div class="p-3 bg-blue-600/5 rounded-xl border border-blue-500/20 flex justify-between items-center"><p class="text-[9px] text-blue-400 font-bold uppercase">Total + Int</p><p id="sheet-total-with-interest" class="text-base font-bold text-blue-400">Rs. 0</p></div>
                         </div>
                     </div>
-
-                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
-                        <div class="lg:col-span-4 space-y-3">
-                            <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
-                                <h3 class="text-[9px] font-bold text-slate-500 uppercase mb-3">Add Payment / ගෙවීමක් එකතු කරන්න</h3>
-                                <div class="space-y-2">
-                                    <input type="number" id="pay-amount" placeholder="Rs. Amount" class="w-full neo-input p-2.5 rounded-lg text-xs">
-                                    <input type="date" id="pay-date" class="w-full neo-input p-2.5 rounded-lg text-xs">
-                                    <input type="text" id="pay-note" placeholder="Note (optional)" class="w-full neo-input p-2.5 rounded-lg text-xs">
-                                    <button onclick="addPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all">Confirm Payment</button>
-                                </div>
-                            </div>
-                            <div class="grid grid-cols-1 gap-2">
-                                <div class="p-3 bg-rose-600/5 rounded-xl border border-rose-500/20 flex justify-between items-center">
-                                    <p class="text-[9px] text-rose-500 font-bold uppercase">Due / හිඟය</p>
-                                    <p id="sheet-balance-due" class="text-base font-bold text-rose-400">Rs. 0</p>
-                                </div>
-                                <div class="p-3 bg-emerald-600/5 rounded-xl border border-emerald-500/20 flex justify-between items-center">
-                                    <p class="text-[9px] text-emerald-500 font-bold uppercase">Paid / ගෙවූ</p>
-                                    <p id="sheet-total-paid" class="text-base font-bold text-emerald-400">Rs. 0</p>
-                                </div>
-                                <div class="p-3 bg-blue-600/5 rounded-xl border border-blue-500/20 flex justify-between items-center">
-                                    <p class="text-[9px] text-blue-400 font-bold uppercase">Total + Int</p>
-                                    <p id="sheet-total-with-interest" class="text-base font-bold text-blue-400">Rs. 0</p>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="lg:col-span-8">
-                            <div class="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
-                                <table class="w-full text-left">
-                                    <thead class="bg-slate-950/50 text-[9px] text-slate-500 font-bold uppercase">
-                                        <tr>
-                                            <th class="px-5 py-3">Date</th>
-                                            <th class="px-5 py-3">Note</th>
-                                            <th class="px-5 py-3 text-right">Amount</th>
-                                            <th class="px-5 py-3 text-right">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="payment-history-body" class="divide-y divide-slate-800/20"></tbody>
-                                </table>
-                                <div id="no-payments" class="hidden text-center py-8 text-slate-600 text-xs">No payments yet.</div>
-                            </div>
+                    <div class="lg:col-span-8">
+                        <div class="bg-slate-900/50 rounded-xl border border-slate-800 overflow-hidden">
+                            <table class="w-full text-left">
+                                <thead class="bg-slate-950/50 text-[9px] text-slate-500 font-bold uppercase"><tr><th class="px-5 py-3">Date</th><th class="px-5 py-3">Note</th><th class="px-5 py-3 text-right">Amount</th><th class="px-5 py-3 text-right">Action</th></tr></thead>
+                                <tbody id="payment-history-body" class="divide-y divide-slate-800/20"></tbody>
+                            </table>
+                            <div id="no-payments" class="hidden text-center py-8 text-slate-600 text-xs">No payments yet.</div>
                         </div>
                     </div>
                 </div>
-
-                <!-- ATTACHMENTS TAB -->
-                <div id="attachments-tab" class="tab-content hidden">
-                    <div class="space-y-4">
-                        <div id="drop-zone" class="drop-zone rounded-xl p-8 text-center cursor-pointer"
-                            onclick="document.getElementById('doc-input').click()"
-                            ondragover="handleDragOver(event)"
-                            ondragleave="handleDragLeave(event)"
-                            ondrop="handleDrop(event)">
-                            <input type="file" id="doc-input" hidden multiple onchange="attachDocs(this)">
-                            <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto text-slate-600 mb-3"></i>
-                            <p class="text-sm font-bold text-slate-400 mb-1">Drop files here or click to upload</p>
-                            <p class="text-[10px] text-slate-600">PDFs, Images, Documents — Any file type</p>
-                        </div>
-                        <div id="attachment-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
-                        <div id="no-attachments" class="text-center py-6 text-slate-600 text-xs">No attachments yet. / ලේඛන නොමැත.</div>
+            </div>
+            <div id="attachments-tab" class="tab-content hidden">
+                <div class="space-y-4">
+                    <div id="drop-zone" class="drop-zone rounded-xl p-8 text-center cursor-pointer" onclick="document.getElementById('doc-input').click()" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDrop(event)">
+                        <input type="file" id="doc-input" hidden multiple onchange="attachDocs(this)">
+                        <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto text-slate-600 mb-3"></i>
+                        <p class="text-sm font-bold text-slate-400 mb-1">Drop files here or click to upload</p>
+                        <p class="text-[10px] text-slate-600">Any file type</p>
                     </div>
+                    <div id="attachment-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
+                    <div id="no-attachments" class="text-center py-6 text-slate-600 text-xs">No attachments yet.</div>
                 </div>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- IMAGE PREVIEW MODAL -->
-    <div id="image-preview-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
-        <div class="absolute inset-0 bg-black/95" onclick="closeModal('image-preview-modal')"></div>
-        <div class="relative z-10 max-w-4xl w-full">
-            <img id="preview-img" class="max-h-[85vh] mx-auto rounded-xl object-contain">
-            <button onclick="closeModal('image-preview-modal')" class="absolute top-2 right-2 bg-slate-800 p-2 rounded-lg text-white"><i data-lucide="x" class="w-4 h-4"></i></button>
-        </div>
-    </div>
+<!-- IMAGE PREVIEW -->
+<div id="image-preview-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-black/95" onclick="closeModal('image-preview-modal')"></div>
+    <div class="relative z-10 max-w-4xl w-full"><img id="preview-img" class="max-h-[85vh] mx-auto rounded-xl object-contain"><button onclick="closeModal('image-preview-modal')" class="absolute top-2 right-2 bg-slate-800 p-2 rounded-lg text-white"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+</div>
 
-    <script>
-        // ============================================================
-        // DROPBOX CONFIG — localStorage keys
-        // ============================================================
-        const LS_TOKEN_KEY  = 'dbx_access_token_v1';
-        const LS_PATH_KEY   = 'dbx_file_path_v1';
-        const LS_DATA_KEY   = 'loanTrackerPro_v3_dropbox';
+<script>
+// ============================================================
+// DROPBOX OAUTH2 PKCE — PERMANENT REFRESH TOKEN
+// ============================================================
+const LS_APP_KEY      = 'dbx_app_key_v2';
+const LS_REFRESH_TOKEN= 'dbx_refresh_token_v2';
+const LS_ACCESS_TOKEN = 'dbx_access_token_v2';
+const LS_TOKEN_EXPIRY = 'dbx_token_expiry_v2';
+const LS_PATH_KEY     = 'dbx_file_path_v2';
+const LS_DATA_KEY     = 'loanTrackerPro_v3_dropbox';
+const LS_PKCE_VERIFIER= 'dbx_pkce_verifier';
+const LS_PKCE_STATE   = 'dbx_pkce_state';
 
-        // Your Dropbox shared link for reading (direct download URL)
-        const DROPBOX_DIRECT_URL = 'https://dl.dropboxusercontent.com/scl/fi/e81y21fn6xxfig19pvgw5/data.json?rlkey=3f02baxpxd9bhrbm5u15leqdo&st=l4jqqut9&dl=1';
-        
-        // ============================================================
-        // STATE
-        // ============================================================
-        let loans = []; 
-        let activeLoanIndex = null;
-        let currentPhoto = "";
-        let editPhoto = "";
-        let recoveryChart, growthChart, comparisonChart;
-        let clientDonutChart, clientBarChart, clientLineChart;
-        let selectedDeactiveClient = null;
-        let deactiveSectionOpen = false;
-        let hasUnsavedChanges = false;
+// Your shared direct download URL (read-only, for initial load)
+const DROPBOX_DIRECT_URL = 'https://dl.dropboxusercontent.com/scl/fi/e81y21fn6xxfig19pvgw5/data.json?rlkey=3f02baxpxd9bhrbm5u15leqdo&st=l4jqqut9&dl=1';
 
-        // ============================================================
-        // DROPBOX TOKEN HELPERS
-        // ============================================================
-        function getDropboxToken() {
-            return localStorage.getItem(LS_TOKEN_KEY) || '';
+// ============================================================
+// PKCE HELPERS
+// ============================================================
+function generateRandomString(len = 64) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
+    let result = '';
+    const arr = new Uint8Array(len);
+    crypto.getRandomValues(arr);
+    arr.forEach(v => result += chars[v % chars.length]);
+    return result;
+}
+
+async function generateCodeChallenge(verifier) {
+    const data = new TextEncoder().encode(verifier);
+    const digest = await crypto.subtle.digest('SHA-256', data);
+    return btoa(String.fromCharCode(...new Uint8Array(digest)))
+        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+
+// ============================================================
+// OAUTH FLOW
+// ============================================================
+async function startOAuthFlow() {
+    const appKey = document.getElementById('app-key-input').value.trim();
+    const path   = document.getElementById('dropbox-path-input').value.trim() || '/data.json';
+
+    if (!appKey) { showToast('⚠️ App Key enter කරන්න!', 'amber'); return; }
+
+    localStorage.setItem(LS_APP_KEY, appKey);
+    localStorage.setItem(LS_PATH_KEY, path);
+
+    const verifier = generateRandomString(64);
+    const state    = generateRandomString(16);
+    const challenge = await generateCodeChallenge(verifier);
+
+    // Store for callback
+    localStorage.setItem(LS_PKCE_VERIFIER, verifier);
+    localStorage.setItem(LS_PKCE_STATE, state);
+
+    const redirectUri = getRedirectUri();
+    const params = new URLSearchParams({
+        client_id:             appKey,
+        response_type:         'code',
+        code_challenge:        challenge,
+        code_challenge_method: 'S256',
+        token_access_type:     'offline',   // ← This gives permanent refresh token!
+        redirect_uri:          redirectUri,
+        state:                 state
+    });
+
+    window.location.href = `https://www.dropbox.com/oauth2/authorize?${params}`;
+}
+
+function getRedirectUri() {
+    return window.location.origin + window.location.pathname;
+}
+
+// ============================================================
+// HANDLE OAUTH CALLBACK (on page load)
+// ============================================================
+async function handleOAuthCallback() {
+    const params = new URLSearchParams(window.location.search);
+    const code  = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
+
+    if (error) {
+        showToast(`❌ Dropbox auth failed: ${error}`, 'rose');
+        window.history.replaceState({}, '', window.location.pathname);
+        return false;
+    }
+
+    if (!code) return false;
+
+    // Validate state
+    const savedState = localStorage.getItem(LS_PKCE_STATE);
+    if (state !== savedState) {
+        showToast('❌ OAuth state mismatch! Try again.', 'rose');
+        window.history.replaceState({}, '', window.location.pathname);
+        return false;
+    }
+
+    const verifier = localStorage.getItem(LS_PKCE_VERIFIER);
+    const appKey   = localStorage.getItem(LS_APP_KEY);
+    const redirectUri = getRedirectUri();
+
+    setSyncStatus('loading', 'Exchanging tokens...');
+
+    try {
+        const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                code,
+                grant_type:    'authorization_code',
+                code_verifier: verifier,
+                client_id:     appKey,
+                redirect_uri:  redirectUri
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.access_token && data.refresh_token) {
+            storeTokens(data);
+            // Cleanup
+            localStorage.removeItem(LS_PKCE_VERIFIER);
+            localStorage.removeItem(LS_PKCE_STATE);
+            window.history.replaceState({}, '', window.location.pathname);
+            showToast('🎉 Dropbox connected permanently!', 'emerald');
+            setSyncStatus('synced', 'OAuth connected ✓');
+            return true;
+        } else {
+            const msg = data.error_description || data.error || 'Unknown error';
+            showToast(`❌ Token exchange failed: ${msg}`, 'rose');
+            setSyncStatus('error', 'Auth failed');
+            return false;
+        }
+    } catch (err) {
+        console.error('Token exchange error:', err);
+        showToast('❌ Network error during auth!', 'rose');
+        setSyncStatus('error', 'Network error');
+        return false;
+    }
+}
+
+function storeTokens(data) {
+    localStorage.setItem(LS_ACCESS_TOKEN, data.access_token);
+    localStorage.setItem(LS_REFRESH_TOKEN, data.refresh_token);
+    // expires_in is in seconds
+    const expiry = Date.now() + ((data.expires_in || 14400) * 1000);
+    localStorage.setItem(LS_TOKEN_EXPIRY, expiry.toString());
+}
+
+// ============================================================
+// GET VALID ACCESS TOKEN (auto-refresh if expired)
+// ============================================================
+async function getValidAccessToken() {
+    const accessToken  = localStorage.getItem(LS_ACCESS_TOKEN);
+    const expiry       = parseInt(localStorage.getItem(LS_TOKEN_EXPIRY) || '0');
+    const refreshToken = localStorage.getItem(LS_REFRESH_TOKEN);
+    const appKey       = localStorage.getItem(LS_APP_KEY);
+
+    // Valid token (with 60s buffer)
+    if (accessToken && Date.now() < expiry - 60000) {
+        return accessToken;
+    }
+
+    // Need refresh
+    if (!refreshToken || !appKey) return null;
+
+    setSyncStatus('loading', 'Refreshing token...');
+
+    try {
+        const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                grant_type:    'refresh_token',
+                refresh_token: refreshToken,
+                client_id:     appKey
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.access_token) {
+            // Note: refresh_token itself doesn't change on refresh
+            localStorage.setItem(LS_ACCESS_TOKEN, data.access_token);
+            const expiry = Date.now() + ((data.expires_in || 14400) * 1000);
+            localStorage.setItem(LS_TOKEN_EXPIRY, expiry.toString());
+            return data.access_token;
+        } else {
+            // Refresh token invalid — need re-auth
+            showToast('⚠️ Session expired. Please reconnect Dropbox.', 'amber');
+            setSyncStatus('error', 'Re-auth needed');
+            return null;
+        }
+    } catch (err) {
+        console.error('Token refresh error:', err);
+        return null;
+    }
+}
+
+function isDropboxConnected() {
+    return !!(localStorage.getItem(LS_REFRESH_TOKEN) && localStorage.getItem(LS_APP_KEY));
+}
+
+function disconnectDropbox() {
+    if (!confirm('Dropbox disconnect කිරීමට ඔබට විශ්වාසද?')) return;
+    [LS_APP_KEY, LS_REFRESH_TOKEN, LS_ACCESS_TOKEN, LS_TOKEN_EXPIRY].forEach(k => localStorage.removeItem(k));
+    showToast('🔌 Dropbox disconnected.', 'amber');
+    setSyncStatus('error', 'Not connected');
+    showSetupView();
+}
+
+// ============================================================
+// SETUP MODAL UI
+// ============================================================
+function openDropboxSetup() {
+    prefillSetupModal();
+    if (isDropboxConnected()) showConnectedView();
+    else showSetupView();
+    openModal('dropbox-setup-modal');
+}
+
+function showConnectedView() {
+    document.getElementById('connected-view').classList.remove('hidden');
+    document.getElementById('setup-view').classList.add('hidden');
+    document.getElementById('info-app-key').textContent = localStorage.getItem(LS_APP_KEY) || '—';
+    document.getElementById('info-path').textContent = localStorage.getItem(LS_PATH_KEY) || '/data.json';
+}
+
+function showSetupView() {
+    document.getElementById('connected-view').classList.add('hidden');
+    document.getElementById('setup-view').classList.remove('hidden');
+}
+
+function prefillSetupModal() {
+    const k = localStorage.getItem(LS_APP_KEY);
+    const p = localStorage.getItem(LS_PATH_KEY);
+    if (k) document.getElementById('app-key-input').value = k;
+    if (p) document.getElementById('dropbox-path-input').value = p;
+    // Show current page URL for redirect URI
+    document.getElementById('current-url-display').textContent = getRedirectUri();
+}
+
+// ============================================================
+// SAVE TO DROPBOX (with auto-refresh)
+// ============================================================
+async function saveToDropbox() {
+    if (!isDropboxConnected()) {
+        prefillSetupModal();
+        showSetupView();
+        openModal('dropbox-setup-modal');
+        return;
+    }
+
+    const btn = document.getElementById('save-btn');
+    const origHTML = btn.innerHTML;
+    btn.classList.add('uploading-btn');
+    btn.innerHTML = `<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Uploading...`;
+    btn.disabled = true;
+    setSyncStatus('loading', 'Uploading...');
+
+    try {
+        const token = await getValidAccessToken();
+        if (!token) {
+            showToast('❌ Token get කරගන්නට බැරි. Reconnect කරන්න.', 'rose');
+            setSyncStatus('error', 'Auth failed');
+            openDropboxSetup();
+            return;
         }
 
-        function getDropboxPath() {
-            return localStorage.getItem(LS_PATH_KEY) || '/data.json';
-        }
+        const content  = JSON.stringify(loans, null, 2);
+        const filePath = localStorage.getItem(LS_PATH_KEY) || '/data.json';
 
-        function saveDropboxSetup() {
-            const token = document.getElementById('dropbox-token-input').value.trim();
-            const path  = document.getElementById('dropbox-path-input').value.trim() || '/data.json';
-            if (!token) { showToast('⚠️ Token empty! Please paste your Dropbox token.', 'amber'); return; }
-            localStorage.setItem(LS_TOKEN_KEY, token);
-            localStorage.setItem(LS_PATH_KEY, path);
-            closeModal('dropbox-setup-modal');
-            showToast('✅ Dropbox connected! Now save your data.', 'emerald');
-            setSyncStatus('synced', 'Dropbox connected ✓');
-        }
+        const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Dropbox-API-Arg': JSON.stringify({ path: filePath, mode: 'overwrite', autorename: false, mute: false }),
+                'Content-Type': 'application/octet-stream'
+            },
+            body: content
+        });
 
-        function toggleTokenVisibility() {
-            const inp = document.getElementById('dropbox-token-input');
-            const btn = inp.nextElementSibling;
-            if (inp.type === 'password') { inp.type = 'text';  btn.textContent = 'HIDE'; }
-            else                         { inp.type = 'password'; btn.textContent = 'SHOW'; }
-        }
-
-        // Pre-fill token & path if already saved
-        function prefillSetupModal() {
-            const t = getDropboxToken();
-            const p = getDropboxPath();
-            if (t) document.getElementById('dropbox-token-input').value = t;
-            if (p) document.getElementById('dropbox-path-input').value = p;
-        }
-
-        // ============================================================
-        // SYNC STATUS UI
-        // ============================================================
-        function setSyncStatus(status, label) {
-            const dot = document.getElementById('sync-dot');
-            const lbl = document.getElementById('sync-label');
-            dot.className = `sync-dot ${status}`;
-            lbl.textContent = label;
-            const colors = { synced: 'text-emerald-400', pending: 'text-amber-400', error: 'text-rose-400', loading: 'text-blue-400' };
-            lbl.className = `text-[10px] font-bold ${colors[status] || 'text-slate-400'}`;
-        }
-
-        function markUnsaved() {
-            hasUnsavedChanges = true;
-            document.getElementById('unsaved-banner').style.display = 'block';
-            setSyncStatus('pending', 'Unsaved changes');
-        }
-
-        function markSaved() {
-            hasUnsavedChanges = false;
-            document.getElementById('unsaved-banner').style.display = 'none';
-            setSyncStatus('synced', 'Synced with Dropbox ✓');
-        }
-
-        // ============================================================
-        // ⬆️  DROPBOX DIRECT UPLOAD — API v2
-        // ============================================================
-        async function saveToDropbox() {
-            const token = getDropboxToken();
-
-            // No token yet → open setup
-            if (!token) {
-                prefillSetupModal();
-                openModal('dropbox-setup-modal');
-                return;
-            }
-
-            const btn = document.getElementById('save-btn');
-            const origHTML = btn.innerHTML;
-            btn.classList.add('uploading-btn');
-            btn.innerHTML = `<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Uploading...`;
-            btn.disabled = true;
-            setSyncStatus('loading', 'Uploading to Dropbox...');
-
-            try {
-                const content   = JSON.stringify(loans, null, 2);
-                const filePath  = getDropboxPath();
-
-                const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${token}`,
-                        'Dropbox-API-Arg': JSON.stringify({
-                            path: filePath,
-                            mode: 'overwrite',
-                            autorename: false,
-                            mute: false
-                        }),
-                        'Content-Type': 'application/octet-stream'
-                    },
-                    body: content
-                });
-
-                if (response.ok) {
-                    const result = await response.json();
-                    saveToLocalStorage();
-                    markSaved();
-                    showToast(`✅ Dropbox saved! ${loans.length} records → ${result.path_display}`, 'emerald');
-                } else {
-                    const err = await response.json().catch(() => ({}));
-                    const msg = err?.error_summary || `HTTP ${response.status}`;
-
-                    // Token expired or invalid → re-prompt setup
-                    if (response.status === 401) {
-                        showToast('❌ Token expired! Please reconnect Dropbox.', 'rose');
-                        prefillSetupModal();
-                        openModal('dropbox-setup-modal');
-                    } else {
-                        showToast(`❌ Upload failed: ${msg}`, 'rose');
-                    }
-                    setSyncStatus('error', 'Upload failed');
-                }
-            } catch (err) {
-                console.error('Dropbox upload error:', err);
-                showToast('❌ Network error! Check your connection.', 'rose');
-                setSyncStatus('error', 'Network error');
-            } finally {
-                btn.classList.remove('uploading-btn');
-                btn.innerHTML = origHTML;
-                btn.disabled = false;
-                setTimeout(initIcons, 50);
-            }
-        }
-
-        // ============================================================
-        // ⬇️  DROPBOX AUTO-LOAD (on startup, reads shared URL)
-        // ============================================================
-        async function loadFromDropbox() {
-            setSyncStatus('loading', 'Loading from Dropbox...');
-            try {
-                const url = DROPBOX_DIRECT_URL + '&_t=' + Date.now();
-                const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                const text = await response.text();
-                if (!text || text.trim() === '') { loans = []; }
-                else {
-                    const data = JSON.parse(text);
-                    loans = Array.isArray(data) ? data : [];
-                }
-                loans.forEach(ensureDefaults);
-                saveToLocalStorage();
-                const tokenOk = !!getDropboxToken();
-                setSyncStatus('synced', tokenOk ? `Synced ✓ — ${loans.length} records` : `Loaded ✓ — setup token to save`);
-                if (!tokenOk) showToast('⚡ Data loaded! Click ⚙️ to setup Dropbox save.', 'blue');
-                else showToast(`✅ Dropbox synced! ${loans.length} records`, 'emerald');
-                return true;
-            } catch (err) {
-                console.warn('Dropbox load failed:', err);
-                loadFromLocalStorage();
-                if (loans.length > 0) {
-                    setSyncStatus('error', 'Dropbox offline — local cache');
-                    showToast('⚠️ Dropbox offline. Local cache loaded.', 'amber');
-                } else {
-                    setSyncStatus('error', 'No data found');
-                    // No data + no token → show setup
-                    if (!getDropboxToken()) {
-                        setTimeout(() => { prefillSetupModal(); openModal('dropbox-setup-modal'); }, 1000);
-                    }
-                }
-                return false;
-            }
-        }
-
-        async function reloadFromDropbox() {
-            setSyncStatus('loading', 'Reloading...');
-            const ok = await loadFromDropbox();
-            if (ok) refreshUI();
-        }
-
-        // ============================================================
-        // PERSISTENCE — localStorage (backup)
-        // ============================================================
-        function saveToLocalStorage() {
-            try { localStorage.setItem(LS_DATA_KEY, JSON.stringify(loans)); }
-            catch(e) { showToast('⚠️ Local storage full! Export JSON.', 'amber'); }
-        }
-
-        function loadFromLocalStorage() {
-            try { const raw = localStorage.getItem(LS_DATA_KEY); if (raw) loans = JSON.parse(raw); }
-            catch(e) { loans = []; }
-        }
-
-        function persistAll() {
+        if (response.ok) {
+            const result = await response.json();
             saveToLocalStorage();
-            markUnsaved();
-        }
-
-        // ============================================================
-        // EXPORT (manual backup)
-        // ============================================================
-        function downloadJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
-            const dl = document.createElement('a');
-            dl.setAttribute("href", dataStr);
-            dl.setAttribute("download", `loan_book_${new Date().toISOString().split('T')[0]}.json`);
-            dl.click();
-        }
-
-        // ============================================================
-        // TOAST
-        // ============================================================
-        function showToast(msg, color = 'emerald') {
-            const colors = { emerald: 'bg-emerald-600', amber: 'bg-amber-600', rose: 'bg-rose-600', blue: 'bg-blue-600' };
-            const el = document.createElement('div');
-            el.className = `toast ${colors[color] || colors.emerald} text-white`;
-            el.textContent = msg;
-            document.body.appendChild(el);
-            setTimeout(() => el.remove(), 4000);
-        }
-
-        function initIcons() { lucide.createIcons(); }
-
-        // ============================================================
-        // MODALS
-        // ============================================================
-        function openModal(id) {
-            document.getElementById(id).classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            setTimeout(initIcons, 50);
-        }
-        function closeModal(id) {
-            document.getElementById(id).classList.add('hidden');
-            document.body.style.overflow = 'auto';
-        }
-
-        // ============================================================
-        // TABS
-        // ============================================================
-        function switchTab(tabId) {
-            document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
-            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById(tabId).classList.remove('hidden');
-            const btnId = tabId === 'payments-tab' ? 'tab-payments' : 'tab-attachments';
-            document.getElementById(btnId).classList.add('active');
-            if (tabId === 'attachments-tab') renderAttachments();
-        }
-
-        // ============================================================
-        // PHOTO PREVIEW
-        // ============================================================
-        function previewPhoto(input, previewId, placeholderId) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    if (previewId === 'edit-photo-preview') editPhoto = e.target.result;
-                    else currentPhoto = e.target.result;
-                    document.getElementById(previewId).src = e.target.result;
-                    document.getElementById(previewId).classList.remove('hidden');
-                    document.getElementById(placeholderId).classList.add('hidden');
-                };
-                reader.readAsDataURL(input.files[0]);
-            }
-        }
-
-        // ============================================================
-        // LOAN STATUS HELPERS
-        // ============================================================
-        function getLoanDue(loan) {
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
-            return total - paid;
-        }
-
-        function isLoanPaid(loan) { return getLoanDue(loan) <= 0; }
-
-        function getDeactiveClients() {
-            return groupByClient(loans).filter(g => g.loans.every(l => isLoanPaid(l)));
-        }
-
-        function getActiveClients() {
-            return groupByClient(loans).filter(g => !g.loans.every(l => isLoanPaid(l)));
-        }
-
-        function ensureDefaults(loan) {
-            if (!loan.payments)  loan.payments  = [];
-            if (!loan.documents) loan.documents = [];
-            return loan;
-        }
-
-        // ============================================================
-        // AUTOCOMPLETE
-        // ============================================================
-        function handleNameInput(val) {
-            if (!val || !val.trim()) { hideSuggestions(); return; }
-            const filtered = getDeactiveClients().filter(g => g.displayName.toLowerCase().includes(val.toLowerCase()));
-            filtered.length ? showSuggestions(filtered) : hideSuggestions();
-        }
-
-        function showSuggestions(clients) {
-            const box = document.getElementById('name-suggestions');
-            box.innerHTML = '';
-            clients.forEach(client => {
-                const photoSrc = client.loans[0].photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
-                const div = document.createElement('div');
-                div.className = 'suggestion-item';
-                div.innerHTML = `
-                    <img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
-                    <div class="flex-1 min-w-0">
-                        <div class="text-xs font-bold text-white truncate">${client.displayName}</div>
-                        <div class="text-[9px] text-slate-500">${client.loans.length} ණය — ගෙවා ඉවරයි</div>
-                    </div>
-                    <span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">✓ Paid</span>
-                `;
-                div.onclick = () => selectDeactiveClient(client);
-                box.appendChild(div);
-            });
-            box.classList.remove('hidden');
-            initIcons();
-        }
-
-        function hideSuggestions() { document.getElementById('name-suggestions').classList.add('hidden'); }
-
-        function selectDeactiveClient(client) {
-            selectedDeactiveClient = client;
-            document.getElementById('borrower-name').value = client.displayName;
-            hideSuggestions();
-            const photoSrc = client.loans[0].photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
-            document.getElementById('selected-deactive-photo').src = photoSrc;
-            document.getElementById('selected-deactive-label').textContent = `"${client.displayName}" නැවත සක්‍රිය වේ — නව ණය ලබා දෙන්න`;
-            document.getElementById('selected-deactive-hint').classList.remove('hidden');
-            if (client.loans[0].photo) {
-                currentPhoto = client.loans[0].photo;
-                const preview = document.getElementById('photo-preview');
-                preview.src = client.loans[0].photo;
-                preview.classList.remove('hidden');
-                document.getElementById('photo-placeholder').classList.add('hidden');
-            }
-            initIcons();
-        }
-
-        function clearSelectedDeactive() {
-            selectedDeactiveClient = null;
-            document.getElementById('selected-deactive-hint').classList.add('hidden');
-            document.getElementById('borrower-name').value = '';
-        }
-
-        // ============================================================
-        // CREATE LOAN
-        // ============================================================
-        document.getElementById('loan-form').onsubmit = function(e) {
-            e.preventDefault();
-            loans.push({
-                id: Date.now(),
-                name: document.getElementById('borrower-name').value,
-                amount: parseFloat(document.getElementById('loan-amount').value),
-                interest: parseFloat(document.getElementById('loan-interest').value),
-                period: parseInt(document.getElementById('loan-period').value),
-                date: document.getElementById('loan-date').value,
-                photo: currentPhoto,
-                payments: [],
-                documents: []
-            });
-            refreshUI();
-            closeModal('new-loan-modal');
-            this.reset();
-            currentPhoto = "";
-            selectedDeactiveClient = null;
-            document.getElementById('photo-preview').classList.add('hidden');
-            document.getElementById('photo-placeholder').classList.remove('hidden');
-            document.getElementById('selected-deactive-hint').classList.add('hidden');
-            persistAll();
-        };
-
-        // ============================================================
-        // EDIT LOAN
-        // ============================================================
-        function openEditModal(index) {
-            activeLoanIndex = index;
-            const loan = loans[index];
-            editPhoto = loan.photo || "";
-            document.getElementById('edit-name').value    = loan.name;
-            document.getElementById('edit-amount').value  = loan.amount;
-            document.getElementById('edit-interest').value= loan.interest;
-            document.getElementById('edit-period').value  = loan.period;
-            document.getElementById('edit-date').value    = loan.date;
-            const previewImg = document.getElementById('edit-photo-preview');
-            previewImg.src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-            previewImg.classList.remove('hidden');
-            document.getElementById('edit-photo-placeholder').classList.add('hidden');
-            openModal('edit-loan-modal');
-        }
-
-        function openEditFromSheet() {
-            closeModal('sheet-modal');
-            openEditModal(activeLoanIndex);
-        }
-
-        document.getElementById('edit-form').onsubmit = function(e) {
-            e.preventDefault();
-            const loan = loans[activeLoanIndex];
-            loan.name     = document.getElementById('edit-name').value;
-            loan.amount   = parseFloat(document.getElementById('edit-amount').value);
-            loan.interest = parseFloat(document.getElementById('edit-interest').value);
-            loan.period   = parseInt(document.getElementById('edit-period').value);
-            loan.date     = document.getElementById('edit-date').value;
-            if (editPhoto) loan.photo = editPhoto;
-            refreshUI();
-            closeModal('edit-loan-modal');
-            persistAll();
-            setTimeout(() => openSheet(activeLoanIndex), 100);
-        };
-
-        // ============================================================
-        // GROUP BY CLIENT
-        // ============================================================
-        function groupByClient(data) {
-            const map = {};
-            data.forEach(loan => {
-                const key = loan.name.trim().toLowerCase();
-                if (!map[key]) map[key] = { displayName: loan.name, loans: [] };
-                map[key].loans.push(loan);
-            });
-            return Object.values(map);
-        }
-
-        // ============================================================
-        // RENDER DASHBOARD
-        // ============================================================
-        function renderDashboard(data = loans) {
-            const tbody = document.getElementById('loan-table-body');
-            const empty = document.getElementById('empty-state');
-            tbody.innerHTML = '';
-            const allGroups = groupByClient(data);
-            const activeGroups   = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
-            const deactiveGroups = allGroups.filter(g =>  g.loans.every(l => isLoanPaid(l)));
-            if (activeGroups.length === 0 && deactiveGroups.length === 0) {
-                empty.classList.remove('hidden'); initIcons(); renderDeactiveTable([]); return;
-            }
-            empty.classList.add('hidden');
-            activeGroups.forEach(group => renderGroupRows(tbody, group, false));
-            renderDeactiveTable(deactiveGroups);
-            initIcons();
-        }
-
-        function renderGroupRows(tbody, group, isDeactive) {
-            const isMulti = group.loans.length > 1;
-            const groupKey = group.displayName.trim().toLowerCase().replace(/\s+/g, '_') + '_' + (isDeactive ? 'd' : 'a');
-            const firstLoan = group.loans[0];
-            const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
-            if (!isMulti) {
-                const loan = group.loans[0];
-                const idx  = loans.indexOf(loan);
-                const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-                const total = loan.amount + interest;
-                const paid  = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
-                const due   = total - paid;
-                tbody.innerHTML += `
-                    <tr class="group hover:bg-white/[0.02] transition-all cursor-pointer ${isDeactive ? 'deactive-row' : ''}" onclick="openSheet(${idx})">
-                        <td class="px-6 py-4"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover"><div><div class="font-bold text-white text-xs">${loan.name}</div><div class="text-[8px] text-slate-500 uppercase">${loan.date}</div></div></div></td>
-                        <td class="px-6 py-4 text-slate-400 text-xs font-medium">Rs. ${loan.amount.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold ${due <= 0 ? 'bg-emerald-500/10 text-emerald-400 paid-badge' : 'bg-rose-500/10 text-rose-400'}">${due <= 0 ? '✓ PAID' : 'Rs. ' + due.toLocaleString()}</span></td>
-                        <td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2">
-                            <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                            <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                        </div></td>
-                    </tr>`;
+            markSaved();
+            showToast(`✅ Saved! ${loans.length} records → ${result.path_display}`, 'emerald');
+        } else {
+            const err = await response.json().catch(() => ({}));
+            const msg = err?.error_summary || `HTTP ${response.status}`;
+            if (response.status === 401) {
+                // Try to refresh and retry once
+                localStorage.removeItem(LS_ACCESS_TOKEN);
+                const newToken = await getValidAccessToken();
+                if (newToken) { btn.classList.remove('uploading-btn'); btn.innerHTML = origHTML; btn.disabled = false; setTimeout(initIcons, 50); await saveToDropbox(); return; }
+                showToast('❌ Auth failed. Reconnect Dropbox.', 'rose');
+                openDropboxSetup();
             } else {
-                tbody.innerHTML += `
-                    <tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all ${isDeactive ? 'deactive-row' : ''}" onclick="toggleClientGroup('${groupKey}')">
-                        <td class="px-6 py-4" colspan="3"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-violet-500/40"><div><div class="font-bold text-white text-xs flex items-center gap-2">${group.displayName}<span class="bg-violet-500/20 text-violet-300 text-[8px] font-bold px-2 py-0.5 rounded-full">${group.loans.length} ණය</span></div><div class="text-[8px] text-slate-500">Click to expand</div></div></div></td>
-                        <td class="px-6 py-4">${isDeactive ? '<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>' : ''}</td>
-                        <td class="px-6 py-4 text-right"><i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline transition-transform" id="chevron-${groupKey}"></i></td>
-                    </tr>
-                    <tr id="subrows-${groupKey}" class="hidden"><td colspan="5" class="p-0"><table class="w-full"><tbody>
-                        ${group.loans.map(loan => {
-                            const idx = loans.indexOf(loan);
-                            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-                            const total = loan.amount + interest;
-                            const paid  = (loan.payments||[]).reduce((s,p)=>s+p.amount,0);
-                            const due   = total - paid;
-                            return `<tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all" onclick="openSheet(${idx})">
-                                <td class="px-6 py-3 pl-16"><div class="text-[10px] font-bold text-slate-300">ණය #${idx+1} — ${loan.date}</div><div class="text-[8px] text-slate-600">${loan.period} මාස | ${loan.interest}%</div></td>
-                                <td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td>
-                                <td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
-                                <td class="px-6 py-3"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td>
-                                <td class="px-6 py-3 text-right"><div class="flex items-center justify-end gap-2">
-                                    <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                                    <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                                </div></td></tr>`;
-                        }).join('')}
-                    </tbody></table></td></tr>`;
+                showToast(`❌ Upload failed: ${msg}`, 'rose');
             }
+            setSyncStatus('error', 'Upload failed');
         }
+    } catch (err) {
+        console.error('Upload error:', err);
+        showToast('❌ Network error!', 'rose');
+        setSyncStatus('error', 'Network error');
+    } finally {
+        btn.classList.remove('uploading-btn');
+        btn.innerHTML = origHTML;
+        btn.disabled = false;
+        setTimeout(initIcons, 50);
+    }
+}
 
-        // ============================================================
-        // DEACTIVE TABLE
-        // ============================================================
-        function renderDeactiveTable(deactiveGroups) {
-            const section = document.getElementById('deactive-section');
-            const tbody   = document.getElementById('deactive-table-body');
-            const badge   = document.getElementById('deactive-count-badge');
-            if (deactiveGroups.length === 0) { section.classList.add('hidden'); return; }
-            section.classList.remove('hidden');
-            badge.textContent = deactiveGroups.length;
-            tbody.innerHTML = '';
-            deactiveGroups.forEach(group => {
-                const firstLoan    = group.loans[0];
-                const photoSrc     = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
-                const totalPaid    = group.loans.reduce((s,l) => s + (l.payments||[]).reduce((ps,p)=>ps+p.amount,0), 0);
-                const totalPrincipal = group.loans.reduce((s,l) => s + l.amount, 0);
-                const latestLoan   = group.loans[group.loans.length - 1];
-                const latestIdx    = loans.indexOf(latestLoan);
-                tbody.innerHTML += `
-                    <tr class="deactive-row hover:bg-white/[0.02] transition-all cursor-pointer" onclick="openSheet(${latestIdx})">
-                        <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="relative"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover grayscale opacity-60"><div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border border-slate-900 flex items-center justify-center"><span class="text-[6px] text-white font-bold">✓</span></div></div><div><div class="font-bold text-slate-400 text-xs">${group.displayName}</div><div class="text-[8px] text-slate-600">${group.loans.length} ණය | ${firstLoan.date}</div></div></div></td>
-                        <td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td>
-                        <td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span></td>
-                        <td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2">
-                            <button onclick="event.stopPropagation(); openNewLoanForDeactive('${group.displayName.replace(/'/g,"\\'")}');" class="text-slate-600 hover:text-blue-400 text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded"><i data-lucide="plus" class="w-3 h-3"></i> නව ණය</button>
-                            <button onclick="event.stopPropagation(); deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                        </div></td>
-                    </tr>`;
-            });
-            initIcons();
-        }
+// ============================================================
+// LOAD FROM DROPBOX (shared URL — read-only)
+// ============================================================
+async function loadFromDropbox() {
+    setSyncStatus('loading', 'Loading from Dropbox...');
+    try {
+        const url = DROPBOX_DIRECT_URL + '&_t=' + Date.now();
+        const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
+        const data = text.trim() ? JSON.parse(text) : [];
+        loans = Array.isArray(data) ? data : [];
+        loans.forEach(ensureDefaults);
+        saveToLocalStorage();
+        if (isDropboxConnected()) setSyncStatus('synced', `Synced ✓ — ${loans.length} records`);
+        else setSyncStatus('pending', `Loaded ✓ — Click ⚙️ to connect`);
+        return true;
+    } catch (err) {
+        console.warn('Dropbox load failed:', err);
+        loadFromLocalStorage();
+        if (loans.length > 0) { setSyncStatus('error', 'Offline — local cache'); showToast('⚠️ Using local cache.', 'amber'); }
+        else { setSyncStatus('error', 'No data'); if (!isDropboxConnected()) { setTimeout(() => { prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal'); }, 1000); } }
+        return false;
+    }
+}
 
-        function toggleDeactiveSection() {
-            deactiveSectionOpen = !deactiveSectionOpen;
-            document.getElementById('deactive-table-wrapper').classList.toggle('hidden', !deactiveSectionOpen);
-            document.getElementById('deactive-chevron').style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
-            document.getElementById('deactive-toggle-label').textContent = deactiveSectionOpen ? 'Hide' : 'Show';
-        }
+async function reloadFromDropbox() {
+    const ok = await loadFromDropbox();
+    if (ok) refreshUI();
+}
 
-        function openNewLoanForDeactive(name) {
-            openModal('new-loan-modal');
-            setTimeout(() => {
-                document.getElementById('borrower-name').value = name;
-                const client = getDeactiveClients().find(g => g.displayName === name);
-                if (client) selectDeactiveClient(client);
-            }, 100);
-        }
+// ============================================================
+// STATE
+// ============================================================
+let loans = [];
+let activeLoanIndex = null;
+let currentPhoto = "";
+let editPhoto = "";
+let recoveryChart, growthChart, comparisonChart;
+let clientDonutChart, clientBarChart, clientLineChart;
+let selectedDeactiveClient = null;
+let deactiveSectionOpen = false;
+let hasUnsavedChanges = false;
 
-        function toggleClientGroup(key) {
-            const subrows = document.getElementById(`subrows-${key}`);
-            const chevron = document.getElementById(`chevron-${key}`);
-            const isHidden = subrows.classList.contains('hidden');
-            subrows.classList.toggle('hidden', !isHidden);
-            chevron.style.transform = isHidden ? 'rotate(180deg)' : '';
-            initIcons();
-        }
+// ============================================================
+// SYNC STATUS
+// ============================================================
+function setSyncStatus(status, label) {
+    const dot = document.getElementById('sync-dot');
+    const lbl = document.getElementById('sync-label');
+    dot.className = `sync-dot ${status}`;
+    lbl.textContent = label;
+    const colors = { synced: 'text-emerald-400', pending: 'text-amber-400', error: 'text-rose-400', loading: 'text-blue-400' };
+    lbl.className = `text-[10px] font-bold ${colors[status] || 'text-slate-400'}`;
+}
 
-        function searchLoans(val) {
-            renderDashboard(loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase())));
-        }
+function markUnsaved() { hasUnsavedChanges = true; document.getElementById('unsaved-banner').style.display = 'block'; setSyncStatus('pending', 'Unsaved changes'); }
+function markSaved()   { hasUnsavedChanges = false; document.getElementById('unsaved-banner').style.display = 'none'; setSyncStatus('synced', 'Synced ✓'); }
 
-        // ============================================================
-        // OPEN SHEET
-        // ============================================================
-        function openSheet(index) {
-            activeLoanIndex = index;
-            const loan = ensureDefaults(loans[index]);
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid  = loan.payments.reduce((sum, p) => sum + p.amount, 0);
-            const due   = total - paid;
-            const pct   = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-            document.getElementById('sheet-photo').src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-            document.getElementById('sheet-title').innerText = loan.name;
-            document.getElementById('sheet-subtitle').innerText = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
-            document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-total-with-interest').innerText = `Rs. ${total.toLocaleString()}`;
-            setTimeout(() => {
-                document.getElementById('sheet-progress-bar').style.width = pct + '%';
-                document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-            }, 100);
-            updateAttachmentBadge();
-            switchTab('payments-tab');
-            renderPaymentHistory();
-            openModal('sheet-modal');
-            setTimeout(() => renderClientCharts(loan, paid, due, total, interest), 120);
-        }
+// ============================================================
+// PERSISTENCE
+// ============================================================
+function saveToLocalStorage() { try { localStorage.setItem(LS_DATA_KEY, JSON.stringify(loans)); } catch(e) { showToast('⚠️ Storage full! Export JSON.', 'amber'); } }
+function loadFromLocalStorage() { try { const raw = localStorage.getItem(LS_DATA_KEY); if (raw) loans = JSON.parse(raw); } catch(e) { loans = []; } }
+function persistAll() { saveToLocalStorage(); markUnsaved(); }
 
-        function updateAttachmentBadge() {
-            if (activeLoanIndex === null) return;
-            const count = (loans[activeLoanIndex].documents || []).length;
-            const badge = document.getElementById('att-count-badge');
-            count > 0 ? (badge.textContent = count, badge.classList.remove('hidden')) : badge.classList.add('hidden');
-        }
+function downloadJSON() {
+    const dl = document.createElement('a');
+    dl.setAttribute("href", "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2)));
+    dl.setAttribute("download", `loan_book_${new Date().toISOString().split('T')[0]}.json`);
+    dl.click();
+}
 
-        // ============================================================
-        // CLIENT CHARTS
-        // ============================================================
-        function renderClientCharts(loan, paid, due, total, interest) {
-            if (clientDonutChart) { clientDonutChart.destroy(); clientDonutChart = null; }
-            if (clientBarChart)   { clientBarChart.destroy();   clientBarChart = null; }
-            if (clientLineChart)  { clientLineChart.destroy();  clientLineChart = null; }
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-            animateCount('donut-pct', 0, pct, '%', 900);
-            const donutCtx = document.getElementById('client-donut-chart');
-            if (donutCtx) clientDonutChart = new Chart(donutCtx, { type: 'doughnut', data: { labels: ['Paid','Due'], datasets:[{ data: paid>0||due>0?[paid,Math.max(0,due)]:[0,1], backgroundColor:['#10b981','#f43f5e'], borderWidth:0, hoverOffset:6}]}, options:{ responsive:true, maintainAspectRatio:true, cutout:'72%', animation:{animateRotate:true,duration:900}, plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}}}});
-            const barCtx = document.getElementById('client-bar-chart');
-            if (barCtx) clientBarChart = new Chart(barCtx, { type:'bar', data:{labels:['Principal','Interest','Paid','Balance'],datasets:[{data:[loan.amount,interest,paid,Math.max(0,due)],backgroundColor:['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'],borderRadius:5,borderSkipped:false}]}, options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#64748b',font:{size:8}}}}}});
-            const lineCtx = document.getElementById('client-line-chart');
-            if (lineCtx) {
-                const sorted = [...(loan.payments||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
-                let running = 0; const labels = ['Start']; const cumData = [0];
-                sorted.forEach(p => { labels.push(p.date.substring(5)); running += p.amount; cumData.push(running); });
-                clientLineChart = new Chart(lineCtx, { type:'line', data:{labels, datasets:[{label:'Cumulative Paid',data:cumData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.08)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#10b981',borderWidth:2},{label:'Total Due',data:labels.map(()=>total),borderColor:'rgba(244,63,94,0.3)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#475569',font:{size:7},maxTicksLimit:5}}}}});
-            }
-        }
+// ============================================================
+// TOAST
+// ============================================================
+function showToast(msg, color = 'emerald') {
+    const colors = { emerald: 'bg-emerald-600', amber: 'bg-amber-600', rose: 'bg-rose-600', blue: 'bg-blue-600' };
+    const el = document.createElement('div');
+    el.className = `toast ${colors[color] || colors.emerald} text-white`;
+    el.textContent = msg;
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 4000);
+}
 
-        function animateCount(elemId, from, to, suffix, duration) {
-            const el = document.getElementById(elemId);
-            if (!el) return;
-            const start = performance.now();
-            function step(now) {
-                const progress = Math.min((now - start) / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 3);
-                el.textContent = Math.round(from + (to - from) * ease) + suffix;
-                if (progress < 1) requestAnimationFrame(step);
-            }
-            requestAnimationFrame(step);
-        }
+function initIcons() { lucide.createIcons(); }
 
-        // ============================================================
-        // PAYMENTS
-        // ============================================================
-        function addPayment() {
-            const amtIn  = document.getElementById('pay-amount');
-            const dateIn = document.getElementById('pay-date');
-            const noteIn = document.getElementById('pay-note');
-            if (!amtIn.value || !dateIn.value) return alert('Amount සහ Date enter කරන්න.');
-            ensureDefaults(loans[activeLoanIndex]);
-            loans[activeLoanIndex].payments.push({ amount: parseFloat(amtIn.value), date: dateIn.value, note: noteIn.value || '' });
-            const loan     = loans[activeLoanIndex];
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total    = loan.amount + interest;
-            const paid     = loan.payments.reduce((sum,p) => sum + p.amount, 0);
-            const due      = total - paid;
-            const pct      = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-            document.getElementById('sheet-balance-due').innerText   = `Rs. ${due.toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText    = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-progress-bar').style.width = pct + '%';
-            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-            renderClientCharts(loan, paid, due, total, interest);
-            if (due <= 0) showToast(`🎉 ${loan.name} — ණය ගෙවා ඉවරයි!`, 'emerald');
-            refreshUI(); renderPaymentHistory();
-            amtIn.value = ''; noteIn.value = '';
-            persistAll();
-        }
+// ============================================================
+// MODALS & TABS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.remove('hidden'); document.body.style.overflow = 'hidden'; setTimeout(initIcons, 50); }
+function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.body.style.overflow = 'auto'; }
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).classList.remove('hidden');
+    document.getElementById(tabId === 'payments-tab' ? 'tab-payments' : 'tab-attachments').classList.add('active');
+    if (tabId === 'attachments-tab') renderAttachments();
+}
 
-        function deletePayment(idx) {
-            if (!confirm('Delete this payment?')) return;
-            loans[activeLoanIndex].payments.splice(idx, 1);
-            const loan     = loans[activeLoanIndex];
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total    = loan.amount + interest;
-            const paid     = loan.payments.reduce((sum,p) => sum + p.amount, 0);
-            const due      = total - paid;
-            const pct      = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-            document.getElementById('sheet-balance-due').innerText   = `Rs. ${(total-paid).toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText    = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-progress-bar').style.width = pct + '%';
-            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-            renderClientCharts(loan, paid, due, total, interest);
-            refreshUI(); renderPaymentHistory(); persistAll();
-        }
-
-        function renderPaymentHistory() {
-            const tbody      = document.getElementById('payment-history-body');
-            const noPayments = document.getElementById('no-payments');
-            tbody.innerHTML  = '';
-            const payments = (loans[activeLoanIndex].payments || []);
-            if (payments.length === 0) { noPayments.classList.remove('hidden'); return; }
-            noPayments.classList.add('hidden');
-            const sorted = [...payments].map((p,i)=>({...p,i})).sort((a,b)=>new Date(b.date)-new Date(a.date));
-            sorted.forEach(p => {
-                tbody.innerHTML += `<tr class="hover:bg-white/[0.02] transition-all">
-                    <td class="px-5 py-3 text-slate-400 text-[11px]">${p.date}</td>
-                    <td class="px-5 py-3 text-slate-500 text-[10px] italic">${p.note || '—'}</td>
-                    <td class="px-5 py-3 text-right font-bold text-emerald-400 text-[11px]">Rs. ${p.amount.toLocaleString()}</td>
-                    <td class="px-5 py-3 text-right"><button onclick="deletePayment(${p.i})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button></td>
-                </tr>`;
-            });
-            initIcons();
-        }
-
-        // ============================================================
-        // ATTACHMENTS
-        // ============================================================
-        function handleDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
-        function handleDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
-        function handleDrop(e)      { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files); }
-        function attachDocs(input)  { if (input.files && input.files.length) processFiles(input.files); input.value = ''; }
-
-        function processFiles(files) {
-            ensureDefaults(loans[activeLoanIndex]);
-            let processed = 0; const total = files.length;
-            Array.from(files).forEach(file => {
-                const reader = new FileReader();
-                reader.onload = e => {
-                    loans[activeLoanIndex].documents.push({ name: file.name, data: e.target.result, size: file.size, type: file.type || '', addedDate: new Date().toISOString().split('T')[0] });
-                    processed++;
-                    if (processed === total) { updateAttachmentBadge(); renderAttachments(); persistAll(); showToast(`📎 ${total} file(s) added!`, 'blue'); }
-                };
-                reader.onerror = () => { processed++; showToast(`❌ "${file.name}" read failed.`, 'rose'); };
-                reader.readAsDataURL(file);
-            });
-        }
-
-        function getFileIcon(type, name) {
-            if (type.startsWith('image/')) return '🖼️';
-            if (type === 'application/pdf') return '📄';
-            if (type.includes('word') || name.endsWith('.doc') || name.endsWith('.docx')) return '📝';
-            if (type.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return '📊';
-            return '📎';
-        }
-
-        function formatSize(bytes) {
-            if (!bytes) return '';
-            if (bytes < 1024) return bytes + ' B';
-            if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
-            return (bytes / 1048576).toFixed(1) + ' MB';
-        }
-
-        function renderAttachments() {
-            if (activeLoanIndex === null) return;
-            ensureDefaults(loans[activeLoanIndex]);
-            const grid  = document.getElementById('attachment-grid');
-            const noAtt = document.getElementById('no-attachments');
-            const docs  = loans[activeLoanIndex].documents;
-            grid.innerHTML = '';
-            if (docs.length === 0) { noAtt.classList.remove('hidden'); return; }
-            noAtt.classList.add('hidden');
-            docs.forEach((doc, idx) => {
-                const isImage = doc.type && doc.type.startsWith('image/');
-                const icon = getFileIcon(doc.type || '', doc.name);
-                grid.innerHTML += `<div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">
-                    ${isImage ? `<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')"><img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"></div>` : `<div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2"><span class="text-4xl">${icon}</span><span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center">${doc.type||'File'}</span></div>`}
-                    <div class="p-3"><p class="text-[10px] font-bold text-slate-300 truncate mb-1">${doc.name}</p>
-                    <div class="flex items-center justify-between"><span class="text-[8px] text-slate-600">${formatSize(doc.size)}${doc.addedDate?' · '+doc.addedDate:''}</span>
-                    <div class="flex gap-2"><a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400"><i data-lucide="download" class="w-3 h-3"></i></a>
-                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div></div></div>`;
-            });
-            initIcons();
-        }
-
-        function previewImage(src) { document.getElementById('preview-img').src = src; openModal('image-preview-modal'); }
-
-        function removeDoc(idx) {
-            if (!confirm('Remove this attachment?')) return;
-            loans[activeLoanIndex].documents.splice(idx, 1);
-            updateAttachmentBadge(); renderAttachments(); persistAll();
-        }
-
-        // ============================================================
-        // DELETE LOAN
-        // ============================================================
-        function deleteLoan(index) {
-            if (confirm('මෙම ගනුදෙනුකරු ඉවත් කිරීමට ඔබට විශ්වාසද?')) {
-                loans.splice(index, 1); refreshUI(); persistAll();
-            }
-        }
-
-        // ============================================================
-        // STATS
-        // ============================================================
-        function updateStats() {
-            const principal   = loans.reduce((sum,l) => sum + l.amount, 0);
-            const collected   = loans.reduce((sum,l) => sum + (l.payments||[]).reduce((ps,p)=>ps+p.amount,0), 0);
-            const totalInt    = loans.reduce((sum,l) => sum + Math.round((l.amount*(l.interest/100))*l.period), 0);
-            const outstanding = principal + totalInt - collected;
-            const activeCount = getActiveClients().length;
-            document.getElementById('total-clients').innerText     = activeCount;
-            document.getElementById('total-loaned').innerText      = `Rs. ${principal.toLocaleString()}`;
-            document.getElementById('total-collected').innerText   = `Rs. ${collected.toLocaleString()}`;
-            document.getElementById('total-outstanding').innerText = `Rs. ${outstanding.toLocaleString()}`;
-            document.getElementById('total-interest').innerText    = `Rs. ${totalInt.toLocaleString()}`;
-        }
-
-        // ============================================================
-        // CHARTS
-        // ============================================================
-        function initCharts() {
-            const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#64748b', font: { size: 9 } } } } };
-            recoveryChart    = new Chart(document.getElementById('recoveryPieChart'), { type:'doughnut', data:{labels:['Paid','Due'],datasets:[{data:[0,1],backgroundColor:['#10b981','#f43f5e'],borderWidth:0}]}, options:{...commonOptions,cutout:'75%'}});
-            growthChart      = new Chart(document.getElementById('growthLineChart'), { type:'line', data:{labels:[],datasets:[{label:'Loans',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.05)',fill:true,tension:0.4}]}, options:{...commonOptions,scales:{y:{display:false},x:{grid:{display:false},ticks:{color:'#475569',font:{size:8}}}},plugins:{legend:{display:false}}}});
-            comparisonChart  = new Chart(document.getElementById('comparisonBarChart'), { type:'bar', data:{labels:['Prin.','Paid','Int.'],datasets:[{data:[0,0,0],backgroundColor:['#3b82f6','#10b981','#f59e0b'],borderRadius:4}]}, options:{...commonOptions,scales:{y:{display:false},x:{grid:{display:false},ticks:{color:'#475569',font:{size:9}}}},plugins:{legend:{display:false}}}});
-        }
-
-        function updateCharts() {
-            const principal   = loans.reduce((sum,l)=>sum+l.amount,0);
-            const collected   = loans.reduce((sum,l)=>sum+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0);
-            const totalInt    = loans.reduce((sum,l)=>sum+Math.round((l.amount*(l.interest/100))*l.period),0);
-            const outstanding = principal + totalInt - collected;
-            recoveryChart.data.datasets[0].data = [collected, outstanding>0?outstanding:0]; recoveryChart.update();
-            comparisonChart.data.datasets[0].data = [principal,collected,totalInt]; comparisonChart.update();
-            const monthlyData = {};
-            loans.forEach(l => { const m = l.date.substring(0,7); monthlyData[m] = (monthlyData[m]||0)+l.amount; });
-            const sortedMonths = Object.keys(monthlyData).sort();
-            growthChart.data.labels = sortedMonths.map(m=>m.split('-')[1]);
-            growthChart.data.datasets[0].data = sortedMonths.map(m=>monthlyData[m]);
-            growthChart.update();
-        }
-
-        // ============================================================
-        // MAIN
-        // ============================================================
-        function refreshUI() { renderDashboard(); updateStats(); updateCharts(); }
-
-        window.onload = async () => {
-            initCharts();
-            // Instant display from cache
-            loadFromLocalStorage();
-            loans.forEach(ensureDefaults);
-            if (loans.length > 0) refreshUI();
-            // Fresh from Dropbox
-            const ok = await loadFromDropbox();
-            if (ok) { loans.forEach(ensureDefaults); refreshUI(); }
-            initIcons();
-            // Pre-fill setup modal if token exists
-            prefillSetupModal();
+// ============================================================
+// PHOTO
+// ============================================================
+function previewPhoto(input, previewId, placeholderId) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = e => {
+            if (previewId === 'edit-photo-preview') editPhoto = e.target.result;
+            else currentPhoto = e.target.result;
+            document.getElementById(previewId).src = e.target.result;
+            document.getElementById(previewId).classList.remove('hidden');
+            document.getElementById(placeholderId).classList.add('hidden');
         };
-    </script>
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+// ============================================================
+// LOAN HELPERS
+// ============================================================
+function getLoanDue(loan) {
+    const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+    const total = loan.amount + interest;
+    const paid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    return total - paid;
+}
+function isLoanPaid(loan) { return getLoanDue(loan) <= 0; }
+function getDeactiveClients() { return groupByClient(loans).filter(g => g.loans.every(l => isLoanPaid(l))); }
+function getActiveClients()   { return groupByClient(loans).filter(g => !g.loans.every(l => isLoanPaid(l))); }
+function ensureDefaults(loan) { if (!loan.payments) loan.payments = []; if (!loan.documents) loan.documents = []; return loan; }
+
+// ============================================================
+// AUTOCOMPLETE
+// ============================================================
+function handleNameInput(val) {
+    if (!val || !val.trim()) { hideSuggestions(); return; }
+    const filtered = getDeactiveClients().filter(g => g.displayName.toLowerCase().includes(val.toLowerCase()));
+    filtered.length ? showSuggestions(filtered) : hideSuggestions();
+}
+function showSuggestions(clients) {
+    const box = document.getElementById('name-suggestions');
+    box.innerHTML = '';
+    clients.forEach(client => {
+        const photoSrc = client.loans[0].photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerHTML = `<img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0"><div class="flex-1 min-w-0"><div class="text-xs font-bold text-white truncate">${client.displayName}</div><div class="text-[9px] text-slate-500">${client.loans.length} ණය</div></div><span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">✓ Paid</span>`;
+        div.onclick = () => selectDeactiveClient(client);
+        box.appendChild(div);
+    });
+    box.classList.remove('hidden');
+    initIcons();
+}
+function hideSuggestions() { document.getElementById('name-suggestions').classList.add('hidden'); }
+function selectDeactiveClient(client) {
+    selectedDeactiveClient = client;
+    document.getElementById('borrower-name').value = client.displayName;
+    hideSuggestions();
+    const photoSrc = client.loans[0].photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
+    document.getElementById('selected-deactive-photo').src = photoSrc;
+    document.getElementById('selected-deactive-label').textContent = `"${client.displayName}" — නව ණය ලබා දෙන්න`;
+    document.getElementById('selected-deactive-hint').classList.remove('hidden');
+    if (client.loans[0].photo) { currentPhoto = client.loans[0].photo; const p = document.getElementById('photo-preview'); p.src = client.loans[0].photo; p.classList.remove('hidden'); document.getElementById('photo-placeholder').classList.add('hidden'); }
+    initIcons();
+}
+function clearSelectedDeactive() { selectedDeactiveClient = null; document.getElementById('selected-deactive-hint').classList.add('hidden'); document.getElementById('borrower-name').value = ''; }
+
+// ============================================================
+// CRUD
+// ============================================================
+document.getElementById('loan-form').onsubmit = function(e) {
+    e.preventDefault();
+    loans.push({ id: Date.now(), name: document.getElementById('borrower-name').value, amount: parseFloat(document.getElementById('loan-amount').value), interest: parseFloat(document.getElementById('loan-interest').value), period: parseInt(document.getElementById('loan-period').value), date: document.getElementById('loan-date').value, photo: currentPhoto, payments: [], documents: [] });
+    refreshUI(); closeModal('new-loan-modal'); this.reset();
+    currentPhoto = ""; selectedDeactiveClient = null;
+    document.getElementById('photo-preview').classList.add('hidden');
+    document.getElementById('photo-placeholder').classList.remove('hidden');
+    document.getElementById('selected-deactive-hint').classList.add('hidden');
+    persistAll();
+};
+
+function openEditModal(index) {
+    activeLoanIndex = index;
+    const loan = loans[index];
+    editPhoto = loan.photo || "";
+    document.getElementById('edit-name').value     = loan.name;
+    document.getElementById('edit-amount').value   = loan.amount;
+    document.getElementById('edit-interest').value = loan.interest;
+    document.getElementById('edit-period').value   = loan.period;
+    document.getElementById('edit-date').value     = loan.date;
+    const img = document.getElementById('edit-photo-preview');
+    img.src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+    img.classList.remove('hidden');
+    document.getElementById('edit-photo-placeholder').classList.add('hidden');
+    openModal('edit-loan-modal');
+}
+
+function openEditFromSheet() { closeModal('sheet-modal'); openEditModal(activeLoanIndex); }
+
+document.getElementById('edit-form').onsubmit = function(e) {
+    e.preventDefault();
+    const loan = loans[activeLoanIndex];
+    loan.name = document.getElementById('edit-name').value; loan.amount = parseFloat(document.getElementById('edit-amount').value); loan.interest = parseFloat(document.getElementById('edit-interest').value); loan.period = parseInt(document.getElementById('edit-period').value); loan.date = document.getElementById('edit-date').value;
+    if (editPhoto) loan.photo = editPhoto;
+    refreshUI(); closeModal('edit-loan-modal'); persistAll();
+    setTimeout(() => openSheet(activeLoanIndex), 100);
+};
+
+function deleteLoan(index) { if (confirm('Delete this record?')) { loans.splice(index, 1); refreshUI(); persistAll(); } }
+
+// ============================================================
+// GROUP & RENDER
+// ============================================================
+function groupByClient(data) {
+    const map = {};
+    data.forEach(loan => { const key = loan.name.trim().toLowerCase(); if (!map[key]) map[key] = { displayName: loan.name, loans: [] }; map[key].loans.push(loan); });
+    return Object.values(map);
+}
+
+function renderDashboard(data = loans) {
+    const tbody = document.getElementById('loan-table-body');
+    const empty = document.getElementById('empty-state');
+    tbody.innerHTML = '';
+    const allGroups = groupByClient(data);
+    const activeGroups   = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
+    const deactiveGroups = allGroups.filter(g =>  g.loans.every(l => isLoanPaid(l)));
+    if (activeGroups.length === 0 && deactiveGroups.length === 0) { empty.classList.remove('hidden'); initIcons(); renderDeactiveTable([]); return; }
+    empty.classList.add('hidden');
+    activeGroups.forEach(group => renderGroupRows(tbody, group, false));
+    renderDeactiveTable(deactiveGroups);
+    initIcons();
+}
+
+function renderGroupRows(tbody, group, isDeactive) {
+    const isMulti = group.loans.length > 1;
+    const groupKey = group.displayName.trim().toLowerCase().replace(/\s+/g,'_') + (isDeactive?'_d':'_a');
+    const firstLoan = group.loans[0];
+    const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
+    if (!isMulti) {
+        const loan = group.loans[0]; const idx = loans.indexOf(loan);
+        const interest = Math.round((loan.amount * (loan.interest/100)) * loan.period);
+        const total = loan.amount + interest;
+        const paid = (loan.payments||[]).reduce((s,p)=>s+p.amount,0);
+        const due  = total - paid;
+        tbody.innerHTML += `<tr class="group hover:bg-white/[0.02] transition-all cursor-pointer${isDeactive?' deactive-row':''}" onclick="openSheet(${idx})"><td class="px-6 py-4"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover"><div><div class="font-bold text-white text-xs">${loan.name}</div><div class="text-[8px] text-slate-500 uppercase">${loan.date}</div></div></div></td><td class="px-6 py-4 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td><td class="px-6 py-4 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400 paid-badge':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td><td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openEditModal(${idx})" class="text-slate-600 hover:text-amber-400"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation();deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;
+    } else {
+        tbody.innerHTML += `<tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all${isDeactive?' deactive-row':''}" onclick="toggleClientGroup('${groupKey}')"><td class="px-6 py-4" colspan="3"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-violet-500/40"><div><div class="font-bold text-white text-xs flex items-center gap-2">${group.displayName}<span class="bg-violet-500/20 text-violet-300 text-[8px] font-bold px-2 py-0.5 rounded-full">${group.loans.length} ණය</span></div><div class="text-[8px] text-slate-500">Click to expand</div></div></div></td><td class="px-6 py-4">${isDeactive?'<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>':''}</td><td class="px-6 py-4 text-right"><i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline" id="chevron-${groupKey}"></i></td></tr><tr id="subrows-${groupKey}" class="hidden"><td colspan="5" class="p-0"><table class="w-full"><tbody>${group.loans.map(loan=>{const idx=loans.indexOf(loan);const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);const total=loan.amount+interest;const paid=(loan.payments||[]).reduce((s,p)=>s+p.amount,0);const due=total-paid;return`<tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20" onclick="openSheet(${idx})"><td class="px-6 py-3 pl-16"><div class="text-[10px] font-bold text-slate-300">#${idx+1} — ${loan.date}</div><div class="text-[8px] text-slate-600">${loan.period} Months | ${loan.interest}%</div></td><td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td><td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td><td class="px-6 py-3 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openEditModal(${idx})" class="text-slate-600 hover:text-amber-400"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation();deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;}).join('')}</tbody></table></td></tr>`;
+    }
+}
+
+function renderDeactiveTable(deactiveGroups) {
+    const section = document.getElementById('deactive-section');
+    const tbody   = document.getElementById('deactive-table-body');
+    const badge   = document.getElementById('deactive-count-badge');
+    if (deactiveGroups.length === 0) { section.classList.add('hidden'); return; }
+    section.classList.remove('hidden');
+    badge.textContent = deactiveGroups.length;
+    tbody.innerHTML = '';
+    deactiveGroups.forEach(group => {
+        const firstLoan = group.loans[0];
+        const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
+        const totalPaid = group.loans.reduce((s,l)=>s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0);
+        const totalPrincipal = group.loans.reduce((s,l)=>s+l.amount,0);
+        const latestIdx = loans.indexOf(group.loans[group.loans.length-1]);
+        tbody.innerHTML += `<tr class="deactive-row hover:bg-white/[0.02] cursor-pointer" onclick="openSheet(${latestIdx})"><td class="px-6 py-4"><div class="flex items-center gap-3"><div class="relative"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover grayscale opacity-60"><div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border border-slate-900 flex items-center justify-center"><span class="text-[6px] text-white font-bold">✓</span></div></div><div><div class="font-bold text-slate-400 text-xs">${group.displayName}</div><div class="text-[8px] text-slate-600">${group.loans.length} ණය | ${firstLoan.date}</div></div></div></td><td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td><td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span></td><td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openNewLoanForDeactive('${group.displayName.replace(/'/g,"\\'")}');" class="text-slate-600 hover:text-blue-400 text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded"><i data-lucide="plus" class="w-3 h-3"></i> New</button><button onclick="event.stopPropagation();deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;
+    });
+    initIcons();
+}
+
+let deactiveSectionOpen = false;
+function toggleDeactiveSection() {
+    deactiveSectionOpen = !deactiveSectionOpen;
+    document.getElementById('deactive-table-wrapper').classList.toggle('hidden', !deactiveSectionOpen);
+    document.getElementById('deactive-chevron').style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
+    document.getElementById('deactive-toggle-label').textContent = deactiveSectionOpen ? 'Hide' : 'Show';
+}
+
+function openNewLoanForDeactive(name) {
+    openModal('new-loan-modal');
+    setTimeout(() => { document.getElementById('borrower-name').value = name; const client = getDeactiveClients().find(g=>g.displayName===name); if(client) selectDeactiveClient(client); }, 100);
+}
+
+function toggleClientGroup(key) {
+    const subrows = document.getElementById(`subrows-${key}`);
+    const chevron = document.getElementById(`chevron-${key}`);
+    const hidden = subrows.classList.contains('hidden');
+    subrows.classList.toggle('hidden', !hidden);
+    chevron.style.transform = hidden ? 'rotate(180deg)' : '';
+    initIcons();
+}
+
+function searchLoans(val) { renderDashboard(loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase()))); }
+
+// ============================================================
+// SHEET
+// ============================================================
+function openSheet(index) {
+    activeLoanIndex = index;
+    const loan = ensureDefaults(loans[index]);
+    const interest = Math.round((loan.amount * (loan.interest/100)) * loan.period);
+    const total = loan.amount + interest;
+    const paid  = loan.payments.reduce((s,p)=>s+p.amount,0);
+    const due   = total - paid;
+    const pct   = total > 0 ? Math.min(100, Math.round((paid/total)*100)) : 0;
+    document.getElementById('sheet-photo').src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+    document.getElementById('sheet-title').innerText = loan.name;
+    document.getElementById('sheet-subtitle').innerText = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
+    document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
+    document.getElementById('sheet-total-paid').innerText  = `Rs. ${paid.toLocaleString()}`;
+    document.getElementById('sheet-total-with-interest').innerText = `Rs. ${total.toLocaleString()}`;
+    setTimeout(() => { document.getElementById('sheet-progress-bar').style.width = pct+'%'; document.getElementById('sheet-progress-label').textContent = pct+'% Recovered'; }, 100);
+    updateAttachmentBadge(); switchTab('payments-tab'); renderPaymentHistory(); openModal('sheet-modal');
+    setTimeout(() => renderClientCharts(loan, paid, due, total, interest), 120);
+}
+
+function updateAttachmentBadge() {
+    if (activeLoanIndex === null) return;
+    const count = (loans[activeLoanIndex].documents||[]).length;
+    const badge = document.getElementById('att-count-badge');
+    count > 0 ? (badge.textContent = count, badge.classList.remove('hidden')) : badge.classList.add('hidden');
+}
+
+// ============================================================
+// CLIENT CHARTS
+// ============================================================
+function renderClientCharts(loan, paid, due, total, interest) {
+    if (clientDonutChart) { clientDonutChart.destroy(); clientDonutChart = null; }
+    if (clientBarChart)   { clientBarChart.destroy();   clientBarChart = null; }
+    if (clientLineChart)  { clientLineChart.destroy();  clientLineChart = null; }
+    const pct = total > 0 ? Math.min(100, Math.round((paid/total)*100)) : 0;
+    animateCount('donut-pct', 0, pct, '%', 900);
+    const donutCtx = document.getElementById('client-donut-chart');
+    if (donutCtx) clientDonutChart = new Chart(donutCtx, { type:'doughnut', data:{labels:['Paid','Due'],datasets:[{data:paid>0||due>0?[paid,Math.max(0,due)]:[0,1],backgroundColor:['#10b981','#f43f5e'],borderWidth:0,hoverOffset:6}]}, options:{responsive:true,maintainAspectRatio:true,cutout:'72%',animation:{animateRotate:true,duration:900},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}}}});
+    const barCtx = document.getElementById('client-bar-chart');
+    if (barCtx) clientBarChart = new Chart(barCtx, { type:'bar', data:{labels:['Principal','Interest','Paid','Balance'],datasets:[{data:[loan.amount,interest,paid,Math.max(0,due)],backgroundColor:['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'],borderRadius:5,borderSkipped:false}]}, options:{responsive:true,maintainAspectRatio:false,animation:{duration:800},plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#64748b',font:{size:8}}}}}});
+    const lineCtx = document.getElementById('client-line-chart');
+    if (lineCtx) {
+        const sorted = [...(loan.payments||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
+        let running=0; const labels=['Start']; const cumData=[0];
+        sorted.forEach(p=>{labels.push(p.date.substring(5));running+=p.amount;cumData.push(running);});
+        clientLineChart = new Chart(lineCtx, { type:'line', data:{labels,datasets:[{label:'Cumulative',data:cumData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.08)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#10b981',borderWidth:2},{label:'Total',data:labels.map(()=>total),borderColor:'rgba(244,63,94,0.3)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}]}, options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#475569',font:{size:7},maxTicksLimit:5}}}}});
+    }
+}
+
+function animateCount(elemId, from, to, suffix, duration) {
+    const el = document.getElementById(elemId); if (!el) return;
+    const start = performance.now();
+    function step(now) { const p = Math.min((now-start)/duration,1); const e = 1-Math.pow(1-p,3); el.textContent = Math.round(from+(to-from)*e)+suffix; if(p<1) requestAnimationFrame(step); }
+    requestAnimationFrame(step);
+}
+
+// ============================================================
+// PAYMENTS
+// ============================================================
+function addPayment() {
+    const amtIn=document.getElementById('pay-amount'); const dateIn=document.getElementById('pay-date'); const noteIn=document.getElementById('pay-note');
+    if (!amtIn.value || !dateIn.value) return alert('Amount සහ Date enter කරන්න.');
+    ensureDefaults(loans[activeLoanIndex]);
+    loans[activeLoanIndex].payments.push({ amount: parseFloat(amtIn.value), date: dateIn.value, note: noteIn.value||'' });
+    const loan=loans[activeLoanIndex]; const interest=Math.round((loan.amount*(loan.interest/100))*loan.period); const total=loan.amount+interest; const paid=loan.payments.reduce((s,p)=>s+p.amount,0); const due=total-paid; const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
+    document.getElementById('sheet-balance-due').innerText=`Rs. ${due.toLocaleString()}`; document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`; document.getElementById('sheet-progress-bar').style.width=pct+'%'; document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
+    renderClientCharts(loan,paid,due,total,interest);
+    if (due<=0) showToast(`🎉 ${loan.name} — ණය ගෙවා ඉවරයි!`,'emerald');
+    refreshUI(); renderPaymentHistory(); amtIn.value=''; noteIn.value=''; persistAll();
+}
+
+function deletePayment(idx) {
+    if (!confirm('Delete this payment?')) return;
+    loans[activeLoanIndex].payments.splice(idx,1);
+    const loan=loans[activeLoanIndex]; const interest=Math.round((loan.amount*(loan.interest/100))*loan.period); const total=loan.amount+interest; const paid=loan.payments.reduce((s,p)=>s+p.amount,0); const due=total-paid; const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
+    document.getElementById('sheet-balance-due').innerText=`Rs. ${(total-paid).toLocaleString()}`; document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`; document.getElementById('sheet-progress-bar').style.width=pct+'%'; document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
+    renderClientCharts(loan,paid,due,total,interest);
+    refreshUI(); renderPaymentHistory(); persistAll();
+}
+
+function renderPaymentHistory() {
+    const tbody=document.getElementById('payment-history-body'); const noP=document.getElementById('no-payments'); tbody.innerHTML='';
+    const payments=(loans[activeLoanIndex].payments||[]);
+    if (payments.length===0) { noP.classList.remove('hidden'); return; } noP.classList.add('hidden');
+    [...payments].map((p,i)=>({...p,i})).sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(p=>{
+        tbody.innerHTML+=`<tr class="hover:bg-white/[0.02]"><td class="px-5 py-3 text-slate-400 text-[11px]">${p.date}</td><td class="px-5 py-3 text-slate-500 text-[10px] italic">${p.note||'—'}</td><td class="px-5 py-3 text-right font-bold text-emerald-400 text-[11px]">Rs. ${p.amount.toLocaleString()}</td><td class="px-5 py-3 text-right"><button onclick="deletePayment(${p.i})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button></td></tr>`;
+    });
+    initIcons();
+}
+
+// ============================================================
+// ATTACHMENTS
+// ============================================================
+function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+function handleDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); if(e.dataTransfer.files.length) processFiles(e.dataTransfer.files); }
+function attachDocs(input) { if(input.files&&input.files.length) processFiles(input.files); input.value=''; }
+
+function processFiles(files) {
+    ensureDefaults(loans[activeLoanIndex]); let processed=0; const total=files.length;
+    Array.from(files).forEach(file=>{
+        const reader=new FileReader();
+        reader.onload=e=>{loans[activeLoanIndex].documents.push({name:file.name,data:e.target.result,size:file.size,type:file.type||'',addedDate:new Date().toISOString().split('T')[0]});processed++;if(processed===total){updateAttachmentBadge();renderAttachments();persistAll();showToast(`📎 ${total} file(s) added!`,'blue');}};
+        reader.onerror=()=>{processed++;showToast(`❌ "${file.name}" read failed.`,'rose');};
+        reader.readAsDataURL(file);
+    });
+}
+
+function getFileIcon(type,name) { if(type.startsWith('image/'))return'🖼️'; if(type==='application/pdf')return'📄'; if(type.includes('word')||name.endsWith('.doc')||name.endsWith('.docx'))return'📝'; if(type.includes('excel')||name.endsWith('.xls')||name.endsWith('.xlsx'))return'📊'; return'📎'; }
+function formatSize(bytes) { if(!bytes)return''; if(bytes<1024)return bytes+' B'; if(bytes<1048576)return(bytes/1024).toFixed(1)+' KB'; return(bytes/1048576).toFixed(1)+' MB'; }
+
+function renderAttachments() {
+    if(activeLoanIndex===null)return;
+    ensureDefaults(loans[activeLoanIndex]);
+    const grid=document.getElementById('attachment-grid'); const noAtt=document.getElementById('no-attachments'); const docs=loans[activeLoanIndex].documents;
+    grid.innerHTML='';
+    if(docs.length===0){noAtt.classList.remove('hidden');return;} noAtt.classList.add('hidden');
+    docs.forEach((doc,idx)=>{
+        const isImage=doc.type&&doc.type.startsWith('image/');
+        const icon=getFileIcon(doc.type||'',doc.name);
+        grid.innerHTML+=`<div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">${isImage?`<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')"><img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"></div>`:`<div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2"><span class="text-4xl">${icon}</span><span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center">${doc.type||'File'}</span></div>`}<div class="p-3"><p class="text-[10px] font-bold text-slate-300 truncate mb-1">${doc.name}</p><div class="flex items-center justify-between"><span class="text-[8px] text-slate-600">${formatSize(doc.size)}${doc.addedDate?' · '+doc.addedDate:''}</span><div class="flex gap-2"><a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400"><i data-lucide="download" class="w-3 h-3"></i></a><button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div></div></div>`;
+    });
+    initIcons();
+}
+
+function previewImage(src) { document.getElementById('preview-img').src=src; openModal('image-preview-modal'); }
+function removeDoc(idx) { if(!confirm('Remove?'))return; loans[activeLoanIndex].documents.splice(idx,1); updateAttachmentBadge(); renderAttachments(); persistAll(); }
+
+// ============================================================
+// STATS & CHARTS
+// ============================================================
+function updateStats() {
+    const principal=loans.reduce((s,l)=>s+l.amount,0); const collected=loans.reduce((s,l)=>s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0); const totalInt=loans.reduce((s,l)=>s+Math.round((l.amount*(l.interest/100))*l.period),0); const outstanding=principal+totalInt-collected;
+    document.getElementById('total-clients').innerText=getActiveClients().length;
+    document.getElementById('total-loaned').innerText=`Rs. ${principal.toLocaleString()}`;
+    document.getElementById('total-collected').innerText=`Rs. ${collected.toLocaleString()}`;
+    document.getElementById('total-outstanding').innerText=`Rs. ${outstanding.toLocaleString()}`;
+    document.getElementById('total-interest').innerText=`Rs. ${totalInt.toLocaleString()}`;
+}
+
+function initCharts() {
+    const co = { responsive:true, maintainAspectRatio:false, plugins:{legend:{labels:{color:'#64748b',font:{size:9}}}} };
+    recoveryChart   = new Chart(document.getElementById('recoveryPieChart'), { type:'doughnut', data:{labels:['Paid','Due'],datasets:[{data:[0,1],backgroundColor:['#10b981','#f43f5e'],borderWidth:0}]}, options:{...co,cutout:'75%'}});
+    growthChart     = new Chart(document.getElementById('growthLineChart'), { type:'line', data:{labels:[],datasets:[{label:'Loans',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.05)',fill:true,tension:0.4}]}, options:{...co,scales:{y:{display:false},x:{grid:{display:false},ticks:{color:'#475569',font:{size:8}}}},plugins:{legend:{display:false}}}});
+    comparisonChart = new Chart(document.getElementById('comparisonBarChart'), { type:'bar', data:{labels:['Prin.','Paid','Int.'],datasets:[{data:[0,0,0],backgroundColor:['#3b82f6','#10b981','#f59e0b'],borderRadius:4}]}, options:{...co,scales:{y:{display:false},x:{grid:{display:false},ticks:{color:'#475569',font:{size:9}}}},plugins:{legend:{display:false}}}});
+}
+
+function updateCharts() {
+    const principal=loans.reduce((s,l)=>s+l.amount,0); const collected=loans.reduce((s,l)=>s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0); const totalInt=loans.reduce((s,l)=>s+Math.round((l.amount*(l.interest/100))*l.period),0); const outstanding=principal+totalInt-collected;
+    recoveryChart.data.datasets[0].data=[collected,outstanding>0?outstanding:0]; recoveryChart.update();
+    comparisonChart.data.datasets[0].data=[principal,collected,totalInt]; comparisonChart.update();
+    const monthlyData={}; loans.forEach(l=>{const m=l.date.substring(0,7);monthlyData[m]=(monthlyData[m]||0)+l.amount;});
+    const sortedMonths=Object.keys(monthlyData).sort();
+    growthChart.data.labels=sortedMonths.map(m=>m.split('-')[1]); growthChart.data.datasets[0].data=sortedMonths.map(m=>monthlyData[m]); growthChart.update();
+}
+
+function refreshUI() { renderDashboard(); updateStats(); updateCharts(); }
+
+// ============================================================
+// MAIN — init
+// ============================================================
+window.onload = async () => {
+    initCharts();
+    // Show current URL in setup modal
+    document.getElementById('current-url-display').textContent = getRedirectUri();
+
+    // Check if this is an OAuth callback redirect
+    const isCallback = await handleOAuthCallback();
+
+    // Load local cache first for instant display
+    loadFromLocalStorage();
+    loans.forEach(ensureDefaults);
+    if (loans.length > 0) refreshUI();
+
+    // Then sync from Dropbox
+    const ok = await loadFromDropbox();
+    if (ok) { loans.forEach(ensureDefaults); refreshUI(); }
+
+    // If OAuth just completed, open setup to show connected state
+    if (isCallback && isDropboxConnected()) {
+        setTimeout(() => {
+            showConnectedView();
+            openModal('dropbox-setup-modal');
+        }, 500);
+    }
+
+    // First time — no data, no connection
+    if (!isDropboxConnected() && loans.length === 0) {
+        setTimeout(() => { prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal'); }, 1200);
+    }
+
+    initIcons();
+    prefillSetupModal();
+};
+</script>
 </body>
 </html>
