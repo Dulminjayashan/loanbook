@@ -57,9 +57,204 @@
         .uri-box { background: rgba(59,130,246,0.05); border: 1px solid rgba(59,130,246,0.2); border-radius: 0.5rem; padding: 0.5rem 0.75rem; font-family: monospace; font-size: 10px; color: #60a5fa; word-break: break-all; cursor: pointer; transition: all 0.2s; }
         .uri-box:hover { background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.4); }
         .uri-copied { background: rgba(16,185,129,0.1) !important; border-color: rgba(16,185,129,0.4) !important; color: #34d399 !important; }
+
+        /* =============================================
+           BATTERY / LIQUID FILL BAR
+        ============================================= */
+        .battery-wrap {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            margin-top: 4px;
+        }
+        .battery-body {
+            position: relative;
+            flex: 1;
+            height: 14px;
+            background: rgba(15,23,42,0.8);
+            border-radius: 4px;
+            border: 1px solid rgba(255,255,255,0.12);
+            overflow: hidden;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.5), 0 0 0 1px rgba(0,0,0,0.3);
+        }
+        .battery-body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.07) 0%, transparent 60%);
+            border-radius: 3px;
+            z-index: 3;
+            pointer-events: none;
+        }
+        .battery-fill {
+            position: absolute;
+            left: 0; top: 0; bottom: 0;
+            border-radius: 3px;
+            transition: width 1.2s cubic-bezier(0.4,0,0.2,1);
+            z-index: 1;
+        }
+        .battery-fill::after {
+            content: '';
+            position: absolute;
+            top: 1px; left: 2px; right: 2px;
+            height: 4px;
+            background: linear-gradient(to right, rgba(255,255,255,0.3), rgba(255,255,255,0.05));
+            border-radius: 2px;
+        }
+        /* Liquid wave shimmer */
+        @keyframes liquidShimmer {
+            0%   { background-position: 200% center; }
+            100% { background-position: -200% center; }
+        }
+        .battery-fill.animating {
+            background-size: 200% 100%;
+            animation: liquidShimmer 2.5s linear infinite;
+        }
+        .battery-fill.green  { background: linear-gradient(90deg, #059669, #10b981, #34d399, #10b981); }
+        .battery-fill.amber  { background: linear-gradient(90deg, #d97706, #f59e0b, #fbbf24, #f59e0b); }
+        .battery-fill.rose   { background: linear-gradient(90deg, #be123c, #f43f5e, #fb7185, #f43f5e); }
+        .battery-tip {
+            width: 4px;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 0 2px 2px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-left: none;
+            flex-shrink: 0;
+        }
+        .battery-pct {
+            font-size: 9px;
+            font-weight: 800;
+            min-width: 28px;
+            text-align: right;
+            letter-spacing: 0.02em;
+        }
+
+        /* =============================================
+           PIN LOCK SCREEN
+        ============================================= */
+        #pin-lock-screen {
+            position: fixed;
+            inset: 0;
+            z-index: 9000;
+            background: #020617;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+        }
+        .pin-dot {
+            width: 14px; height: 14px;
+            border-radius: 50%;
+            border: 2px solid rgba(99,102,241,0.5);
+            background: transparent;
+            transition: all 0.2s cubic-bezier(0.34,1.56,0.64,1);
+        }
+        .pin-dot.filled {
+            background: #6366f1;
+            border-color: #6366f1;
+            box-shadow: 0 0 10px rgba(99,102,241,0.6);
+            transform: scale(1.2);
+        }
+        .pin-dot.error {
+            background: #f43f5e;
+            border-color: #f43f5e;
+            box-shadow: 0 0 10px rgba(244,63,94,0.6);
+        }
+        .pin-key {
+            width: 70px; height: 70px;
+            border-radius: 50%;
+            background: rgba(15,23,42,0.8);
+            border: 1px solid rgba(255,255,255,0.08);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px; font-weight: 700;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .pin-key:hover { background: rgba(99,102,241,0.15); border-color: rgba(99,102,241,0.3); }
+        .pin-key:active { transform: scale(0.92); background: rgba(99,102,241,0.3); }
+        .pin-key.del { font-size: 14px; color: #64748b; }
+        .pin-key.del:hover { color: #f43f5e; border-color: rgba(244,63,94,0.3); }
+        @keyframes shakePin {
+            0%,100% { transform: translateX(0); }
+            20%,60% { transform: translateX(-8px); }
+            40%,80% { transform: translateX(8px); }
+        }
+        .shake { animation: shakePin 0.4s ease; }
+        @keyframes pinSlideUp {
+            from { opacity:0; transform: translateY(30px) scale(0.95); }
+            to   { opacity:1; transform: translateY(0) scale(1); }
+        }
+        .pin-card { animation: pinSlideUp 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
     </style>
 </head>
 <body class="p-4 md:p-6 custom-scrollbar">
+
+<!-- ===== PIN LOCK SCREEN ===== -->
+<div id="pin-lock-screen">
+    <div class="pin-card text-center px-8">
+        <!-- Logo -->
+        <div class="mb-8">
+            <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center"
+                 style="box-shadow: 0 0 40px rgba(99,102,241,0.2);">
+                <svg class="w-10 h-10 text-indigo-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z"/>
+                </svg>
+            </div>
+            <h1 class="text-xl font-bold text-white mb-1">LOAN TRACKER <span class="text-indigo-400">PRO</span></h1>
+            <p class="text-slate-500 text-xs">PIN ඇතුළු කරන්න</p>
+        </div>
+
+        <!-- PIN dots -->
+        <div id="pin-dots" class="flex justify-center gap-4 mb-8">
+            <div class="pin-dot" id="pd0"></div>
+            <div class="pin-dot" id="pd1"></div>
+            <div class="pin-dot" id="pd2"></div>
+            <div class="pin-dot" id="pd3"></div>
+        </div>
+
+        <!-- Error msg -->
+        <p id="pin-error" class="text-rose-400 text-xs font-bold mb-6 h-4 transition-all"></p>
+
+        <!-- Keypad -->
+        <div class="grid grid-cols-3 gap-3 mb-4">
+            <button class="pin-key" onclick="pinInput('1')">1</button>
+            <button class="pin-key" onclick="pinInput('2')">2</button>
+            <button class="pin-key" onclick="pinInput('3')">3</button>
+            <button class="pin-key" onclick="pinInput('4')">4</button>
+            <button class="pin-key" onclick="pinInput('5')">5</button>
+            <button class="pin-key" onclick="pinInput('6')">6</button>
+            <button class="pin-key" onclick="pinInput('7')">7</button>
+            <button class="pin-key" onclick="pinInput('8')">8</button>
+            <button class="pin-key" onclick="pinInput('9')">9</button>
+            <button class="pin-key del" onclick="pinClear()" title="Clear">CLR</button>
+            <button class="pin-key" onclick="pinInput('0')">0</button>
+            <button class="pin-key del" onclick="pinDelete()">⌫</button>
+        </div>
+
+        <!-- Set PIN hint -->
+        <p id="pin-hint" class="text-slate-600 text-[10px] mt-4"></p>
+        <button id="change-pin-btn" onclick="showChangePinSection()" class="mt-3 text-slate-600 hover:text-slate-400 text-[10px] underline transition-all">PIN වෙනස් කරන්න</button>
+
+        <!-- Change PIN section (hidden) -->
+        <div id="change-pin-section" class="hidden mt-6 bg-slate-900/60 rounded-2xl border border-slate-800 p-4 text-left">
+            <p class="text-xs font-bold text-white mb-3">PIN වෙනස් කරන්න</p>
+            <div class="space-y-2">
+                <input type="password" maxlength="4" id="old-pin-input" placeholder="පවතින PIN (4 digits)" class="w-full neo-input p-2.5 rounded-lg text-xs text-center tracking-widest">
+                <input type="password" maxlength="4" id="new-pin-input" placeholder="නව PIN (4 digits)" class="w-full neo-input p-2.5 rounded-lg text-xs text-center tracking-widest">
+                <input type="password" maxlength="4" id="confirm-pin-input" placeholder="නව PIN confirm" class="w-full neo-input p-2.5 rounded-lg text-xs text-center tracking-widest">
+                <button onclick="changePin()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white py-2 rounded-lg font-bold text-xs transition-all">PIN Update කරන්න</button>
+                <button onclick="document.getElementById('change-pin-section').classList.add('hidden')" class="w-full bg-slate-800 text-slate-400 py-2 rounded-lg font-bold text-xs transition-all">Cancel</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ===== MAIN APP (hidden until PIN unlocked) ===== -->
+<div id="main-app" class="hidden">
 
 <!-- Unsaved Changes Banner -->
 <div id="unsaved-banner">
@@ -77,8 +272,6 @@
 <div id="dropbox-setup-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-md"></div>
     <div class="glass-card w-full max-w-lg relative z-10 p-6 rounded-2xl border border-blue-500/20 max-h-[90vh] overflow-y-auto custom-scrollbar" id="setup-card">
-
-        <!-- Connected state -->
         <div id="connected-view" class="hidden">
             <div class="text-center mb-6">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-emerald-600/20 border border-emerald-500/30 flex items-center justify-center">
@@ -88,18 +281,9 @@
                 <p class="text-slate-500 text-xs">Permanent access token active — never expires</p>
             </div>
             <div class="bg-slate-900/60 rounded-xl border border-emerald-500/20 p-4 mb-4 space-y-2">
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] text-slate-500 font-bold">App Key</span>
-                    <span id="info-app-key" class="text-[11px] text-slate-300 font-mono"></span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] text-slate-500 font-bold">Refresh Token</span>
-                    <span class="text-[11px] text-emerald-400 font-bold">✓ Stored (permanent)</span>
-                </div>
-                <div class="flex justify-between items-center">
-                    <span class="text-[10px] text-slate-500 font-bold">Save Path</span>
-                    <span id="info-path" class="text-[11px] text-slate-300 font-mono"></span>
-                </div>
+                <div class="flex justify-between items-center"><span class="text-[10px] text-slate-500 font-bold">App Key</span><span id="info-app-key" class="text-[11px] text-slate-300 font-mono"></span></div>
+                <div class="flex justify-between items-center"><span class="text-[10px] text-slate-500 font-bold">Refresh Token</span><span class="text-[11px] text-emerald-400 font-bold">✓ Stored (permanent)</span></div>
+                <div class="flex justify-between items-center"><span class="text-[10px] text-slate-500 font-bold">Save Path</span><span id="info-path" class="text-[11px] text-slate-300 font-mono"></span></div>
             </div>
             <div class="flex gap-2">
                 <button onclick="closeModal('dropbox-setup-modal')" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-3 rounded-xl font-bold text-sm transition-all">Done</button>
@@ -107,8 +291,6 @@
                 <button onclick="disconnectDropbox()" class="px-5 py-3 bg-rose-900/30 text-rose-400 rounded-xl font-bold text-sm hover:bg-rose-900/50 transition-all">Disconnect</button>
             </div>
         </div>
-
-        <!-- Setup view -->
         <div id="setup-view">
             <div class="text-center mb-5">
                 <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
@@ -117,50 +299,34 @@
                 <h3 class="text-lg font-bold text-white mb-1">Dropbox OAuth2 Setup</h3>
                 <p class="text-slate-500 text-xs">App Key පමණයි ඕනෑ — Refresh Token permanent ✓</p>
             </div>
-
             <div class="space-y-3 mb-5">
-                <!-- Step 1: Redirect URI — CRITICAL -->
                 <div class="bg-rose-950/20 rounded-xl border border-rose-500/30 p-4">
                     <div class="flex items-start gap-3 mb-3">
                         <div class="step-circle step-active text-white" style="background:#f43f5e">!</div>
                         <div>
                             <p class="text-xs font-bold text-rose-300">IMPORTANT — Redirect URI</p>
-                            <p class="text-[10px] text-slate-500 mt-0.5">මේ URL එක Dropbox App Console → Settings → OAuth 2 → Redirect URIs box එකට <strong class="text-white">exact ලෙස</strong> paste කරන්න. ⚠️ සිංහල/unicode characters URIයේ තිබේ නම් encoded version use කරන්න.</p>
+                            <p class="text-[10px] text-slate-500 mt-0.5">මේ URL එක Dropbox App Console → Settings → OAuth 2 → Redirect URIs box එකට <strong class="text-white">exact ලෙස</strong> paste කරන්න.</p>
                         </div>
                     </div>
-
-                    <!-- Auto-detected URI -->
                     <div class="mb-2">
                         <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Auto-detected Redirect URI (click to copy):</p>
                         <div class="uri-box" id="auto-uri-display" onclick="copyURI('auto-uri-display')" title="Click to copy"></div>
                     </div>
-
-                    <!-- Manual override -->
                     <div>
-                        <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Custom Redirect URI (ඔබේ host URL වෙනස් නම් override කරන්න):</p>
-                        <input type="text" id="redirect-uri-input" placeholder="https://your-page-url.com/path"
-                            class="w-full neo-input p-2 rounded-lg text-[10px] font-mono" oninput="onRedirectUriChange()">
-                        <p class="text-[8px] text-slate-600 mt-1">Empty නම් auto-detected URI use කරයි.</p>
+                        <p class="text-[9px] text-slate-500 font-bold uppercase mb-1">Custom Redirect URI:</p>
+                        <input type="text" id="redirect-uri-input" placeholder="https://your-page-url.com/path" class="w-full neo-input p-2 rounded-lg text-[10px] font-mono" oninput="onRedirectUriChange()">
                     </div>
-
-                    <!-- Final URI being used -->
                     <div class="mt-2 bg-slate-950/60 rounded-lg p-2 flex items-center gap-2">
                         <span class="text-[8px] text-slate-500 font-bold flex-shrink-0">WILL USE:</span>
                         <span id="final-uri-display" class="text-[9px] text-emerald-400 font-mono break-all"></span>
                     </div>
                 </div>
-
-                <!-- Step 2: App Console -->
                 <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                     <div class="flex items-start gap-3 mb-3">
                         <div class="step-circle step-active">1</div>
-                        <div>
-                            <p class="text-xs font-bold text-white">Dropbox App Console — App Create කරන්න</p>
-                            <p class="text-[10px] text-slate-500 mt-0.5">App Key copy කරලා paste කරන්න</p>
-                        </div>
+                        <div><p class="text-xs font-bold text-white">Dropbox App Console — App Create කරන්න</p></div>
                     </div>
-                    <a href="https://www.dropbox.com/developers/apps" target="_blank"
-                       class="flex items-center justify-center gap-2 bg-[#0061FF] hover:bg-[#0052d9] text-white py-2 px-4 rounded-lg font-bold text-xs w-full transition-all">
+                    <a href="https://www.dropbox.com/developers/apps" target="_blank" class="flex items-center justify-center gap-2 bg-[#0061FF] hover:bg-[#0052d9] text-white py-2 px-4 rounded-lg font-bold text-xs w-full transition-all">
                         <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
                         Open Dropbox App Console
                     </a>
@@ -169,44 +335,33 @@
                         <p>① "Create app" → "Scoped access" → "Full Dropbox"</p>
                         <p>② App name දෙන්න (eg: <span class="text-blue-400">MyLoanBook</span>)</p>
                         <p>③ <span class="text-amber-300 font-bold">Permissions tab</span> → <span class="text-emerald-400">files.content.write</span> + <span class="text-emerald-400">files.content.read</span> → Submit</p>
-                        <p>④ <span class="text-amber-300 font-bold">Settings tab</span> → <span class="text-rose-400 font-bold">OAuth 2 → Redirect URIs</span> → ඉහළ "WILL USE" box හි URL paste කරන්න → Add</p>
-                        <p>⑤ <span class="text-blue-300">App key</span> copy කරන්න (Settings tab top)</p>
+                        <p>④ <span class="text-amber-300 font-bold">Settings tab</span> → <span class="text-rose-400 font-bold">Redirect URIs</span> → "WILL USE" URL paste → Add</p>
+                        <p>⑤ <span class="text-blue-300">App key</span> copy කරන්න</p>
                     </div>
                 </div>
-
-                <!-- Step 3 -->
                 <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                     <div class="flex items-start gap-3 mb-3">
                         <div class="step-circle step-active">2</div>
-                        <div>
-                            <p class="text-xs font-bold text-white">App Key & Save Path</p>
-                        </div>
+                        <div><p class="text-xs font-bold text-white">App Key & Save Path</p></div>
                     </div>
                     <div class="space-y-2">
-                        <input type="text" id="app-key-input" placeholder="App Key (eg: abc123xyz789)"
-                            class="w-full neo-input p-3 rounded-lg text-xs font-mono">
-                        <input type="text" id="dropbox-path-input" value="/data.json"
-                            class="w-full neo-input p-3 rounded-lg text-xs font-mono" placeholder="/data.json">
-                        <p class="text-[9px] text-slate-600">Save path: /LoanBook/data.json ලෙසත් දෙන්න පුළුවන්</p>
+                        <input type="text" id="app-key-input" placeholder="App Key (eg: abc123xyz789)" class="w-full neo-input p-3 rounded-lg text-xs font-mono">
+                        <input type="text" id="dropbox-path-input" value="/data.json" class="w-full neo-input p-3 rounded-lg text-xs font-mono" placeholder="/data.json">
                     </div>
                 </div>
             </div>
-
             <div class="flex gap-2">
-                <button onclick="startOAuthFlow()"
-                    class="flex-1 bg-[#0061FF] hover:bg-[#0052d9] text-white py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">
+                <button onclick="startOAuthFlow()" class="flex-1 bg-[#0061FF] hover:bg-[#0052d9] text-white py-3 rounded-xl font-bold text-sm transition-all flex items-center justify-center gap-2">
                     <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
                     Connect with Dropbox
                 </button>
                 <button onclick="closeModal('dropbox-setup-modal')" class="px-5 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-sm">Later</button>
             </div>
-            <p class="text-center text-[9px] text-slate-600 mt-3">⚠️ App Key + Refresh Token ඔබේ browser localStorage එකේ store වෙයි.</p>
         </div>
     </div>
 </div>
 
 <div class="max-w-[1600px] mx-auto">
-    <!-- Header -->
     <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-slate-800 pb-6">
         <div>
             <h1 class="text-2xl font-bold tracking-tight text-white mb-1">LOAN TRACKER <span class="text-blue-500">PRO</span></h1>
@@ -235,6 +390,9 @@
             <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
                 <i data-lucide="download" class="w-4 h-4"></i> EXPORT
             </button>
+            <button onclick="lockApp()" class="bg-slate-800 text-slate-500 px-3 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-rose-500 hover:text-rose-400 transition-all" title="Lock App">
+                <i data-lucide="lock" class="w-4 h-4"></i>
+            </button>
         </div>
     </header>
 
@@ -249,7 +407,7 @@
                 <div class="glass-card p-4 border-l-2 border-amber-500"><p class="text-slate-500 text-[9px] font-bold uppercase mb-1">Interest</p><h3 id="total-interest" class="text-lg font-bold text-amber-400">Rs. 0</h3></div>
             </div>
 
-            <!-- Table -->
+            <!-- Active Table -->
             <div class="glass-card overflow-hidden">
                 <div class="p-5 border-b border-slate-800 flex flex-col md:flex-row justify-between items-center gap-4 bg-slate-900/20">
                     <h2 class="text-sm font-bold flex items-center gap-2"><i data-lucide="users" class="w-4 h-4 text-blue-500"></i> Active Clients</h2>
@@ -447,7 +605,112 @@
     <div class="relative z-10 max-w-4xl w-full"><img id="preview-img" class="max-h-[85vh] mx-auto rounded-xl object-contain"><button onclick="closeModal('image-preview-modal')" class="absolute top-2 right-2 bg-slate-800 p-2 rounded-lg text-white"><i data-lucide="x" class="w-4 h-4"></i></button></div>
 </div>
 
+</div><!-- end #main-app -->
+
 <script>
+// ============================================================
+// PIN SYSTEM
+// ============================================================
+const LS_PIN_KEY = 'loanTrackerPin_v1';
+const DEFAULT_PIN = '1234';
+let pinBuffer = '';
+let pinLocked = true;
+
+function getPin() { return localStorage.getItem(LS_PIN_KEY) || DEFAULT_PIN; }
+
+function pinInput(digit) {
+    if (pinBuffer.length >= 4) return;
+    pinBuffer += digit;
+    updatePinDots();
+    if (pinBuffer.length === 4) {
+        setTimeout(() => checkPin(), 120);
+    }
+}
+function pinDelete() {
+    pinBuffer = pinBuffer.slice(0, -1);
+    updatePinDots();
+}
+function pinClear() {
+    pinBuffer = '';
+    updatePinDots();
+}
+function updatePinDots() {
+    for (let i = 0; i < 4; i++) {
+        const dot = document.getElementById('pd' + i);
+        dot.classList.toggle('filled', i < pinBuffer.length);
+        dot.classList.remove('error');
+    }
+}
+function checkPin() {
+    if (pinBuffer === getPin()) {
+        // Correct!
+        for (let i = 0; i < 4; i++) document.getElementById('pd'+i).classList.add('filled');
+        setTimeout(() => {
+            document.getElementById('pin-lock-screen').style.display = 'none';
+            document.getElementById('main-app').classList.remove('hidden');
+            pinLocked = false;
+            pinBuffer = '';
+            updatePinDots();
+        }, 300);
+    } else {
+        // Wrong
+        const dotsEl = document.getElementById('pin-dots');
+        for (let i = 0; i < 4; i++) {
+            const dot = document.getElementById('pd'+i);
+            dot.classList.remove('filled');
+            dot.classList.add('error');
+        }
+        dotsEl.classList.add('shake');
+        document.getElementById('pin-error').textContent = 'වැරදි PIN! නැවත උත්සාහ කරන්න.';
+        setTimeout(() => {
+            dotsEl.classList.remove('shake');
+            for (let i = 0; i < 4; i++) document.getElementById('pd'+i).classList.remove('error');
+            document.getElementById('pin-error').textContent = '';
+            pinBuffer = '';
+            updatePinDots();
+        }, 800);
+    }
+}
+function showChangePinSection() {
+    document.getElementById('change-pin-section').classList.remove('hidden');
+}
+function changePin() {
+    const oldPin = document.getElementById('old-pin-input').value.trim();
+    const newPin = document.getElementById('new-pin-input').value.trim();
+    const cfmPin = document.getElementById('confirm-pin-input').value.trim();
+    if (oldPin !== getPin()) { alert('⚠️ පවතින PIN වැරදියි!'); return; }
+    if (!/^\d{4}$/.test(newPin)) { alert('⚠️ PIN 4 digits විය යුතුයි!'); return; }
+    if (newPin !== cfmPin) { alert('⚠️ New PIN confirm නොවේ!'); return; }
+    localStorage.setItem(LS_PIN_KEY, newPin);
+    alert('✅ PIN සාර්ථකව update විය!');
+    document.getElementById('change-pin-section').classList.add('hidden');
+    document.getElementById('old-pin-input').value='';
+    document.getElementById('new-pin-input').value='';
+    document.getElementById('confirm-pin-input').value='';
+}
+function lockApp() {
+    document.getElementById('main-app').classList.add('hidden');
+    document.getElementById('pin-lock-screen').style.display = 'flex';
+    pinBuffer = '';
+    pinLocked = true;
+    updatePinDots();
+}
+
+// Show default PIN hint if first time
+window.addEventListener('DOMContentLoaded', () => {
+    if (!localStorage.getItem(LS_PIN_KEY)) {
+        document.getElementById('pin-hint').textContent = '⚠️ Default PIN: 1234 — Settings → PIN වෙනස් කරන්න';
+    }
+});
+
+// Keyboard support for PIN
+document.addEventListener('keydown', e => {
+    if (!pinLocked) return;
+    if (e.key >= '0' && e.key <= '9') pinInput(e.key);
+    else if (e.key === 'Backspace') pinDelete();
+    else if (e.key === 'Escape') pinClear();
+});
+
 // ============================================================
 // DROPBOX OAUTH2 PKCE — PERMANENT REFRESH TOKEN
 // ============================================================
@@ -459,65 +722,37 @@ const LS_PATH_KEY      = 'dbx_file_path_v2';
 const LS_DATA_KEY      = 'loanTrackerPro_v3_dropbox';
 const LS_PKCE_VERIFIER = 'dbx_pkce_verifier';
 const LS_PKCE_STATE    = 'dbx_pkce_state';
-const LS_REDIRECT_URI  = 'dbx_redirect_uri';  // ← NEW: store custom redirect URI
+const LS_REDIRECT_URI  = 'dbx_redirect_uri';
 
-// ============================================================
-// REDIRECT URI HELPERS — THE FIX
-// ============================================================
 function getAutoRedirectUri() {
-    // Clean URL: origin + pathname only (no query, no hash, no trailing slash issues)
     const origin   = window.location.origin;
-    const pathname = window.location.pathname.replace(/\/+$/, '') || '/'; // normalize trailing slash
+    const pathname = window.location.pathname.replace(/\/+$/, '') || '/';
     return origin + pathname;
 }
-
 function getRedirectUri() {
-    // Custom override takes priority; fallback to auto-detected
     const custom = (localStorage.getItem(LS_REDIRECT_URI) || '').trim();
     return custom || getAutoRedirectUri();
 }
-
 function onRedirectUriChange() {
     const val = document.getElementById('redirect-uri-input').value.trim();
-    if (val) {
-        localStorage.setItem(LS_REDIRECT_URI, val);
-    } else {
-        localStorage.removeItem(LS_REDIRECT_URI);
-    }
+    if (val) localStorage.setItem(LS_REDIRECT_URI, val);
+    else localStorage.removeItem(LS_REDIRECT_URI);
     updateFinalUriDisplay();
 }
-
 function updateFinalUriDisplay() {
     const uri = getRedirectUri();
     const finalEl = document.getElementById('final-uri-display');
     if (finalEl) finalEl.textContent = uri;
 }
-
 function copyURI(elemId) {
-    const el = document.getElementById(elemId);
     const uri = getRedirectUri();
     navigator.clipboard.writeText(uri).then(() => {
-        el.classList.add('uri-copied');
-        el.textContent = '✓ Copied!';
-        setTimeout(() => {
-            el.classList.remove('uri-copied');
-            el.textContent = uri;
-        }, 2000);
-    }).catch(() => {
-        // fallback
-        const ta = document.createElement('textarea');
-        ta.value = uri;
-        document.body.appendChild(ta);
-        ta.select();
-        document.execCommand('copy');
-        ta.remove();
-        showToast('✓ Copied!', 'emerald');
-    });
+        const el = document.getElementById(elemId);
+        el.classList.add('uri-copied'); el.textContent = '✓ Copied!';
+        setTimeout(() => { el.classList.remove('uri-copied'); el.textContent = uri; }, 2000);
+    }).catch(() => showToast('✓ Copied!', 'emerald'));
 }
 
-// ============================================================
-// PKCE HELPERS
-// ============================================================
 function generateRandomString(len = 64) {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-._~';
     let result = '';
@@ -526,365 +761,147 @@ function generateRandomString(len = 64) {
     arr.forEach(v => result += chars[v % chars.length]);
     return result;
 }
-
 async function generateCodeChallenge(verifier) {
     const data   = new TextEncoder().encode(verifier);
     const digest = await crypto.subtle.digest('SHA-256', data);
-    return btoa(String.fromCharCode(...new Uint8Array(digest)))
-        .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    return btoa(String.fromCharCode(...new Uint8Array(digest))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 
-// ============================================================
-// OAUTH FLOW
-// ============================================================
 async function startOAuthFlow() {
     const appKey = document.getElementById('app-key-input').value.trim();
     const path   = document.getElementById('dropbox-path-input').value.trim() || '/data.json';
-
     if (!appKey) { showToast('⚠️ App Key enter කරන්න!', 'amber'); return; }
-
-    localStorage.setItem(LS_APP_KEY,  appKey);
-    localStorage.setItem(LS_PATH_KEY, path);
-
-    // Save custom redirect URI if provided
+    localStorage.setItem(LS_APP_KEY, appKey); localStorage.setItem(LS_PATH_KEY, path);
     const customUri = document.getElementById('redirect-uri-input').value.trim();
-    if (customUri) localStorage.setItem(LS_REDIRECT_URI, customUri);
-    else localStorage.removeItem(LS_REDIRECT_URI);
-
+    if (customUri) localStorage.setItem(LS_REDIRECT_URI, customUri); else localStorage.removeItem(LS_REDIRECT_URI);
     const verifier  = generateRandomString(64);
     const state     = generateRandomString(16);
     const challenge = await generateCodeChallenge(verifier);
-
-    localStorage.setItem(LS_PKCE_VERIFIER, verifier);
-    localStorage.setItem(LS_PKCE_STATE,    state);
-
+    localStorage.setItem(LS_PKCE_VERIFIER, verifier); localStorage.setItem(LS_PKCE_STATE, state);
     const redirectUri = getRedirectUri();
-
-    // Save the exact URI we're using so callback can use same value
     localStorage.setItem(LS_REDIRECT_URI, redirectUri);
-
-    const params = new URLSearchParams({
-        client_id:             appKey,
-        response_type:         'code',
-        code_challenge:        challenge,
-        code_challenge_method: 'S256',
-        token_access_type:     'offline',
-        redirect_uri:          redirectUri,
-        state:                 state
-    });
-
-    showToast('🔀 Dropbox වෙත redirect වෙනවා...', 'blue');
-    setTimeout(() => {
-        window.location.href = `https://www.dropbox.com/oauth2/authorize?${params}`;
-    }, 500);
+    const params = new URLSearchParams({ client_id:appKey, response_type:'code', code_challenge:challenge, code_challenge_method:'S256', token_access_type:'offline', redirect_uri:redirectUri, state });
+    showToast('🔀 Dropbox වෙත redirect...', 'blue');
+    setTimeout(() => { window.location.href = `https://www.dropbox.com/oauth2/authorize?${params}`; }, 500);
 }
 
-// ============================================================
-// HANDLE OAUTH CALLBACK
-// ============================================================
 async function handleOAuthCallback() {
     const params = new URLSearchParams(window.location.search);
     const code   = params.get('code');
     const state  = params.get('state');
     const error  = params.get('error');
-
-    if (error) {
-        showToast(`❌ Dropbox auth failed: ${error}`, 'rose');
-        window.history.replaceState({}, '', window.location.pathname);
-        return false;
-    }
-
+    if (error) { showToast(`❌ Auth failed: ${error}`, 'rose'); window.history.replaceState({}, '', window.location.pathname); return false; }
     if (!code) return false;
-
     const savedState = localStorage.getItem(LS_PKCE_STATE);
-    if (state !== savedState) {
-        showToast('❌ OAuth state mismatch! Try again.', 'rose');
-        window.history.replaceState({}, '', window.location.pathname);
-        return false;
-    }
-
-    const verifier    = localStorage.getItem(LS_PKCE_VERIFIER);
-    const appKey      = localStorage.getItem(LS_APP_KEY);
-    const redirectUri = getRedirectUri(); // uses stored value from before redirect
-
+    if (state !== savedState) { showToast('❌ OAuth state mismatch!', 'rose'); window.history.replaceState({}, '', window.location.pathname); return false; }
+    const verifier = localStorage.getItem(LS_PKCE_VERIFIER);
+    const appKey   = localStorage.getItem(LS_APP_KEY);
+    const redirectUri = getRedirectUri();
     setSyncStatus('loading', 'Exchanging tokens...');
-
     try {
         const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                code,
-                grant_type:    'authorization_code',
-                code_verifier: verifier,
-                client_id:     appKey,
-                redirect_uri:  redirectUri
-            })
+            method: 'POST', headers: {'Content-Type':'application/x-www-form-urlencoded'},
+            body: new URLSearchParams({code, grant_type:'authorization_code', code_verifier:verifier, client_id:appKey, redirect_uri:redirectUri})
         });
-
         const data = await response.json();
-
         if (data.access_token && data.refresh_token) {
-            storeTokens(data);
-            localStorage.removeItem(LS_PKCE_VERIFIER);
-            localStorage.removeItem(LS_PKCE_STATE);
+            storeTokens(data); localStorage.removeItem(LS_PKCE_VERIFIER); localStorage.removeItem(LS_PKCE_STATE);
             window.history.replaceState({}, '', window.location.pathname);
-            showToast('🎉 Dropbox connected permanently!', 'emerald');
-            setSyncStatus('synced', 'OAuth connected ✓');
-            return true;
+            showToast('🎉 Dropbox connected!', 'emerald'); setSyncStatus('synced', 'OAuth connected ✓'); return true;
         } else {
-            const msg = data.error_description || data.error || 'Unknown error';
-            showToast(`❌ Token exchange failed: ${msg}`, 'rose');
-            setSyncStatus('error', 'Auth failed');
-
-            // If redirect_uri mismatch, show helpful message
-            if (msg.toLowerCase().includes('redirect')) {
-                setTimeout(() => {
-                    alert(`⚠️ Redirect URI Mismatch!\n\nDropbox App Console හි Redirect URI ලෙස ඔබ add කළ URL:\n${redirectUri}\n\nMatch නොවෙනවා.\n\nSetup modal → Redirect URI section → "WILL USE" URL copy කරලා Dropbox App Console → Settings → Redirect URIs → Add කරන්න.`);
-                }, 500);
-            }
-            return false;
+            showToast(`❌ Token failed: ${data.error_description||data.error}`, 'rose'); setSyncStatus('error', 'Auth failed'); return false;
         }
-    } catch (err) {
-        console.error('Token exchange error:', err);
-        showToast('❌ Network error during auth!', 'rose');
-        setSyncStatus('error', 'Network error');
-        return false;
-    }
+    } catch(err) { showToast('❌ Network error!', 'rose'); setSyncStatus('error','Network error'); return false; }
 }
-
 function storeTokens(data) {
-    localStorage.setItem(LS_ACCESS_TOKEN,  data.access_token);
-    localStorage.setItem(LS_REFRESH_TOKEN, data.refresh_token);
-    const expiry = Date.now() + ((data.expires_in || 14400) * 1000);
-    localStorage.setItem(LS_TOKEN_EXPIRY,  expiry.toString());
+    localStorage.setItem(LS_ACCESS_TOKEN, data.access_token); localStorage.setItem(LS_REFRESH_TOKEN, data.refresh_token);
+    localStorage.setItem(LS_TOKEN_EXPIRY, (Date.now() + (data.expires_in||14400)*1000).toString());
 }
-
-// ============================================================
-// GET VALID ACCESS TOKEN
-// ============================================================
 async function getValidAccessToken() {
-    const accessToken  = localStorage.getItem(LS_ACCESS_TOKEN);
-    const expiry       = parseInt(localStorage.getItem(LS_TOKEN_EXPIRY) || '0');
-    const refreshToken = localStorage.getItem(LS_REFRESH_TOKEN);
-    const appKey       = localStorage.getItem(LS_APP_KEY);
-
+    const accessToken = localStorage.getItem(LS_ACCESS_TOKEN);
+    const expiry      = parseInt(localStorage.getItem(LS_TOKEN_EXPIRY)||'0');
+    const refreshToken= localStorage.getItem(LS_REFRESH_TOKEN);
+    const appKey      = localStorage.getItem(LS_APP_KEY);
     if (accessToken && Date.now() < expiry - 60000) return accessToken;
-
     if (!refreshToken || !appKey) return null;
-
     setSyncStatus('loading', 'Refreshing token...');
-
     try {
         const response = await fetch('https://api.dropboxapi.com/oauth2/token', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                grant_type:    'refresh_token',
-                refresh_token: refreshToken,
-                client_id:     appKey
-            })
+            method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+            body: new URLSearchParams({grant_type:'refresh_token', refresh_token:refreshToken, client_id:appKey})
         });
-
         const data = await response.json();
-
         if (data.access_token) {
             localStorage.setItem(LS_ACCESS_TOKEN, data.access_token);
-            const expiry = Date.now() + ((data.expires_in || 14400) * 1000);
-            localStorage.setItem(LS_TOKEN_EXPIRY, expiry.toString());
+            localStorage.setItem(LS_TOKEN_EXPIRY, (Date.now()+(data.expires_in||14400)*1000).toString());
             return data.access_token;
-        } else {
-            showToast('⚠️ Session expired. Please reconnect Dropbox.', 'amber');
-            setSyncStatus('error', 'Re-auth needed');
-            return null;
-        }
-    } catch (err) {
-        console.error('Token refresh error:', err);
-        return null;
-    }
+        } else { showToast('⚠️ Session expired. Reconnect.', 'amber'); setSyncStatus('error','Re-auth needed'); return null; }
+    } catch(err) { return null; }
 }
-
-function isDropboxConnected() {
-    return !!(localStorage.getItem(LS_REFRESH_TOKEN) && localStorage.getItem(LS_APP_KEY));
-}
-
+function isDropboxConnected() { return !!(localStorage.getItem(LS_REFRESH_TOKEN) && localStorage.getItem(LS_APP_KEY)); }
 function disconnectDropbox() {
-    if (!confirm('Dropbox disconnect කිරීමට ඔබට විශ්වාසද?')) return;
-    [LS_APP_KEY, LS_REFRESH_TOKEN, LS_ACCESS_TOKEN, LS_TOKEN_EXPIRY, LS_REDIRECT_URI].forEach(k => localStorage.removeItem(k));
-    showToast('🔌 Dropbox disconnected.', 'amber');
-    setSyncStatus('error', 'Not connected');
-    showSetupView();
+    if(!confirm('Dropbox disconnect කිරීමට ඔබට විශ්වාසද?')) return;
+    [LS_APP_KEY, LS_REFRESH_TOKEN, LS_ACCESS_TOKEN, LS_TOKEN_EXPIRY, LS_REDIRECT_URI].forEach(k=>localStorage.removeItem(k));
+    showToast('🔌 Disconnected.','amber'); setSyncStatus('error','Not connected'); showSetupView();
 }
-
-// ============================================================
-// SETUP MODAL UI
-// ============================================================
-function openDropboxSetup() {
-    prefillSetupModal();
-    if (isDropboxConnected()) showConnectedView();
-    else showSetupView();
-    openModal('dropbox-setup-modal');
-}
-
-function showConnectedView() {
-    document.getElementById('connected-view').classList.remove('hidden');
-    document.getElementById('setup-view').classList.add('hidden');
-    document.getElementById('info-app-key').textContent = localStorage.getItem(LS_APP_KEY) || '—';
-    document.getElementById('info-path').textContent    = localStorage.getItem(LS_PATH_KEY) || '/data.json';
-}
-
-function showSetupView() {
-    document.getElementById('connected-view').classList.add('hidden');
-    document.getElementById('setup-view').classList.remove('hidden');
-}
-
+function openDropboxSetup() { prefillSetupModal(); if(isDropboxConnected()) showConnectedView(); else showSetupView(); openModal('dropbox-setup-modal'); }
+function showConnectedView() { document.getElementById('connected-view').classList.remove('hidden'); document.getElementById('setup-view').classList.add('hidden'); document.getElementById('info-app-key').textContent=localStorage.getItem(LS_APP_KEY)||'—'; document.getElementById('info-path').textContent=localStorage.getItem(LS_PATH_KEY)||'/data.json'; }
+function showSetupView() { document.getElementById('connected-view').classList.add('hidden'); document.getElementById('setup-view').classList.remove('hidden'); }
 function prefillSetupModal() {
-    const k = localStorage.getItem(LS_APP_KEY);
-    const p = localStorage.getItem(LS_PATH_KEY);
-    const r = localStorage.getItem(LS_REDIRECT_URI);
-
-    if (k) document.getElementById('app-key-input').value = k;
-    if (p) document.getElementById('dropbox-path-input').value = p;
-    // Only show custom URI in input if it differs from auto
-    const autoUri = getAutoRedirectUri();
-    if (r && r !== autoUri) document.getElementById('redirect-uri-input').value = r;
-
-    // Display auto-detected URI
-    const autoEl = document.getElementById('auto-uri-display');
-    if (autoEl) autoEl.textContent = autoUri;
-
+    const k=localStorage.getItem(LS_APP_KEY); const p=localStorage.getItem(LS_PATH_KEY); const r=localStorage.getItem(LS_REDIRECT_URI);
+    if(k) document.getElementById('app-key-input').value=k;
+    if(p) document.getElementById('dropbox-path-input').value=p;
+    const autoUri=getAutoRedirectUri();
+    if(r&&r!==autoUri) document.getElementById('redirect-uri-input').value=r;
+    const autoEl=document.getElementById('auto-uri-display'); if(autoEl) autoEl.textContent=autoUri;
     updateFinalUriDisplay();
 }
 
-// ============================================================
-// SAVE TO DROPBOX
-// ============================================================
 async function saveToDropbox() {
-    if (!isDropboxConnected()) {
-        prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal');
-        return;
-    }
-
-    const btn      = document.getElementById('save-btn');
-    const origHTML = btn.innerHTML;
-    btn.classList.add('uploading-btn');
-    btn.innerHTML  = `<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Uploading...`;
-    btn.disabled   = true;
-    setSyncStatus('loading', 'Uploading...');
-
+    if (!isDropboxConnected()) { prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal'); return; }
+    const btn=document.getElementById('save-btn'); const origHTML=btn.innerHTML;
+    btn.classList.add('uploading-btn'); btn.innerHTML=`<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Uploading...`; btn.disabled=true;
+    setSyncStatus('loading','Uploading...');
     try {
-        const token = await getValidAccessToken();
-        if (!token) {
-            showToast('❌ Token get කරගන්නට බැරි. Reconnect කරන්න.', 'rose');
-            setSyncStatus('error', 'Auth failed');
-            openDropboxSetup();
-            return;
-        }
-
-        const content  = JSON.stringify(loans, null, 2);
-        const filePath = localStorage.getItem(LS_PATH_KEY) || '/data.json';
-
-        const response = await fetch('https://content.dropboxapi.com/2/files/upload', {
-            method: 'POST',
-            headers: {
-                'Authorization':    `Bearer ${token}`,
-                'Dropbox-API-Arg':  JSON.stringify({ path: filePath, mode: 'overwrite', autorename: false, mute: false }),
-                'Content-Type':     'application/octet-stream'
-            },
-            body: content
+        const token=await getValidAccessToken();
+        if (!token) { showToast('❌ Token failed. Reconnect.','rose'); setSyncStatus('error','Auth failed'); openDropboxSetup(); return; }
+        const content=JSON.stringify(loans,null,2); const filePath=localStorage.getItem(LS_PATH_KEY)||'/data.json';
+        const response=await fetch('https://content.dropboxapi.com/2/files/upload',{
+            method:'POST',
+            headers:{'Authorization':`Bearer ${token}`,'Dropbox-API-Arg':JSON.stringify({path:filePath,mode:'overwrite',autorename:false,mute:false}),'Content-Type':'application/octet-stream'},
+            body:content
         });
-
-        if (response.ok) {
-            const result = await response.json();
-            saveToLocalStorage(); markSaved();
-            showToast(`✅ Saved! ${loans.length} records → ${result.path_display}`, 'emerald');
-        } else {
-            const err = await response.json().catch(() => ({}));
-            const msg = err?.error_summary || `HTTP ${response.status}`;
-            if (response.status === 401) {
-                localStorage.removeItem(LS_ACCESS_TOKEN);
-                const newToken = await getValidAccessToken();
-                if (newToken) { btn.classList.remove('uploading-btn'); btn.innerHTML = origHTML; btn.disabled = false; setTimeout(initIcons, 50); await saveToDropbox(); return; }
-                showToast('❌ Auth failed. Reconnect Dropbox.', 'rose');
-                openDropboxSetup();
-            } else {
-                showToast(`❌ Upload failed: ${msg}`, 'rose');
-            }
-            setSyncStatus('error', 'Upload failed');
-        }
-    } catch (err) {
-        console.error('Upload error:', err);
-        showToast('❌ Network error!', 'rose');
-        setSyncStatus('error', 'Network error');
-    } finally {
-        btn.classList.remove('uploading-btn');
-        btn.innerHTML = origHTML;
-        btn.disabled  = false;
-        setTimeout(initIcons, 50);
-    }
+        if (response.ok) { const result=await response.json(); saveToLocalStorage(); markSaved(); showToast(`✅ Saved! ${loans.length} records → ${result.path_display}`,'emerald'); }
+        else { const err=await response.json().catch(()=>({})); showToast(`❌ Upload failed: ${err?.error_summary||response.status}`,'rose'); setSyncStatus('error','Upload failed'); }
+    } catch(err) { showToast('❌ Network error!','rose'); setSyncStatus('error','Network error'); }
+    finally { btn.classList.remove('uploading-btn'); btn.innerHTML=origHTML; btn.disabled=false; setTimeout(initIcons,50); }
 }
 
-// ============================================================
-// LOAD FROM DROPBOX
-// ============================================================
 async function loadFromDropbox() {
-    if (!isDropboxConnected()) {
-        loadFromLocalStorage();
-        setSyncStatus('error', 'Not connected — click ⚙️');
-        return false;
-    }
-
-    setSyncStatus('loading', 'Loading from Dropbox...');
-
+    if (!isDropboxConnected()) { loadFromLocalStorage(); setSyncStatus('error','Not connected — click ⚙️'); return false; }
+    setSyncStatus('loading','Loading from Dropbox...');
     try {
-        const token = await getValidAccessToken();
-        if (!token) { loadFromLocalStorage(); setSyncStatus('error', 'Auth failed — reconnect'); return false; }
-
-        const filePath   = localStorage.getItem(LS_PATH_KEY) || '/data.json';
-        const controller = new AbortController();
-        const timer      = setTimeout(() => controller.abort(), 8000);
-
-        const response = await fetch('https://content.dropboxapi.com/2/files/download', {
-            method:  'POST',
-            signal:  controller.signal,
-            headers: {
-                'Authorization':   `Bearer ${token}`,
-                'Dropbox-API-Arg': JSON.stringify({ path: filePath })
-            }
+        const token=await getValidAccessToken();
+        if (!token) { loadFromLocalStorage(); setSyncStatus('error','Auth failed'); return false; }
+        const filePath=localStorage.getItem(LS_PATH_KEY)||'/data.json';
+        const controller=new AbortController(); const timer=setTimeout(()=>controller.abort(),8000);
+        const response=await fetch('https://content.dropboxapi.com/2/files/download',{
+            method:'POST', signal:controller.signal,
+            headers:{'Authorization':`Bearer ${token}`,'Dropbox-API-Arg':JSON.stringify({path:filePath})}
         });
         clearTimeout(timer);
-
-        if (response.status === 409) {
-            loans = []; saveToLocalStorage();
-            setSyncStatus('synced', 'Ready — no data yet');
-            showToast('☁️ Dropbox connected! Start adding loans.', 'blue');
-            return true;
-        }
-
+        if (response.status===409) { loans=[]; saveToLocalStorage(); setSyncStatus('synced','Ready — no data yet'); showToast('☁️ Dropbox connected!','blue'); return true; }
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-        const text = await response.text();
-        const data = text.trim() ? JSON.parse(text) : [];
-        loans      = Array.isArray(data) ? data : [];
-        loans.forEach(ensureDefaults);
-        saveToLocalStorage();
-        setSyncStatus('synced', `Synced ✓ — ${loans.length} records`);
-        showToast(`✅ Loaded ${loans.length} records from Dropbox`, 'emerald');
-        return true;
-
-    } catch (err) {
-        console.warn('Dropbox load failed:', err);
+        const text=await response.text(); const data=text.trim()?JSON.parse(text):[];
+        loans=Array.isArray(data)?data:[]; loans.forEach(ensureDefaults); saveToLocalStorage();
+        setSyncStatus('synced',`Synced ✓ — ${loans.length} records`); showToast(`✅ Loaded ${loans.length} records`,'emerald'); return true;
+    } catch(err) {
         loadFromLocalStorage();
-        if (loans.length > 0) { setSyncStatus('error', 'Dropbox offline — local cache'); showToast('⚠️ Dropbox offline. Using local cache.', 'amber'); }
-        else setSyncStatus('error', 'No data found');
-        return false;
+        if(loans.length>0){setSyncStatus('error','Dropbox offline — local cache');showToast('⚠️ Using local cache.','amber');}
+        else setSyncStatus('error','No data found'); return false;
     }
 }
-
-async function reloadFromDropbox() {
-    const ok = await loadFromDropbox();
-    if (ok) refreshUI();
-}
+async function reloadFromDropbox() { const ok=await loadFromDropbox(); if(ok) refreshUI(); }
 
 // ============================================================
 // STATE
@@ -899,72 +916,41 @@ let selectedDeactiveClient = null;
 let deactiveSectionOpen = false;
 let hasUnsavedChanges = false;
 
-// ============================================================
-// SYNC STATUS
-// ============================================================
 function setSyncStatus(status, label) {
-    const dot = document.getElementById('sync-dot');
-    const lbl = document.getElementById('sync-label');
-    dot.className = `sync-dot ${status}`;
-    lbl.textContent = label;
-    const colors = { synced:'text-emerald-400', pending:'text-amber-400', error:'text-rose-400', loading:'text-blue-400' };
-    lbl.className = `text-[10px] font-bold ${colors[status]||'text-slate-400'}`;
+    const dot=document.getElementById('sync-dot'); const lbl=document.getElementById('sync-label');
+    dot.className=`sync-dot ${status}`; lbl.textContent=label;
+    const colors={synced:'text-emerald-400',pending:'text-amber-400',error:'text-rose-400',loading:'text-blue-400'};
+    lbl.className=`text-[10px] font-bold ${colors[status]||'text-slate-400'}`;
 }
+function markUnsaved(){hasUnsavedChanges=true;document.getElementById('unsaved-banner').style.display='block';setSyncStatus('pending','Unsaved changes');}
+function markSaved(){hasUnsavedChanges=false;document.getElementById('unsaved-banner').style.display='none';setSyncStatus('synced','Synced ✓');}
+function saveToLocalStorage(){try{localStorage.setItem(LS_DATA_KEY,JSON.stringify(loans));}catch(e){showToast('⚠️ Storage full!','amber');}}
+function loadFromLocalStorage(){try{const raw=localStorage.getItem(LS_DATA_KEY);if(raw)loans=JSON.parse(raw);}catch(e){loans=[];}}
+function persistAll(){saveToLocalStorage();markUnsaved();}
+function downloadJSON(){const dl=document.createElement('a');dl.setAttribute("href","data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(loans,null,2)));dl.setAttribute("download",`loan_book_${new Date().toISOString().split('T')[0]}.json`);dl.click();}
 
-function markUnsaved() { hasUnsavedChanges = true; document.getElementById('unsaved-banner').style.display = 'block'; setSyncStatus('pending','Unsaved changes'); }
-function markSaved()   { hasUnsavedChanges = false; document.getElementById('unsaved-banner').style.display = 'none'; setSyncStatus('synced','Synced ✓'); }
-
-// ============================================================
-// PERSISTENCE
-// ============================================================
-function saveToLocalStorage() { try { localStorage.setItem(LS_DATA_KEY, JSON.stringify(loans)); } catch(e) { showToast('⚠️ Storage full! Export JSON.','amber'); } }
-function loadFromLocalStorage() { try { const raw = localStorage.getItem(LS_DATA_KEY); if (raw) loans = JSON.parse(raw); } catch(e) { loans = []; } }
-function persistAll() { saveToLocalStorage(); markUnsaved(); }
-
-function downloadJSON() {
-    const dl = document.createElement('a');
-    dl.setAttribute("href","data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(loans,null,2)));
-    dl.setAttribute("download",`loan_book_${new Date().toISOString().split('T')[0]}.json`);
-    dl.click();
+function showToast(msg,color='emerald'){
+    const colors={emerald:'bg-emerald-600',amber:'bg-amber-600',rose:'bg-rose-600',blue:'bg-blue-600'};
+    const el=document.createElement('div');el.className=`toast ${colors[color]||colors.emerald} text-white`;el.textContent=msg;
+    document.body.appendChild(el);setTimeout(()=>el.remove(),4000);
 }
-
-// ============================================================
-// TOAST
-// ============================================================
-function showToast(msg, color='emerald') {
-    const colors = { emerald:'bg-emerald-600', amber:'bg-amber-600', rose:'bg-rose-600', blue:'bg-blue-600' };
-    const el = document.createElement('div');
-    el.className = `toast ${colors[color]||colors.emerald} text-white`;
-    el.textContent = msg;
-    document.body.appendChild(el);
-    setTimeout(() => el.remove(), 4000);
-}
-
-function initIcons() { lucide.createIcons(); }
-
-// ============================================================
-// MODALS & TABS
-// ============================================================
-function openModal(id)  { document.getElementById(id).classList.remove('hidden'); document.body.style.overflow='hidden'; setTimeout(initIcons,50); }
-function closeModal(id) { document.getElementById(id).classList.add('hidden'); document.body.style.overflow='auto'; }
-function switchTab(tabId) {
+function initIcons(){lucide.createIcons();}
+function openModal(id){document.getElementById(id).classList.remove('hidden');document.body.style.overflow='hidden';setTimeout(initIcons,50);}
+function closeModal(id){document.getElementById(id).classList.add('hidden');document.body.style.overflow='auto';}
+function switchTab(tabId){
     document.querySelectorAll('.tab-content').forEach(t=>t.classList.add('hidden'));
     document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
     document.getElementById(tabId).classList.remove('hidden');
     document.getElementById(tabId==='payments-tab'?'tab-payments':'tab-attachments').classList.add('active');
-    if (tabId==='attachments-tab') renderAttachments();
+    if(tabId==='attachments-tab') renderAttachments();
 }
 
-// ============================================================
-// PHOTO
-// ============================================================
-function previewPhoto(input, previewId, placeholderId) {
-    if (input.files&&input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = e => {
-            if (previewId==='edit-photo-preview') editPhoto = e.target.result;
-            else currentPhoto = e.target.result;
-            document.getElementById(previewId).src = e.target.result;
+function previewPhoto(input,previewId,placeholderId){
+    if(input.files&&input.files[0]){
+        const reader=new FileReader();
+        reader.onload=e=>{
+            if(previewId==='edit-photo-preview') editPhoto=e.target.result; else currentPhoto=e.target.result;
+            document.getElementById(previewId).src=e.target.result;
             document.getElementById(previewId).classList.remove('hidden');
             document.getElementById(placeholderId).classList.add('hidden');
         };
@@ -972,191 +958,216 @@ function previewPhoto(input, previewId, placeholderId) {
     }
 }
 
-// ============================================================
-// LOAN HELPERS
-// ============================================================
-function getLoanDue(loan) {
-    const interest = Math.round((loan.amount*(loan.interest/100))*loan.period);
-    const total    = loan.amount + interest;
-    const paid     = (loan.payments||[]).reduce((sum,p)=>sum+p.amount,0);
-    return total - paid;
-}
-function isLoanPaid(loan)       { return getLoanDue(loan) <= 0; }
-function getDeactiveClients()   { return groupByClient(loans).filter(g=>g.loans.every(l=>isLoanPaid(l))); }
-function getActiveClients()     { return groupByClient(loans).filter(g=>!g.loans.every(l=>isLoanPaid(l))); }
-function ensureDefaults(loan)   { if (!loan.payments) loan.payments=[]; if (!loan.documents) loan.documents=[]; return loan; }
+function getLoanDue(loan){const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);const total=loan.amount+interest;const paid=(loan.payments||[]).reduce((s,p)=>s+p.amount,0);return total-paid;}
+function isLoanPaid(loan){return getLoanDue(loan)<=0;}
+function getDeactiveClients(){return groupByClient(loans).filter(g=>g.loans.every(l=>isLoanPaid(l)));}
+function getActiveClients(){return groupByClient(loans).filter(g=>!g.loans.every(l=>isLoanPaid(l)));}
+function ensureDefaults(loan){if(!loan.payments)loan.payments=[];if(!loan.documents)loan.documents=[];return loan;}
 
-// ============================================================
-// AUTOCOMPLETE
-// ============================================================
-function handleNameInput(val) {
-    if (!val||!val.trim()) { hideSuggestions(); return; }
-    const filtered = getDeactiveClients().filter(g=>g.displayName.toLowerCase().includes(val.toLowerCase()));
-    filtered.length ? showSuggestions(filtered) : hideSuggestions();
+function handleNameInput(val){
+    if(!val||!val.trim()){hideSuggestions();return;}
+    const filtered=getDeactiveClients().filter(g=>g.displayName.toLowerCase().includes(val.toLowerCase()));
+    filtered.length?showSuggestions(filtered):hideSuggestions();
 }
-function showSuggestions(clients) {
-    const box = document.getElementById('name-suggestions');
-    box.innerHTML = '';
-    clients.forEach(client => {
-        const photoSrc = client.loans[0].photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
-        const div = document.createElement('div');
-        div.className = 'suggestion-item';
-        div.innerHTML = `<img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0"><div class="flex-1 min-w-0"><div class="text-xs font-bold text-white truncate">${client.displayName}</div><div class="text-[9px] text-slate-500">${client.loans.length} ණය</div></div><span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">✓ Paid</span>`;
-        div.onclick = () => selectDeactiveClient(client);
-        box.appendChild(div);
+function showSuggestions(clients){
+    const box=document.getElementById('name-suggestions'); box.innerHTML='';
+    clients.forEach(client=>{
+        const photoSrc=client.loans[0].photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
+        const div=document.createElement('div'); div.className='suggestion-item';
+        div.innerHTML=`<img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0"><div class="flex-1 min-w-0"><div class="text-xs font-bold text-white truncate">${client.displayName}</div><div class="text-[9px] text-slate-500">${client.loans.length} ණය</div></div><span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">✓ Paid</span>`;
+        div.onclick=()=>selectDeactiveClient(client); box.appendChild(div);
     });
-    box.classList.remove('hidden');
-    initIcons();
+    box.classList.remove('hidden'); initIcons();
 }
-function hideSuggestions() { document.getElementById('name-suggestions').classList.add('hidden'); }
-function selectDeactiveClient(client) {
-    selectedDeactiveClient = client;
-    document.getElementById('borrower-name').value = client.displayName;
-    hideSuggestions();
-    const photoSrc = client.loans[0].photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
-    document.getElementById('selected-deactive-photo').src = photoSrc;
-    document.getElementById('selected-deactive-label').textContent = `"${client.displayName}" — නව ණය ලබා දෙන්න`;
+function hideSuggestions(){document.getElementById('name-suggestions').classList.add('hidden');}
+function selectDeactiveClient(client){
+    selectedDeactiveClient=client; document.getElementById('borrower-name').value=client.displayName; hideSuggestions();
+    const photoSrc=client.loans[0].photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
+    document.getElementById('selected-deactive-photo').src=photoSrc;
+    document.getElementById('selected-deactive-label').textContent=`"${client.displayName}" — නව ණය ලබා දෙන්න`;
     document.getElementById('selected-deactive-hint').classList.remove('hidden');
-    if (client.loans[0].photo) { currentPhoto=client.loans[0].photo; const p=document.getElementById('photo-preview'); p.src=client.loans[0].photo; p.classList.remove('hidden'); document.getElementById('photo-placeholder').classList.add('hidden'); }
+    if(client.loans[0].photo){currentPhoto=client.loans[0].photo;const p=document.getElementById('photo-preview');p.src=client.loans[0].photo;p.classList.remove('hidden');document.getElementById('photo-placeholder').classList.add('hidden');}
     initIcons();
 }
-function clearSelectedDeactive() { selectedDeactiveClient=null; document.getElementById('selected-deactive-hint').classList.add('hidden'); document.getElementById('borrower-name').value=''; }
+function clearSelectedDeactive(){selectedDeactiveClient=null;document.getElementById('selected-deactive-hint').classList.add('hidden');document.getElementById('borrower-name').value='';}
 
-// ============================================================
-// CRUD
-// ============================================================
-document.getElementById('loan-form').onsubmit = function(e) {
+document.getElementById('loan-form').onsubmit=function(e){
     e.preventDefault();
-    loans.push({ id:Date.now(), name:document.getElementById('borrower-name').value, amount:parseFloat(document.getElementById('loan-amount').value), interest:parseFloat(document.getElementById('loan-interest').value), period:parseInt(document.getElementById('loan-period').value), date:document.getElementById('loan-date').value, photo:currentPhoto, payments:[], documents:[] });
-    refreshUI(); closeModal('new-loan-modal'); this.reset();
-    currentPhoto=''; selectedDeactiveClient=null;
-    document.getElementById('photo-preview').classList.add('hidden');
-    document.getElementById('photo-placeholder').classList.remove('hidden');
+    loans.push({id:Date.now(),name:document.getElementById('borrower-name').value,amount:parseFloat(document.getElementById('loan-amount').value),interest:parseFloat(document.getElementById('loan-interest').value),period:parseInt(document.getElementById('loan-period').value),date:document.getElementById('loan-date').value,photo:currentPhoto,payments:[],documents:[]});
+    refreshUI();closeModal('new-loan-modal');this.reset();
+    currentPhoto='';selectedDeactiveClient=null;
+    document.getElementById('photo-preview').classList.add('hidden');document.getElementById('photo-placeholder').classList.remove('hidden');
     document.getElementById('selected-deactive-hint').classList.add('hidden');
     persistAll();
 };
 
-function openEditModal(index) {
-    activeLoanIndex = index;
-    const loan = loans[index];
-    editPhoto = loan.photo||"";
-    document.getElementById('edit-name').value     = loan.name;
-    document.getElementById('edit-amount').value   = loan.amount;
-    document.getElementById('edit-interest').value = loan.interest;
-    document.getElementById('edit-period').value   = loan.period;
-    document.getElementById('edit-date').value     = loan.date;
-    const img = document.getElementById('edit-photo-preview');
-    img.src = loan.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-    img.classList.remove('hidden');
-    document.getElementById('edit-photo-placeholder').classList.add('hidden');
+function openEditModal(index){
+    activeLoanIndex=index; const loan=loans[index]; editPhoto=loan.photo||"";
+    document.getElementById('edit-name').value=loan.name;document.getElementById('edit-amount').value=loan.amount;document.getElementById('edit-interest').value=loan.interest;document.getElementById('edit-period').value=loan.period;document.getElementById('edit-date').value=loan.date;
+    const img=document.getElementById('edit-photo-preview');
+    img.src=loan.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+    img.classList.remove('hidden');document.getElementById('edit-photo-placeholder').classList.add('hidden');
     openModal('edit-loan-modal');
 }
-
-function openEditFromSheet() { closeModal('sheet-modal'); openEditModal(activeLoanIndex); }
-
-document.getElementById('edit-form').onsubmit = function(e) {
+function openEditFromSheet(){closeModal('sheet-modal');openEditModal(activeLoanIndex);}
+document.getElementById('edit-form').onsubmit=function(e){
     e.preventDefault();
-    const loan = loans[activeLoanIndex];
-    loan.name=document.getElementById('edit-name').value; loan.amount=parseFloat(document.getElementById('edit-amount').value); loan.interest=parseFloat(document.getElementById('edit-interest').value); loan.period=parseInt(document.getElementById('edit-period').value); loan.date=document.getElementById('edit-date').value;
-    if (editPhoto) loan.photo=editPhoto;
-    refreshUI(); closeModal('edit-loan-modal'); persistAll();
-    setTimeout(()=>openSheet(activeLoanIndex),100);
+    const loan=loans[activeLoanIndex];
+    loan.name=document.getElementById('edit-name').value;loan.amount=parseFloat(document.getElementById('edit-amount').value);loan.interest=parseFloat(document.getElementById('edit-interest').value);loan.period=parseInt(document.getElementById('edit-period').value);loan.date=document.getElementById('edit-date').value;
+    if(editPhoto) loan.photo=editPhoto;
+    refreshUI();closeModal('edit-loan-modal');persistAll();setTimeout(()=>openSheet(activeLoanIndex),100);
 };
+function deleteLoan(index){if(confirm('Delete this record?')){loans.splice(index,1);refreshUI();persistAll();}}
 
-function deleteLoan(index) { if(confirm('Delete this record?')){ loans.splice(index,1); refreshUI(); persistAll(); } }
-
-// ============================================================
-// GROUP & RENDER
-// ============================================================
-function groupByClient(data) {
+function groupByClient(data){
     const map={};
-    data.forEach(loan=>{ const key=loan.name.trim().toLowerCase(); if(!map[key]) map[key]={displayName:loan.name,loans:[]}; map[key].loans.push(loan); });
+    data.forEach(loan=>{const key=loan.name.trim().toLowerCase();if(!map[key])map[key]={displayName:loan.name,loans:[]};map[key].loans.push(loan);});
     return Object.values(map);
 }
 
-function renderDashboard(data=loans) {
-    const tbody = document.getElementById('loan-table-body');
-    const empty = document.getElementById('empty-state');
+// ============================================================
+// BATTERY BAR GENERATOR
+// ============================================================
+function makeBatteryBar(pct) {
+    const color = pct >= 60 ? 'green' : pct >= 30 ? 'amber' : 'rose';
+    const textColor = pct >= 60 ? 'text-emerald-400' : pct >= 30 ? 'text-amber-400' : 'text-rose-400';
+    return `
+        <div class="battery-wrap">
+            <div class="battery-body">
+                <div class="battery-fill ${color} animating" data-pct="${pct}" style="width:0%"></div>
+            </div>
+            <div class="battery-tip"></div>
+            <span class="battery-pct ${textColor}">${pct}%</span>
+        </div>`;
+}
+// Animate battery fills after render
+function animateBatteries() {
+    document.querySelectorAll('.battery-fill[data-pct]').forEach(el => {
+        const pct = parseFloat(el.getAttribute('data-pct'));
+        requestAnimationFrame(() => {
+            setTimeout(() => { el.style.width = pct + '%'; }, 50);
+        });
+    });
+}
+
+function renderDashboard(data=loans){
+    const tbody=document.getElementById('loan-table-body'); const empty=document.getElementById('empty-state');
     tbody.innerHTML='';
-    const allGroups      = groupByClient(data);
-    const activeGroups   = allGroups.filter(g=>!g.loans.every(l=>isLoanPaid(l)));
-    const deactiveGroups = allGroups.filter(g=>g.loans.every(l=>isLoanPaid(l)));
-    if (activeGroups.length===0&&deactiveGroups.length===0) { empty.classList.remove('hidden'); initIcons(); renderDeactiveTable([]); return; }
+    const allGroups=groupByClient(data);
+    const activeGroups=allGroups.filter(g=>!g.loans.every(l=>isLoanPaid(l)));
+    const deactiveGroups=allGroups.filter(g=>g.loans.every(l=>isLoanPaid(l)));
+    if(activeGroups.length===0&&deactiveGroups.length===0){empty.classList.remove('hidden');initIcons();renderDeactiveTable([]);return;}
     empty.classList.add('hidden');
     activeGroups.forEach(group=>renderGroupRows(tbody,group,false));
     renderDeactiveTable(deactiveGroups);
     initIcons();
+    setTimeout(animateBatteries, 80);
 }
 
-function renderGroupRows(tbody,group,isDeactive) {
-    const isMulti = group.loans.length>1;
-    const groupKey = group.displayName.trim().toLowerCase().replace(/\s+/g,'_')+(isDeactive?'_d':'_a');
-    const firstLoan = group.loans[0];
-    const photoSrc = firstLoan.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
-    if (!isMulti) {
+function renderGroupRows(tbody,group,isDeactive){
+    const isMulti=group.loans.length>1;
+    const groupKey=group.displayName.trim().toLowerCase().replace(/\s+/g,'_')+(isDeactive?'_d':'_a');
+    const firstLoan=group.loans[0];
+    const photoSrc=firstLoan.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
+    if(!isMulti){
         const loan=group.loans[0]; const idx=loans.indexOf(loan);
         const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);
         const total=loan.amount+interest;
         const paid=(loan.payments||[]).reduce((s,p)=>s+p.amount,0);
         const due=total-paid;
-        tbody.innerHTML+=`<tr class="group hover:bg-white/[0.02] transition-all cursor-pointer${isDeactive?' deactive-row':''}" onclick="openSheet(${idx})"><td class="px-6 py-4"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover"><div><div class="font-bold text-white text-xs">${loan.name}</div><div class="text-[8px] text-slate-500 uppercase">${loan.date}</div></div></div></td><td class="px-6 py-4 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td><td class="px-6 py-4 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400 paid-badge':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td><td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openEditModal(${idx})" class="text-slate-600 hover:text-amber-400"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation();deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;
+        const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
+        const batteryHtml=due<=0?`<span class="px-2 py-0.5 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ PAID</span>`:makeBatteryBar(pct);
+        tbody.innerHTML+=`<tr class="group hover:bg-white/[0.02] transition-all cursor-pointer${isDeactive?' deactive-row':''}" onclick="openSheet(${idx})">
+            <td class="px-6 py-4">
+                <div class="flex items-center gap-3">
+                    <img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
+                    <div class="min-w-0">
+                        <div class="font-bold text-white text-xs">${loan.name}</div>
+                        <div class="text-[8px] text-slate-500 uppercase mb-0.5">${loan.date}</div>
+                        ${batteryHtml}
+                    </div>
+                </div>
+            </td>
+            <td class="px-6 py-4 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td>
+            <td class="px-6 py-4 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
+            <td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400 paid-badge':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td>
+            <td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openEditModal(${idx})" class="text-slate-600 hover:text-amber-400"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation();deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td>
+        </tr>`;
     } else {
-        tbody.innerHTML+=`<tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all${isDeactive?' deactive-row':''}" onclick="toggleClientGroup('${groupKey}')"><td class="px-6 py-4" colspan="3"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-violet-500/40"><div><div class="font-bold text-white text-xs flex items-center gap-2">${group.displayName}<span class="bg-violet-500/20 text-violet-300 text-[8px] font-bold px-2 py-0.5 rounded-full">${group.loans.length} ණය</span></div><div class="text-[8px] text-slate-500">Click to expand</div></div></div></td><td class="px-6 py-4">${isDeactive?'<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>':''}</td><td class="px-6 py-4 text-right"><i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline" id="chevron-${groupKey}"></i></td></tr><tr id="subrows-${groupKey}" class="hidden"><td colspan="5" class="p-0"><table class="w-full"><tbody>${group.loans.map(loan=>{const idx=loans.indexOf(loan);const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);const total=loan.amount+interest;const paid=(loan.payments||[]).reduce((s,p)=>s+p.amount,0);const due=total-paid;return`<tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20" onclick="openSheet(${idx})"><td class="px-6 py-3 pl-16"><div class="text-[10px] font-bold text-slate-300">#${idx+1} — ${loan.date}</div><div class="text-[8px] text-slate-600">${loan.period} Months | ${loan.interest}%</div></td><td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td><td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td><td class="px-6 py-3"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td><td class="px-6 py-3 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openEditModal(${idx})" class="text-slate-600 hover:text-amber-400"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation();deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;}).join('')}</tbody></table></td></tr>`;
+        const subRowsHtml = group.loans.map(loan=>{
+            const idx=loans.indexOf(loan);
+            const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);
+            const total=loan.amount+interest; const paid=(loan.payments||[]).reduce((s,p)=>s+p.amount,0); const due=total-paid;
+            const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
+            const batteryHtml=due<=0?`<span class="px-2 py-0.5 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400">✓ PAID</span>`:makeBatteryBar(pct);
+            return `<tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20" onclick="openSheet(${idx})">
+                <td class="px-6 py-3 pl-16">
+                    <div class="text-[10px] font-bold text-slate-300">#${idx+1} — ${loan.date}</div>
+                    <div class="text-[8px] text-slate-600 mb-0.5">${loan.period} Months | ${loan.interest}%</div>
+                    ${batteryHtml}
+                </td>
+                <td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td>
+                <td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
+                <td class="px-6 py-3"><span class="px-2 py-1 rounded text-[8px] font-bold ${due<=0?'bg-emerald-500/10 text-emerald-400':'bg-rose-500/10 text-rose-400'}">${due<=0?'✓ PAID':'Rs. '+due.toLocaleString()}</span></td>
+                <td class="px-6 py-3 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openEditModal(${idx})" class="text-slate-600 hover:text-amber-400"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button><button onclick="event.stopPropagation();deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td>
+            </tr>`;
+        }).join('');
+        tbody.innerHTML+=`<tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all${isDeactive?' deactive-row':''}" onclick="toggleClientGroup('${groupKey}')">
+            <td class="px-6 py-4" colspan="3"><div class="flex items-center gap-3"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover ring-2 ring-violet-500/40"><div><div class="font-bold text-white text-xs flex items-center gap-2">${group.displayName}<span class="bg-violet-500/20 text-violet-300 text-[8px] font-bold px-2 py-0.5 rounded-full">${group.loans.length} ණය</span></div><div class="text-[8px] text-slate-500">Click to expand</div></div></div></td>
+            <td class="px-6 py-4">${isDeactive?'<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>':''}</td>
+            <td class="px-6 py-4 text-right"><i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline" id="chevron-${groupKey}"></i></td>
+        </tr>
+        <tr id="subrows-${groupKey}" class="hidden"><td colspan="5" class="p-0"><table class="w-full"><tbody>${subRowsHtml}</tbody></table></td></tr>`;
     }
 }
 
-function renderDeactiveTable(deactiveGroups) {
-    const section=document.getElementById('deactive-section');
-    const tbody=document.getElementById('deactive-table-body');
-    const badge=document.getElementById('deactive-count-badge');
-    if (deactiveGroups.length===0){section.classList.add('hidden');return;}
-    section.classList.remove('hidden');
-    badge.textContent=deactiveGroups.length;
-    tbody.innerHTML='';
+function renderDeactiveTable(deactiveGroups){
+    const section=document.getElementById('deactive-section'); const tbody=document.getElementById('deactive-table-body'); const badge=document.getElementById('deactive-count-badge');
+    if(deactiveGroups.length===0){section.classList.add('hidden');return;}
+    section.classList.remove('hidden'); badge.textContent=deactiveGroups.length; tbody.innerHTML='';
     deactiveGroups.forEach(group=>{
         const firstLoan=group.loans[0];
         const photoSrc=firstLoan.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
         const totalPaid=group.loans.reduce((s,l)=>s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0);
         const totalPrincipal=group.loans.reduce((s,l)=>s+l.amount,0);
         const latestIdx=loans.indexOf(group.loans[group.loans.length-1]);
-        tbody.innerHTML+=`<tr class="deactive-row hover:bg-white/[0.02] cursor-pointer" onclick="openSheet(${latestIdx})"><td class="px-6 py-4"><div class="flex items-center gap-3"><div class="relative"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover grayscale opacity-60"><div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border border-slate-900 flex items-center justify-center"><span class="text-[6px] text-white font-bold">✓</span></div></div><div><div class="font-bold text-slate-400 text-xs">${group.displayName}</div><div class="text-[8px] text-slate-600">${group.loans.length} ණය | ${firstLoan.date}</div></div></div></td><td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td><td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td><td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span></td><td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openNewLoanForDeactive('${group.displayName.replace(/'/g,"\\'")}');" class="text-slate-600 hover:text-blue-400 text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded"><i data-lucide="plus" class="w-3 h-3"></i> New</button><button onclick="event.stopPropagation();deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td></tr>`;
+        tbody.innerHTML+=`<tr class="deactive-row hover:bg-white/[0.02] cursor-pointer" onclick="openSheet(${latestIdx})">
+            <td class="px-6 py-4"><div class="flex items-center gap-3"><div class="relative"><img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover grayscale opacity-60"><div class="absolute -bottom-1 -right-1 w-3 h-3 bg-emerald-500 rounded-full border border-slate-900 flex items-center justify-center"><span class="text-[6px] text-white font-bold">✓</span></div></div><div><div class="font-bold text-slate-400 text-xs">${group.displayName}</div><div class="text-[8px] text-slate-600">${group.loans.length} ණය | ${firstLoan.date}</div></div></div></td>
+            <td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td>
+            <td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td>
+            <td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500 paid-badge">✓ COMPLETED</span></td>
+            <td class="px-6 py-4 text-right"><div class="flex items-center justify-end gap-2"><button onclick="event.stopPropagation();openNewLoanForDeactive('${group.displayName.replace(/'/g,"\\'")}');" class="text-slate-600 hover:text-blue-400 text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded"><i data-lucide="plus" class="w-3 h-3"></i> New</button><button onclick="event.stopPropagation();deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button></div></td>
+        </tr>`;
     });
     initIcons();
 }
 
-function toggleDeactiveSection() {
+function toggleDeactiveSection(){
     deactiveSectionOpen=!deactiveSectionOpen;
     document.getElementById('deactive-table-wrapper').classList.toggle('hidden',!deactiveSectionOpen);
     document.getElementById('deactive-chevron').style.transform=deactiveSectionOpen?'rotate(180deg)':'';
     document.getElementById('deactive-toggle-label').textContent=deactiveSectionOpen?'Hide':'Show';
 }
-
-function openNewLoanForDeactive(name) {
+function openNewLoanForDeactive(name){
     openModal('new-loan-modal');
-    setTimeout(()=>{ document.getElementById('borrower-name').value=name; const client=getDeactiveClients().find(g=>g.displayName===name); if(client) selectDeactiveClient(client); },100);
+    setTimeout(()=>{document.getElementById('borrower-name').value=name;const client=getDeactiveClients().find(g=>g.displayName===name);if(client)selectDeactiveClient(client);},100);
 }
-
-function toggleClientGroup(key) {
-    const subrows=document.getElementById(`subrows-${key}`);
-    const chevron=document.getElementById(`chevron-${key}`);
+function toggleClientGroup(key){
+    const subrows=document.getElementById(`subrows-${key}`); const chevron=document.getElementById(`chevron-${key}`);
     const hidden=subrows.classList.contains('hidden');
-    subrows.classList.toggle('hidden',!hidden);
-    chevron.style.transform=hidden?'rotate(180deg)':'';
+    subrows.classList.toggle('hidden',!hidden); chevron.style.transform=hidden?'rotate(180deg)':'';
+    if(!hidden===true) setTimeout(animateBatteries, 80);
     initIcons();
 }
-
-function searchLoans(val) { renderDashboard(loans.filter(l=>l.name.toLowerCase().includes(val.toLowerCase()))); }
+function searchLoans(val){renderDashboard(loans.filter(l=>l.name.toLowerCase().includes(val.toLowerCase())));}
 
 // ============================================================
 // SHEET
 // ============================================================
-function openSheet(index) {
-    activeLoanIndex=index;
-    const loan=ensureDefaults(loans[index]);
+function openSheet(index){
+    activeLoanIndex=index; const loan=ensureDefaults(loans[index]);
     const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);
-    const total=loan.amount+interest;
-    const paid=loan.payments.reduce((s,p)=>s+p.amount,0);
-    const due=total-paid;
+    const total=loan.amount+interest; const paid=loan.payments.reduce((s,p)=>s+p.amount,0); const due=total-paid;
     const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
     document.getElementById('sheet-photo').src=loan.photo||`https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
     document.getElementById('sheet-title').innerText=loan.name;
@@ -1164,22 +1175,18 @@ function openSheet(index) {
     document.getElementById('sheet-balance-due').innerText=`Rs. ${due.toLocaleString()}`;
     document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;
     document.getElementById('sheet-total-with-interest').innerText=`Rs. ${total.toLocaleString()}`;
-    setTimeout(()=>{ document.getElementById('sheet-progress-bar').style.width=pct+'%'; document.getElementById('sheet-progress-label').textContent=pct+'% Recovered'; },100);
-    updateAttachmentBadge(); switchTab('payments-tab'); renderPaymentHistory(); openModal('sheet-modal');
+    setTimeout(()=>{document.getElementById('sheet-progress-bar').style.width=pct+'%';document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';},100);
+    updateAttachmentBadge();switchTab('payments-tab');renderPaymentHistory();openModal('sheet-modal');
     setTimeout(()=>renderClientCharts(loan,paid,due,total,interest),120);
 }
-
-function updateAttachmentBadge() {
+function updateAttachmentBadge(){
     if(activeLoanIndex===null)return;
     const count=(loans[activeLoanIndex].documents||[]).length;
     const badge=document.getElementById('att-count-badge');
     count>0?(badge.textContent=count,badge.classList.remove('hidden')):badge.classList.add('hidden');
 }
 
-// ============================================================
-// CLIENT CHARTS
-// ============================================================
-function renderClientCharts(loan,paid,due,total,interest) {
+function renderClientCharts(loan,paid,due,total,interest){
     if(clientDonutChart){clientDonutChart.destroy();clientDonutChart=null;}
     if(clientBarChart){clientBarChart.destroy();clientBarChart=null;}
     if(clientLineChart){clientLineChart.destroy();clientLineChart=null;}
@@ -1192,62 +1199,52 @@ function renderClientCharts(loan,paid,due,total,interest) {
     const lineCtx=document.getElementById('client-line-chart');
     if(lineCtx){
         const sorted=[...(loan.payments||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
-        let running=0; const labels=['Start']; const cumData=[0];
+        let running=0;const labels=['Start'];const cumData=[0];
         sorted.forEach(p=>{labels.push(p.date.substring(5));running+=p.amount;cumData.push(running);});
         clientLineChart=new Chart(lineCtx,{type:'line',data:{labels,datasets:[{label:'Cumulative',data:cumData,borderColor:'#10b981',backgroundColor:'rgba(16,185,129,0.08)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#10b981',borderWidth:2},{label:'Total',data:labels.map(()=>total),borderColor:'rgba(244,63,94,0.3)',borderDash:[4,4],borderWidth:1,pointRadius:0,fill:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#475569',font:{size:7},maxTicksLimit:5}}}}});
     }
 }
-
-function animateCount(elemId,from,to,suffix,duration) {
-    const el=document.getElementById(elemId); if(!el)return;
+function animateCount(elemId,from,to,suffix,duration){
+    const el=document.getElementById(elemId);if(!el)return;
     const start=performance.now();
     function step(now){const p=Math.min((now-start)/duration,1);const e=1-Math.pow(1-p,3);el.textContent=Math.round(from+(to-from)*e)+suffix;if(p<1)requestAnimationFrame(step);}
     requestAnimationFrame(step);
 }
 
-// ============================================================
-// PAYMENTS
-// ============================================================
-function addPayment() {
-    const amtIn=document.getElementById('pay-amount'); const dateIn=document.getElementById('pay-date'); const noteIn=document.getElementById('pay-note');
+function addPayment(){
+    const amtIn=document.getElementById('pay-amount');const dateIn=document.getElementById('pay-date');const noteIn=document.getElementById('pay-note');
     if(!amtIn.value||!dateIn.value)return alert('Amount සහ Date enter කරන්න.');
     ensureDefaults(loans[activeLoanIndex]);
     loans[activeLoanIndex].payments.push({amount:parseFloat(amtIn.value),date:dateIn.value,note:noteIn.value||''});
-    const loan=loans[activeLoanIndex]; const interest=Math.round((loan.amount*(loan.interest/100))*loan.period); const total=loan.amount+interest; const paid=loan.payments.reduce((s,p)=>s+p.amount,0); const due=total-paid; const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
-    document.getElementById('sheet-balance-due').innerText=`Rs. ${due.toLocaleString()}`; document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`; document.getElementById('sheet-progress-bar').style.width=pct+'%'; document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
+    const loan=loans[activeLoanIndex];const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);const total=loan.amount+interest;const paid=loan.payments.reduce((s,p)=>s+p.amount,0);const due=total-paid;const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
+    document.getElementById('sheet-balance-due').innerText=`Rs. ${due.toLocaleString()}`;document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;document.getElementById('sheet-progress-bar').style.width=pct+'%';document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
     renderClientCharts(loan,paid,due,total,interest);
     if(due<=0) showToast(`🎉 ${loan.name} — ණය ගෙවා ඉවරයි!`,'emerald');
-    refreshUI(); renderPaymentHistory(); amtIn.value=''; noteIn.value=''; persistAll();
+    refreshUI();renderPaymentHistory();amtIn.value='';noteIn.value='';persistAll();
 }
-
-function deletePayment(idx) {
+function deletePayment(idx){
     if(!confirm('Delete this payment?'))return;
     loans[activeLoanIndex].payments.splice(idx,1);
-    const loan=loans[activeLoanIndex]; const interest=Math.round((loan.amount*(loan.interest/100))*loan.period); const total=loan.amount+interest; const paid=loan.payments.reduce((s,p)=>s+p.amount,0); const due=total-paid; const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
-    document.getElementById('sheet-balance-due').innerText=`Rs. ${(total-paid).toLocaleString()}`; document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`; document.getElementById('sheet-progress-bar').style.width=pct+'%'; document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
+    const loan=loans[activeLoanIndex];const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);const total=loan.amount+interest;const paid=loan.payments.reduce((s,p)=>s+p.amount,0);const due=total-paid;const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
+    document.getElementById('sheet-balance-due').innerText=`Rs. ${(total-paid).toLocaleString()}`;document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;document.getElementById('sheet-progress-bar').style.width=pct+'%';document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
     renderClientCharts(loan,paid,due,total,interest);
-    refreshUI(); renderPaymentHistory(); persistAll();
+    refreshUI();renderPaymentHistory();persistAll();
 }
-
-function renderPaymentHistory() {
-    const tbody=document.getElementById('payment-history-body'); const noP=document.getElementById('no-payments'); tbody.innerHTML='';
+function renderPaymentHistory(){
+    const tbody=document.getElementById('payment-history-body');const noP=document.getElementById('no-payments');tbody.innerHTML='';
     const payments=(loans[activeLoanIndex].payments||[]);
-    if(payments.length===0){noP.classList.remove('hidden');return;} noP.classList.add('hidden');
+    if(payments.length===0){noP.classList.remove('hidden');return;}noP.classList.add('hidden');
     [...payments].map((p,i)=>({...p,i})).sort((a,b)=>new Date(b.date)-new Date(a.date)).forEach(p=>{
         tbody.innerHTML+=`<tr class="hover:bg-white/[0.02]"><td class="px-5 py-3 text-slate-400 text-[11px]">${p.date}</td><td class="px-5 py-3 text-slate-500 text-[10px] italic">${p.note||'—'}</td><td class="px-5 py-3 text-right font-bold text-emerald-400 text-[11px]">Rs. ${p.amount.toLocaleString()}</td><td class="px-5 py-3 text-right"><button onclick="deletePayment(${p.i})" class="text-slate-600 hover:text-rose-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button></td></tr>`;
     });
     initIcons();
 }
 
-// ============================================================
-// ATTACHMENTS
-// ============================================================
 function handleDragOver(e){e.preventDefault();document.getElementById('drop-zone').classList.add('drag-over');}
 function handleDragLeave(e){document.getElementById('drop-zone').classList.remove('drag-over');}
 function handleDrop(e){e.preventDefault();document.getElementById('drop-zone').classList.remove('drag-over');if(e.dataTransfer.files.length)processFiles(e.dataTransfer.files);}
 function attachDocs(input){if(input.files&&input.files.length)processFiles(input.files);input.value='';}
-
-function processFiles(files) {
+function processFiles(files){
     ensureDefaults(loans[activeLoanIndex]);let processed=0;const total=files.length;
     Array.from(files).forEach(file=>{
         const reader=new FileReader();
@@ -1256,89 +1253,81 @@ function processFiles(files) {
         reader.readAsDataURL(file);
     });
 }
-
 function getFileIcon(type,name){if(type.startsWith('image/'))return'🖼️';if(type==='application/pdf')return'📄';if(type.includes('word')||name.endsWith('.doc')||name.endsWith('.docx'))return'📝';if(type.includes('excel')||name.endsWith('.xls')||name.endsWith('.xlsx'))return'📊';return'📎';}
 function formatSize(bytes){if(!bytes)return'';if(bytes<1024)return bytes+' B';if(bytes<1048576)return(bytes/1024).toFixed(1)+' KB';return(bytes/1048576).toFixed(1)+' MB';}
-
-function renderAttachments() {
+function renderAttachments(){
     if(activeLoanIndex===null)return;
     ensureDefaults(loans[activeLoanIndex]);
-    const grid=document.getElementById('attachment-grid'); const noAtt=document.getElementById('no-attachments'); const docs=loans[activeLoanIndex].documents;
+    const grid=document.getElementById('attachment-grid');const noAtt=document.getElementById('no-attachments');const docs=loans[activeLoanIndex].documents;
     grid.innerHTML='';
-    if(docs.length===0){noAtt.classList.remove('hidden');return;} noAtt.classList.add('hidden');
+    if(docs.length===0){noAtt.classList.remove('hidden');return;}noAtt.classList.add('hidden');
     docs.forEach((doc,idx)=>{
-        const isImage=doc.type&&doc.type.startsWith('image/');
-        const icon=getFileIcon(doc.type||'',doc.name);
+        const isImage=doc.type&&doc.type.startsWith('image/');const icon=getFileIcon(doc.type||'',doc.name);
         grid.innerHTML+=`<div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">${isImage?`<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')"><img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"></div>`:`<div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2"><span class="text-4xl">${icon}</span><span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center">${doc.type||'File'}</span></div>`}<div class="p-3"><p class="text-[10px] font-bold text-slate-300 truncate mb-1">${doc.name}</p><div class="flex items-center justify-between"><span class="text-[8px] text-slate-600">${formatSize(doc.size)}${doc.addedDate?' · '+doc.addedDate:''}</span><div class="flex gap-2"><a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400"><i data-lucide="download" class="w-3 h-3"></i></a><button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400"><i data-lucide="trash-2" class="w-3 h-3"></i></button></div></div></div></div>`;
     });
     initIcons();
 }
-
 function previewImage(src){document.getElementById('preview-img').src=src;openModal('image-preview-modal');}
 function removeDoc(idx){if(!confirm('Remove?'))return;loans[activeLoanIndex].documents.splice(idx,1);updateAttachmentBadge();renderAttachments();persistAll();}
 
 // ============================================================
 // STATS & CHARTS
 // ============================================================
-function updateStats() {
-    const principal=loans.reduce((s,l)=>s+l.amount,0); const collected=loans.reduce((s,l)=>s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0); const totalInt=loans.reduce((s,l)=>s+Math.round((l.amount*(l.interest/100))*l.period),0); const outstanding=principal+totalInt-collected;
-    document.getElementById('total-clients').innerText=getActiveClients().length;
-    document.getElementById('total-loaned').innerText=`Rs. ${principal.toLocaleString()}`;
-    document.getElementById('total-collected').innerText=`Rs. ${collected.toLocaleString()}`;
-    document.getElementById('total-outstanding').innerText=`Rs. ${outstanding.toLocaleString()}`;
-    document.getElementById('total-interest').innerText=`Rs. ${totalInt.toLocaleString()}`;
+function refreshUI(){
+    const activeLoans=loans.filter(l=>!isLoanPaid(l));
+    const activeClients=getActiveClients().length;
+    let totalLoaned=0,totalCollected=0,totalOutstanding=0,totalInterest=0;
+    loans.forEach(loan=>{
+        const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);
+        const total=loan.amount+interest; const paid=(loan.payments||[]).reduce((s,p)=>s+p.amount,0);
+        totalLoaned+=loan.amount; totalCollected+=paid; totalOutstanding+=Math.max(0,total-paid); totalInterest+=interest;
+    });
+    document.getElementById('total-clients').textContent=activeClients;
+    document.getElementById('total-loaned').textContent='Rs. '+totalLoaned.toLocaleString();
+    document.getElementById('total-collected').textContent='Rs. '+totalCollected.toLocaleString();
+    document.getElementById('total-outstanding').textContent='Rs. '+totalOutstanding.toLocaleString();
+    document.getElementById('total-interest').textContent='Rs. '+totalInterest.toLocaleString();
+    renderDashboard();
+    renderOverviewCharts(totalCollected,totalOutstanding,totalLoaned);
 }
 
-function initCharts() {
-    const co={responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#64748b',font:{size:9}}}}};
-    recoveryChart  =new Chart(document.getElementById('recoveryPieChart'),{type:'doughnut',data:{labels:['Paid','Due'],datasets:[{data:[0,1],backgroundColor:['#10b981','#f43f5e'],borderWidth:0}]},options:{...co,cutout:'75%'}});
-    growthChart    =new Chart(document.getElementById('growthLineChart'),{type:'line',data:{labels:[],datasets:[{label:'Loans',data:[],borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.05)',fill:true,tension:0.4}]},options:{...co,scales:{y:{display:false},x:{grid:{display:false},ticks:{color:'#475569',font:{size:8}}}},plugins:{legend:{display:false}}}});
-    comparisonChart=new Chart(document.getElementById('comparisonBarChart'),{type:'bar',data:{labels:['Prin.','Paid','Int.'],datasets:[{data:[0,0,0],backgroundColor:['#3b82f6','#10b981','#f59e0b'],borderRadius:4}]},options:{...co,scales:{y:{display:false},x:{grid:{display:false},ticks:{color:'#475569',font:{size:9}}}},plugins:{legend:{display:false}}}});
-}
-
-function updateCharts() {
-    const principal=loans.reduce((s,l)=>s+l.amount,0); const collected=loans.reduce((s,l)=>s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0); const totalInt=loans.reduce((s,l)=>s+Math.round((l.amount*(l.interest/100))*l.period),0); const outstanding=principal+totalInt-collected;
-    recoveryChart.data.datasets[0].data=[collected,outstanding>0?outstanding:0]; recoveryChart.update();
-    comparisonChart.data.datasets[0].data=[principal,collected,totalInt]; comparisonChart.update();
-    const monthlyData={}; loans.forEach(l=>{const m=l.date.substring(0,7);monthlyData[m]=(monthlyData[m]||0)+l.amount;});
-    const sortedMonths=Object.keys(monthlyData).sort();
-    growthChart.data.labels=sortedMonths.map(m=>m.split('-')[1]); growthChart.data.datasets[0].data=sortedMonths.map(m=>monthlyData[m]); growthChart.update();
-}
-
-function refreshUI() { renderDashboard(); updateStats(); updateCharts(); }
-
-// ============================================================
-// MAIN — init
-// ============================================================
-window.onload = async () => {
-    initCharts();
-    prefillSetupModal(); // sets URI displays
-
-    const isCallback = await handleOAuthCallback();
-
-    loadFromLocalStorage();
-    loans.forEach(ensureDefaults);
-    refreshUI();
-
-    if (isCallback && isDropboxConnected()) {
-        const ok = await loadFromDropbox();
-        if (ok) { loans.forEach(ensureDefaults); refreshUI(); }
-        setTimeout(()=>{ showConnectedView(); openModal('dropbox-setup-modal'); },400);
-    } else if (isDropboxConnected()) {
-        setSyncStatus('loading','Syncing...');
-        const ok = await loadFromDropbox();
-        if (ok) { loans.forEach(ensureDefaults); refreshUI(); }
-    } else {
-        setSyncStatus('error','Not connected — click ⚙️');
-        if (loans.length===0) {
-            setTimeout(()=>{ prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal'); },600);
-        } else {
-            showToast('⚡ Local data loaded. Click ⚙️ to connect Dropbox.','blue');
-        }
+function renderOverviewCharts(collected,outstanding,totalLoaned){
+    if(recoveryChart){recoveryChart.destroy();recoveryChart=null;}
+    if(growthChart){growthChart.destroy();growthChart=null;}
+    if(comparisonChart){comparisonChart.destroy();comparisonChart=null;}
+    const pieCtx=document.getElementById('recoveryPieChart');
+    if(pieCtx) recoveryChart=new Chart(pieCtx,{type:'doughnut',data:{labels:['Collected','Outstanding'],datasets:[{data:[collected||0.001,outstanding||0.001],backgroundColor:['rgba(16,185,129,0.8)','rgba(244,63,94,0.8)'],borderWidth:0,hoverOffset:8}]},options:{responsive:true,maintainAspectRatio:false,cutout:'65%',plugins:{legend:{position:'bottom',labels:{color:'#64748b',font:{size:9},boxWidth:10,padding:12}},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}}}});
+    const lineCtx2=document.getElementById('growthLineChart');
+    if(lineCtx2){
+        const sorted=[...loans].sort((a,b)=>new Date(a.date)-new Date(b.date));
+        const labels=sorted.map(l=>l.date.substring(5));
+        let running=0;const cumData=sorted.map(l=>{running+=l.amount;return running;});
+        growthChart=new Chart(lineCtx2,{type:'line',data:{labels,datasets:[{label:'Loan Volume',data:cumData,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.1)',fill:true,tension:0.4,pointRadius:3,pointBackgroundColor:'#3b82f6',borderWidth:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#475569',font:{size:7},maxTicksLimit:5}}}}});
     }
+    const barCtx2=document.getElementById('comparisonBarChart');
+    if(barCtx2){
+        const groups=getActiveClients();
+        const labels=groups.slice(0,8).map(g=>g.displayName.split(' ')[0]);
+        const data=groups.slice(0,8).map(g=>{const totalPaid=g.loans.reduce((s,l)=>{const interest=Math.round((l.amount*(l.interest/100))*l.period);const total=l.amount+interest;const paid=(l.payments||[]).reduce((ps,p)=>ps+p.amount,0);return s+paid;},0);return totalPaid;});
+        comparisonChart=new Chart(barCtx2,{type:'bar',data:{labels,datasets:[{label:'Collected',data,backgroundColor:'rgba(99,102,241,0.7)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#475569',font:{size:7}}}}}});
+    }
+}
 
-    initIcons();
-};
+// ============================================================
+// INIT
+// ============================================================
+async function init(){
+    lucide.createIcons();
+    const hasOAuthCallback = await handleOAuthCallback();
+    if (!hasOAuthCallback) {
+        await loadFromDropbox();
+    }
+    refreshUI();
+}
+
+// Init runs after PIN unlock - we start loading in background
+// but show data only after unlock
+init();
 </script>
 </body>
 </html>
