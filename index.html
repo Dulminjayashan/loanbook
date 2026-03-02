@@ -134,8 +134,109 @@
         }
 
         /* =============================================
-           EXPORT MODAL
+           THEME SYSTEM
         ============================================= */
+        :root {
+            --theme-bg1: #020617;
+            --theme-bg2: #0f172a;
+            --theme-accent: #3b82f6;
+            --theme-accent2: #6366f1;
+            --theme-text: #f8fafc;
+            --theme-subtext: #64748b;
+            --theme-card: rgba(15,23,42,0.4);
+            --theme-border: rgba(255,255,255,0.05);
+            --theme-transition: 3s;
+        }
+        body {
+            background-color: var(--theme-bg1) !important;
+            color: var(--theme-text) !important;
+            transition: background-color var(--theme-transition) ease, color var(--theme-transition) ease;
+        }
+
+        /* Light theme overrides */
+        body.theme-light {
+            --theme-bg1: #f0f4ff;
+            --theme-bg2: #e2e8f0;
+            --theme-accent: #2563eb;
+            --theme-accent2: #4f46e5;
+            --theme-text: #0f172a;
+            --theme-subtext: #475569;
+            --theme-card: rgba(255,255,255,0.7);
+            --theme-border: rgba(0,0,0,0.08);
+        }
+        body.theme-light { background-color: var(--theme-bg1) !important; color: var(--theme-text) !important; }
+        body.theme-light .glass-card { background: rgba(255,255,255,0.75) !important; border-color: rgba(0,0,0,0.08) !important; }
+        body.theme-light .neo-input { background: rgba(241,245,249,0.9) !important; border-color: rgba(0,0,0,0.15) !important; color: #0f172a !important; }
+        body.theme-light table thead { background: rgba(241,245,249,0.8) !important; }
+        body.theme-light .text-slate-500 { color: #475569 !important; }
+        body.theme-light .text-slate-400 { color: #334155 !important; }
+        body.theme-light .divide-slate-800\/40 > tr { border-color: rgba(0,0,0,0.06) !important; }
+        body.theme-light tr:hover { background: rgba(0,0,0,0.02) !important; }
+        body.theme-light .bg-slate-900\/50, body.theme-light .bg-slate-900\/60 { background: rgba(248,250,252,0.8) !important; }
+        body.theme-light .border-slate-800 { border-color: rgba(0,0,0,0.08) !important; }
+        body.theme-light .bg-slate-950 { background: rgba(241,245,249,0.9) !important; }
+        body.theme-light #loan-table-body tr { color: #0f172a; }
+        body.theme-light .text-white { color: #0f172a !important; }
+        body.theme-light header { border-color: rgba(0,0,0,0.1) !important; }
+        body.theme-light .sidebar-sticky .glass-card { background: rgba(255,255,255,0.8) !important; }
+
+        /* Time theme atmospheric background */
+        #atmosphere-canvas {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            z-index: 0; pointer-events: none;
+            transition: opacity 2s ease;
+        }
+        body:not(.theme-time) #atmosphere-canvas { opacity: 0; }
+        body.theme-time #atmosphere-canvas { opacity: 1; }
+        body.theme-time .glass-card {
+            background: rgba(0,0,0,0.25) !important;
+            backdrop-filter: blur(16px);
+            border-color: rgba(255,255,255,0.08) !important;
+        }
+        body.theme-time { background-image: none !important; }
+
+        /* Ensure content above canvas */
+        body > div:not(#atmosphere-canvas), body > header { position: relative; z-index: 1; }
+        .max-w-\[1600px\] { position: relative; z-index: 1; }
+        #main-app > *:not(#atmosphere-canvas) { position: relative; z-index: 1; }
+
+        /* DateTime widget */
+        #datetime-widget {
+            display: flex; flex-direction: column; align-items: flex-end;
+            transition: all 0.5s ease;
+        }
+        #clock-display {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.6rem; font-weight: 700; line-height: 1;
+            letter-spacing: 0.05em;
+            transition: color 3s ease;
+        }
+        #date-display { font-size: 0.65rem; font-weight: 600; letter-spacing: 0.08em; margin-top: 2px; opacity: 0.7; }
+        #period-badge {
+            font-size: 0.55rem; font-weight: 800; letter-spacing: 0.15em;
+            padding: 2px 8px; border-radius: 99px; margin-top: 4px;
+            transition: background 3s ease, color 3s ease;
+        }
+
+        /* Theme switcher buttons */
+        .theme-btn {
+            padding: 6px 12px; border-radius: 8px; font-size: 10px; font-weight: 700;
+            cursor: pointer; border: 1px solid rgba(255,255,255,0.1); transition: all 0.2s;
+            display: flex; align-items: center; gap: 5px;
+        }
+        .theme-btn:hover { border-color: rgba(255,255,255,0.3); }
+        .theme-btn.active { border-color: rgba(99,102,241,0.6); background: rgba(99,102,241,0.2); color: #a5b4fc; }
+        body.theme-light .theme-btn { border-color: rgba(0,0,0,0.15); color: #334155; }
+        body.theme-light .theme-btn.active { background: rgba(79,70,229,0.1); border-color: rgba(79,70,229,0.5); color: #4338ca; }
+
+        @keyframes twinkle { 0%,100%{opacity:0.3;transform:scale(0.8);}50%{opacity:1;transform:scale(1.2);} }
+        @keyframes drift  { 0%,100%{transform:translateX(0) translateY(0);}50%{transform:translateX(15px) translateY(-8px);} }
+        @keyframes float  { 0%,100%{transform:translateY(0);}50%{transform:translateY(-12px);} }
+        @keyframes birdFly { 0%{transform:translateX(-60px) translateY(0);}100%{transform:translateX(110vw) translateY(-40px);} }
+        @keyframes sunRise { 0%{transform:translateY(60px);opacity:0;}100%{transform:translateY(0);opacity:1;} }
+        @keyframes moonGlow { 0%,100%{box-shadow:0 0 30px 10px rgba(180,200,255,0.2);}50%{box-shadow:0 0 60px 20px rgba(180,200,255,0.4);} }
+        @keyframes cloudDrift { 0%{transform:translateX(-120px);}100%{transform:translateX(110vw);} }
+        @keyframes shootingStar { 0%{opacity:1;transform:translateX(0) translateY(0);}100%{opacity:0;transform:translateX(-200px) translateY(200px);} }
         .client-check-item {
             display: flex; align-items: center; gap: 10px;
             padding: 8px 12px; border-radius: 8px; cursor: pointer;
@@ -303,6 +404,9 @@
 <!-- ===== MAIN APP (hidden until PIN unlocked) ===== -->
 <div id="main-app" class="hidden">
 
+<!-- Atmosphere Canvas for Time Theme -->
+<canvas id="atmosphere-canvas"></canvas>
+
 <!-- Unsaved Changes Banner -->
 <div id="unsaved-banner">
     <div class="glass-card border border-amber-500/30 p-3 flex items-center gap-3 shadow-2xl">
@@ -409,18 +513,35 @@
 </div>
 
 <div class="max-w-[1600px] mx-auto">
-    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-6 border-b border-slate-800 pb-6">
-        <div>
-            <h1 class="text-2xl font-bold tracking-tight text-white mb-1">LOAN TRACKER <span class="text-blue-500">PRO</span></h1>
-            <p class="text-slate-500 text-xs font-medium flex items-center gap-2">
+    <header class="flex flex-col md:flex-row justify-between items-start mb-8 gap-4 border-b border-slate-800 pb-6" id="main-header" style="border-color: var(--theme-border, rgba(51,65,85,0.5))">
+        <!-- Left: Title + sync -->
+        <div class="flex-1">
+            <h1 class="text-2xl font-bold tracking-tight mb-1" style="color: var(--theme-text, #f8fafc)">LOAN TRACKER <span style="color: var(--theme-accent, #3b82f6)">PRO</span></h1>
+            <p class="text-xs font-medium flex items-center gap-2" style="color: var(--theme-subtext, #64748b)">
                 ණය කළමනාකරණ පද්ධතිය
                 <span id="sync-status" class="flex items-center gap-1 ml-2">
                     <span class="sync-dot loading" id="sync-dot"></span>
                     <span id="sync-label" class="text-[10px] font-bold text-blue-400">Connecting...</span>
                 </span>
             </p>
+            <!-- Theme switcher -->
+            <div class="flex items-center gap-2 mt-3">
+                <span class="text-[9px] font-bold uppercase" style="color:var(--theme-subtext,#475569)">Theme:</span>
+                <button class="theme-btn active" id="theme-btn-dark" onclick="setTheme('dark')">🌑 Dark</button>
+                <button class="theme-btn" id="theme-btn-light" onclick="setTheme('light')">☀️ Light</button>
+                <button class="theme-btn" id="theme-btn-time" onclick="setTheme('time')">🕐 Time</button>
+            </div>
         </div>
-        <div class="flex flex-wrap gap-2">
+
+        <!-- Center: DateTime -->
+        <div id="datetime-widget" class="text-right self-start mt-1">
+            <div id="clock-display" style="color: var(--theme-accent, #3b82f6)">00:00:00</div>
+            <div id="date-display" style="color: var(--theme-subtext, #64748b)">Loading...</div>
+            <div id="period-badge" class="bg-blue-500/20 text-blue-400">🌤 DAYTIME</div>
+        </div>
+
+        <!-- Right: Action buttons -->
+        <div class="flex flex-wrap gap-2 self-start">
             <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
                 <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN
             </button>
@@ -2036,6 +2157,416 @@ function generateClientPDF(group, includePayments) {
 }
 
 // ============================================================
+// THEME SYSTEM — Dark / Light / Time
+// ============================================================
+let currentTheme = localStorage.getItem('loanTrackerTheme') || 'dark';
+let atmosphereRAF = null;
+let clockInterval = null;
+
+const THEMES = {
+    morning:  { hour: [5,11],  label: '🌅 MORNING',  accent: '#f97316', accent2: '#fb923c', clockColor: '#fdba74', badge: 'bg-orange-500/20 text-orange-300', bodyBg: 'linear-gradient(180deg,#1a0a00 0%,#7c2d12 40%,#ea580c 100%)' },
+    daytime:  { hour: [11,16], label: '☀️ DAYTIME',  accent: '#3b82f6', accent2: '#06b6d4', clockColor: '#7dd3fc', badge: 'bg-sky-500/20 text-sky-300',    bodyBg: 'linear-gradient(180deg,#0c4a6e 0%,#0369a1 50%,#38bdf8 100%)' },
+    evening:  { hour: [16,20], label: '🌇 EVENING',  accent: '#e879f9', accent2: '#f43f5e', clockColor: '#f0abfc', badge: 'bg-pink-500/20 text-pink-300',  bodyBg: 'linear-gradient(180deg,#0f0a1a 0%,#4a044e 30%,#c2410c 70%,#f97316 100%)' },
+    night:    { hour: [20,5],  label: '🌙 NIGHT',    accent: '#818cf8', accent2: '#6366f1', clockColor: '#c7d2fe', badge: 'bg-indigo-500/20 text-indigo-200', bodyBg: 'linear-gradient(180deg,#020617 0%,#0f0720 60%,#1e0a3c 100%)' }
+};
+
+function getSLTime() {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' }));
+}
+
+function getTimePeriod(h) {
+    if (h >= 5 && h < 11) return 'morning';
+    if (h >= 11 && h < 16) return 'daytime';
+    if (h >= 16 && h < 20) return 'evening';
+    return 'night';
+}
+
+function setTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem('loanTrackerTheme', theme);
+    ['dark','light','time'].forEach(t => {
+        document.getElementById(`theme-btn-${t}`)?.classList.toggle('active', t === theme);
+    });
+    document.body.classList.remove('theme-dark','theme-light','theme-time');
+    document.body.classList.add(`theme-${theme}`);
+
+    if (theme === 'time') {
+        startAtmosphere();
+    } else {
+        stopAtmosphere();
+        const canvas = document.getElementById('atmosphere-canvas');
+        if (canvas) { const ctx = canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height); }
+        document.body.style.backgroundImage = '';
+        // Reset CSS vars to dark or light defaults
+        if (theme === 'dark') applyThemeVars({ accent:'#3b82f6', accent2:'#6366f1', clockColor:'#3b82f6' });
+        else applyThemeVars({ accent:'#2563eb', accent2:'#4f46e5', clockColor:'#2563eb' });
+    }
+}
+
+function applyThemeVars({ accent, accent2, clockColor }) {
+    document.documentElement.style.setProperty('--theme-accent', accent);
+    document.documentElement.style.setProperty('--theme-accent2', accent2);
+    const cd = document.getElementById('clock-display');
+    if (cd) cd.style.color = clockColor;
+}
+
+// ── DateTime Clock ────────────────────────────────────────────
+function startClock() {
+    updateClock();
+    clockInterval = setInterval(updateClock, 1000);
+}
+
+function updateClock() {
+    const now = getSLTime();
+    const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+    const hh = String(h).padStart(2,'0'), mm = String(m).padStart(2,'0'), ss = String(s).padStart(2,'0');
+
+    const clockEl = document.getElementById('clock-display');
+    const dateEl  = document.getElementById('date-display');
+    const badge   = document.getElementById('period-badge');
+    if (!clockEl) return;
+
+    clockEl.textContent = `${hh}:${mm}:${ss}`;
+
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    dateEl.textContent = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()} · SLST`;
+
+    const period = getTimePeriod(h);
+    const t = THEMES[period];
+    badge.className = `text-[9px] font-bold px-3 py-1 rounded-full mt-1 inline-block ${t.badge}`;
+    badge.textContent = t.label;
+
+    // If time theme active, update colors smoothly
+    if (currentTheme === 'time') {
+        clockEl.style.color = t.clockColor;
+        applyThemeVars({ accent: t.accent, accent2: t.accent2, clockColor: t.clockColor });
+    }
+}
+
+// ── Atmosphere Canvas Engine ──────────────────────────────────
+let particles = [], birds = [], clouds = [], shootingStars = [];
+let atmospherePeriod = '';
+
+function startAtmosphere() {
+    const canvas = document.getElementById('atmosphere-canvas');
+    if (!canvas) return;
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    particles = []; birds = []; clouds = []; shootingStars = [];
+    const h = getSLTime().getHours();
+    atmospherePeriod = getTimePeriod(h);
+    initParticles();
+    if (atmosphereRAF) cancelAnimationFrame(atmosphereRAF);
+    drawAtmosphere();
+}
+
+function stopAtmosphere() {
+    if (atmosphereRAF) { cancelAnimationFrame(atmosphereRAF); atmosphereRAF = null; }
+}
+
+function initParticles() {
+    const W = window.innerWidth, H = window.innerHeight;
+    particles = []; birds = []; clouds = []; shootingStars = [];
+    const period = atmospherePeriod;
+
+    if (period === 'night') {
+        // Stars
+        for (let i = 0; i < 220; i++) {
+            particles.push({ x: Math.random()*W, y: Math.random()*H*0.85, r: Math.random()*1.8+0.3,
+                twinkleSpeed: Math.random()*0.04+0.01, twinkleOffset: Math.random()*Math.PI*2,
+                type: 'star', color: `hsl(${210+Math.random()*60},${40+Math.random()*40}%,${75+Math.random()*25}%)` });
+        }
+        // Moon
+        particles.push({ x: W*0.78, y: H*0.15, r: 55, type: 'moon', glow: 0 });
+        // Shooting stars occasionally
+        for (let i = 0; i < 3; i++) {
+            shootingStars.push({ x: Math.random()*W*0.7+W*0.2, y: Math.random()*H*0.4,
+                life: 0, maxLife: 60+Math.random()*80, delay: Math.random()*300, active: false });
+        }
+    }
+    else if (period === 'morning') {
+        // Sunrise glow particles
+        for (let i = 0; i < 80; i++) {
+            particles.push({ x: Math.random()*W, y: H*0.6+Math.random()*H*0.4,
+                r: Math.random()*3+1, vy: -(Math.random()*0.4+0.1), alpha: Math.random()*0.4+0.1,
+                type: 'glow', color: `hsl(${20+Math.random()*40},90%,${60+Math.random()*30}%)` });
+        }
+        // Sun
+        particles.push({ x: W*0.5, y: H*0.72, r: 70, type: 'sun', glow: 0 });
+        // Birds
+        for (let i = 0; i < 8; i++) {
+            birds.push({ x: -60-Math.random()*200, y: H*0.2+Math.random()*H*0.25,
+                speed: 1.2+Math.random()*1.5, wingPhase: Math.random()*Math.PI*2,
+                wingSpeed: 0.12+Math.random()*0.08, size: 0.6+Math.random()*0.8,
+                delay: Math.random()*400 });
+        }
+        // Clouds
+        for (let i = 0; i < 5; i++) {
+            clouds.push({ x: Math.random()*W, y: H*0.15+Math.random()*H*0.2,
+                speed: 0.15+Math.random()*0.2, w: 80+Math.random()*120, h: 30+Math.random()*30,
+                alpha: 0.5+Math.random()*0.3 });
+        }
+    }
+    else if (period === 'daytime') {
+        // Bright sky clouds
+        for (let i = 0; i < 7; i++) {
+            clouds.push({ x: Math.random()*W, y: H*0.05+Math.random()*H*0.3,
+                speed: 0.1+Math.random()*0.2, w: 100+Math.random()*160, h: 40+Math.random()*40,
+                alpha: 0.45+Math.random()*0.35 });
+        }
+        // Sun high up
+        particles.push({ x: W*0.82, y: H*0.08, r: 60, type: 'sun', glow: 0, bright: true });
+        // Birds
+        for (let i = 0; i < 6; i++) {
+            birds.push({ x: -80-Math.random()*300, y: H*0.1+Math.random()*H*0.3,
+                speed: 0.9+Math.random()*1.2, wingPhase: Math.random()*Math.PI*2,
+                wingSpeed: 0.1+Math.random()*0.07, size: 0.5+Math.random()*0.7,
+                delay: Math.random()*600 });
+        }
+        // Light shimmer particles
+        for (let i = 0; i < 40; i++) {
+            particles.push({ x: Math.random()*W, y: Math.random()*H,
+                r: Math.random()*2+0.5, alpha: Math.random()*0.25,
+                vx: (Math.random()-0.5)*0.3, vy: -(Math.random()*0.2+0.05),
+                type: 'shimmer', color: 'rgba(255,255,255,0.6)' });
+        }
+    }
+    else if (period === 'evening') {
+        // Deep gradient particles (fireflies / embers)
+        for (let i = 0; i < 60; i++) {
+            particles.push({ x: Math.random()*W, y: H*0.4+Math.random()*H*0.6,
+                r: Math.random()*2.5+0.8, vy: -(Math.random()*0.5+0.1),
+                vx: (Math.random()-0.5)*0.5, alpha: Math.random()*0.7+0.2, life: Math.random()*200,
+                type: 'ember', color: `hsl(${10+Math.random()*40},100%,${55+Math.random()*30}%)` });
+        }
+        // Setting sun low on horizon
+        particles.push({ x: W*0.15, y: H*0.78, r: 65, type: 'sun', glow: 0, evening: true });
+        // Horizon glow
+        for (let i = 0; i < 30; i++) {
+            particles.push({ x: Math.random()*W, y: H*0.7+Math.random()*H*0.15,
+                r: Math.random()*60+30, alpha: 0.04+Math.random()*0.06, type: 'horizon',
+                color: `hsl(${15+Math.random()*30},100%,60%)` });
+        }
+        // Birds flying home (silhouettes)
+        for (let i = 0; i < 5; i++) {
+            birds.push({ x: -80-Math.random()*200, y: H*0.35+Math.random()*H*0.2,
+                speed: 1.0+Math.random()*0.8, wingPhase: Math.random()*Math.PI*2,
+                wingSpeed: 0.09+Math.random()*0.06, size: 0.7+Math.random()*0.8,
+                delay: Math.random()*500, silhouette: true });
+        }
+    }
+}
+
+function drawAtmosphere() {
+    const canvas = document.getElementById('atmosphere-canvas');
+    if (!canvas || currentTheme !== 'time') return;
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+    const period = atmospherePeriod;
+    const t = THEMES[period];
+    const now = performance.now() / 1000;
+
+    ctx.clearRect(0, 0, W, H);
+
+    // ── Draw sky gradient ──
+    const grad = ctx.createLinearGradient(0, 0, 0, H);
+    const gradients = {
+        night:   [['#000008',0],['#06001a',0.4],['#0f0728',0.7],['#1a0a30',1]],
+        morning: [['#0d0510',0],['#6b21a8',0.25],['#be185d',0.5],['#ea580c',0.75],['#fbbf24',1]],
+        daytime: [['#0c4a6e',0],['#075985',0.3],['#0284c7',0.6],['#38bdf8',0.85],['#7dd3fc',1]],
+        evening: [['#04000f',0],['#3b0764',0.2],['#7c3aed',0.4],['#c2410c',0.65],['#f97316',0.85],['#fcd34d',1]],
+    };
+    (gradients[period]||gradients.night).forEach(([c,s])=>grad.addColorStop(s,c));
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+
+    // ── Draw horizon haze ──
+    if (period === 'morning' || period === 'evening') {
+        const hg = ctx.createRadialGradient(period==='morning'?W*0.5:W*0.15, H*0.75, 10,
+            period==='morning'?W*0.5:W*0.15, H*0.75, H*0.5);
+        hg.addColorStop(0, period==='morning'?'rgba(251,146,60,0.45)':'rgba(249,115,22,0.5)');
+        hg.addColorStop(1, 'transparent');
+        ctx.fillStyle = hg;
+        ctx.fillRect(0, 0, W, H);
+    }
+
+    // ── Draw particles ──
+    particles.forEach(p => {
+        if (p.type === 'star') {
+            const brightness = 0.5 + 0.5 * Math.sin(now * p.twinkleSpeed * 6 + p.twinkleOffset);
+            ctx.beginPath();
+            ctx.arc(p.x, p.y, p.r * (0.7 + 0.3 * brightness), 0, Math.PI*2);
+            ctx.fillStyle = p.color;
+            ctx.globalAlpha = 0.4 + 0.6 * brightness;
+            // Occasional sparkle cross
+            if (p.r > 1.4) {
+                ctx.shadowBlur = 6; ctx.shadowColor = p.color;
+            }
+            ctx.fill();
+            ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+        }
+        else if (p.type === 'moon') {
+            // Moon glow aura
+            const glow = ctx.createRadialGradient(p.x, p.y, p.r*0.5, p.x, p.y, p.r*2.5);
+            glow.addColorStop(0, 'rgba(200,220,255,0.15)');
+            glow.addColorStop(1, 'transparent');
+            ctx.fillStyle = glow; ctx.fillRect(0,0,W,H);
+            // Moon body
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            const moonGrad = ctx.createRadialGradient(p.x-p.r*0.3, p.y-p.r*0.3, p.r*0.1, p.x, p.y, p.r);
+            moonGrad.addColorStop(0,'#fffde0'); moonGrad.addColorStop(0.5,'#e2e8ff'); moonGrad.addColorStop(1,'#b8c4e8');
+            ctx.fillStyle = moonGrad; ctx.fill();
+            // Craters
+            [[p.x+p.r*0.2,p.y-p.r*0.1,p.r*0.12],[p.x-p.r*0.3,p.y+p.r*0.25,p.r*0.08],[p.x+p.r*0.05,p.y+p.r*0.35,p.r*0.07]].forEach(([cx,cy,cr]) => {
+                ctx.beginPath(); ctx.arc(cx,cy,cr,0,Math.PI*2);
+                ctx.fillStyle='rgba(160,170,210,0.35)'; ctx.fill();
+            });
+            // Animate glow pulse
+            p.glow = (p.glow + 0.01) % (Math.PI*2);
+        }
+        else if (p.type === 'sun') {
+            const sunR = p.r;
+            // Outer corona rays
+            const rayCount = 12;
+            for (let i = 0; i < rayCount; i++) {
+                const angle = (i / rayCount) * Math.PI * 2 + now * 0.2;
+                const rayLen = sunR * (1.3 + 0.2 * Math.sin(now * 0.5 + i));
+                ctx.beginPath();
+                ctx.moveTo(p.x + Math.cos(angle) * sunR * 0.9, p.y + Math.sin(angle) * sunR * 0.9);
+                ctx.lineTo(p.x + Math.cos(angle) * rayLen, p.y + Math.sin(angle) * rayLen);
+                ctx.strokeStyle = p.evening ? 'rgba(251,146,60,0.25)' : p.bright ? 'rgba(253,224,71,0.3)' : 'rgba(252,211,77,0.4)';
+                ctx.lineWidth = 2; ctx.stroke();
+            }
+            // Glow halo
+            const halo = ctx.createRadialGradient(p.x, p.y, sunR*0.3, p.x, p.y, sunR*2);
+            halo.addColorStop(0, p.evening?'rgba(239,68,68,0.3)':p.bright?'rgba(250,204,21,0.25)':'rgba(251,146,60,0.35)');
+            halo.addColorStop(1, 'transparent');
+            ctx.fillStyle = halo; ctx.fillRect(0,0,W,H);
+            // Sun disc
+            ctx.beginPath(); ctx.arc(p.x, p.y, sunR, 0, Math.PI*2);
+            const sunGrad = ctx.createRadialGradient(p.x-sunR*0.2,p.y-sunR*0.2,sunR*0.05,p.x,p.y,sunR);
+            if (p.evening) { sunGrad.addColorStop(0,'#fde68a'); sunGrad.addColorStop(0.5,'#f97316'); sunGrad.addColorStop(1,'#dc2626'); }
+            else if (p.bright) { sunGrad.addColorStop(0,'#fffbeb'); sunGrad.addColorStop(0.5,'#fde047'); sunGrad.addColorStop(1,'#facc15'); }
+            else { sunGrad.addColorStop(0,'#fff7ed'); sunGrad.addColorStop(0.5,'#fb923c'); sunGrad.addColorStop(1,'#ea580c'); }
+            ctx.fillStyle = sunGrad; ctx.fill();
+        }
+        else if (p.type === 'glow') {
+            p.y += p.vy; if (p.y < 0) { p.y = H; p.x = Math.random()*W; }
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha * (0.5+0.5*Math.sin(now*0.8+p.x));
+            ctx.fill(); ctx.globalAlpha = 1;
+        }
+        else if (p.type === 'shimmer') {
+            p.x += p.vx; p.y += p.vy;
+            if (p.y < 0) { p.y = H; p.x = Math.random()*W; }
+            if (p.x < 0||p.x > W) p.x = Math.random()*W;
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha * (0.4+0.6*Math.sin(now+p.x*0.01));
+            ctx.fill(); ctx.globalAlpha = 1;
+        }
+        else if (p.type === 'ember') {
+            p.x += p.vx; p.y += p.vy; p.life++;
+            if (p.life > 250 || p.y < H*0.3) { p.y = H; p.x = Math.random()*W; p.life=0; p.alpha=Math.random()*0.7+0.2; }
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha * (1 - p.life/250);
+            ctx.shadowBlur = 6; ctx.shadowColor = p.color;
+            ctx.fill(); ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+        }
+        else if (p.type === 'horizon') {
+            ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+            ctx.fillStyle = p.color; ctx.globalAlpha = p.alpha;
+            ctx.fill(); ctx.globalAlpha = 1;
+        }
+    });
+
+    // ── Shooting stars (night) ──
+    if (period === 'night') {
+        shootingStars.forEach(ss => {
+            ss.delay--;
+            if (ss.delay > 0) return;
+            if (!ss.active) { ss.active = true; ss.life = 0; ss.x = Math.random()*W*0.6+W*0.2; ss.y = Math.random()*H*0.35; }
+            ss.life++;
+            if (ss.life >= ss.maxLife) { ss.active = false; ss.delay = 200+Math.random()*400; return; }
+            const progress = ss.life / ss.maxLife;
+            const tx = ss.x - progress * 250;
+            const ty = ss.y + progress * 130;
+            const grad2 = ctx.createLinearGradient(ss.x, ss.y, tx, ty);
+            grad2.addColorStop(0, 'transparent');
+            grad2.addColorStop(0.7, 'rgba(255,255,255,0.15)');
+            grad2.addColorStop(1, 'rgba(255,255,255,0.9)');
+            ctx.beginPath(); ctx.moveTo(ss.x, ss.y); ctx.lineTo(tx, ty);
+            ctx.strokeStyle = grad2; ctx.lineWidth = 1.5;
+            ctx.globalAlpha = 1 - progress;
+            ctx.stroke(); ctx.globalAlpha = 1;
+        });
+    }
+
+    // ── Clouds ──
+    clouds.forEach(cl => {
+        cl.x += cl.speed;
+        if (cl.x > W + cl.w * 1.5) cl.x = -cl.w * 1.5;
+        drawCloud(ctx, cl.x, cl.y, cl.w, cl.h, cl.alpha, period);
+    });
+
+    // ── Birds ──
+    birds.forEach(b => {
+        if (b.delay > 0) { b.delay--; return; }
+        b.x += b.speed;
+        b.wingPhase += b.wingSpeed;
+        if (b.x > W + 100) { b.x = -80-Math.random()*200; b.y = H*0.1+Math.random()*H*0.35; b.delay = Math.random()*200; }
+        drawBird(ctx, b.x, b.y, b.wingPhase, b.size, b.silhouette || period === 'night');
+    });
+
+    // Re-check period every 60s (not every frame)
+    if (Math.round(now) % 60 === 0) {
+        const newPeriod = getTimePeriod(getSLTime().getHours());
+        if (newPeriod !== atmospherePeriod) { atmospherePeriod = newPeriod; initParticles(); }
+    }
+
+    atmosphereRAF = requestAnimationFrame(drawAtmosphere);
+}
+
+function drawCloud(ctx, x, y, w, h, alpha, period) {
+    ctx.globalAlpha = alpha;
+    const cloudColor = period === 'night' ? 'rgba(60,50,90,0.6)' :
+                       period === 'evening' ? 'rgba(180,80,80,0.35)' :
+                       'rgba(240,248,255,0.85)';
+    ctx.fillStyle = cloudColor;
+    const r = h / 2;
+    // Main body
+    ctx.beginPath();
+    ctx.ellipse(x, y, w/2, r*0.6, 0, 0, Math.PI*2); ctx.fill();
+    // Puffs
+    ctx.beginPath(); ctx.arc(x-w*0.22, y-r*0.1, r*0.75, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x, y-r*0.25, r, 0, Math.PI*2); ctx.fill();
+    ctx.beginPath(); ctx.arc(x+w*0.2, y-r*0.05, r*0.7, 0, Math.PI*2); ctx.fill();
+    ctx.globalAlpha = 1;
+}
+
+function drawBird(ctx, x, y, phase, scale, dark) {
+    const s = scale * 10;
+    const wingDip = Math.sin(phase) * s * 0.9;
+    ctx.strokeStyle = dark ? 'rgba(10,5,25,0.85)' : 'rgba(30,40,80,0.75)';
+    ctx.lineWidth = dark ? 1.8 * scale : 1.5 * scale;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    // Left wing
+    ctx.moveTo(x, y); ctx.quadraticCurveTo(x - s*1.2, y - wingDip, x - s*2.4, y - wingDip*0.3);
+    // Right wing
+    ctx.moveTo(x, y); ctx.quadraticCurveTo(x + s*1.2, y - wingDip, x + s*2.4, y - wingDip*0.3);
+    ctx.stroke();
+}
+
+// Resize canvas on window resize
+window.addEventListener('resize', () => {
+    if (currentTheme === 'time') {
+        const canvas = document.getElementById('atmosphere-canvas');
+        if (canvas) { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+    }
+});
+
+// ============================================================
 // INIT
 // ============================================================
 async function init(){
@@ -2043,17 +2574,13 @@ async function init(){
 
     // PIN Dropbox sync — app open වෙන විගස background ලිනෙ sync
     if (isDropboxConnected()) {
-        loadPinFromDropbox(); // async, background — local update කරයි
+        loadPinFromDropbox();
     }
 
     // Check if PIN exists at all
     if (!getPin()) {
-        // Try Dropbox first
         const dbxPin = isDropboxConnected() ? await loadPinFromDropbox() : null;
-        if (!dbxPin) {
-            // No PIN anywhere — show first-time setup
-            showPinSetup();
-        }
+        if (!dbxPin) showPinSetup();
     }
 
     const hasOAuthCallback = await handleOAuthCallback();
@@ -2061,6 +2588,12 @@ async function init(){
         await loadFromDropbox();
     }
     refreshUI();
+
+    // Start clock (SLST)
+    startClock();
+
+    // Apply saved theme
+    setTheme(currentTheme);
 }
 
 // Init runs after PIN unlock - we start loading in background
