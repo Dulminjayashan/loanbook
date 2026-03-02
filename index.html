@@ -142,72 +142,42 @@
             background: linear-gradient(90deg, #10b981, #3b82f6);
         }
 
-        /* Firebase status indicator */
-        #db-status {
+        /* Toast notification */
+        .toast {
+            position: fixed;
+            top: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 9999;
+            padding: 0.75rem 1.25rem;
+            border-radius: 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            animation: fadeIn 0.25s ease;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+        }
+
+        /* Attachment count badge */
+        .att-count {
             display: inline-flex;
             align-items: center;
-            gap: 6px;
-            font-size: 10px;
-            font-weight: 700;
-            padding: 4px 10px;
+            justify-content: center;
+            min-width: 16px;
+            height: 16px;
+            padding: 0 4px;
+            font-size: 9px;
+            font-weight: 800;
+            background: #3b82f6;
+            color: white;
             border-radius: 99px;
-            border: 1px solid;
-            transition: all 0.3s;
+            margin-left: 4px;
         }
-        #db-status.connected { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
-        #db-status.connecting { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
-        #db-status.error { color: #f43f5e; border-color: rgba(244,63,94,0.3); background: rgba(244,63,94,0.08); }
-
-        #db-status .dot {
-            width: 6px; height: 6px;
-            border-radius: 50%;
-            background: currentColor;
-        }
-        #db-status.connected .dot { animation: paidPulse 1.5s ease infinite; }
-
-        /* Loading overlay */
-        #loading-overlay {
-            position: fixed; inset: 0; z-index: 9999;
-            background: #020617;
-            display: flex; flex-direction: column;
-            align-items: center; justify-content: center;
-            gap: 16px;
-            transition: opacity 0.4s;
-        }
-        #loading-overlay.hidden { opacity: 0; pointer-events: none; }
-        .loader-ring {
-            width: 48px; height: 48px;
-            border: 3px solid rgba(59,130,246,0.15);
-            border-top-color: #3b82f6;
-            border-radius: 50%;
-            animation: spin 0.8s linear infinite;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="p-4 md:p-6 custom-scrollbar">
-
-    <!-- LOADING OVERLAY -->
-    <div id="loading-overlay">
-        <div class="loader-ring"></div>
-        <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">Connecting to database...</p>
-    </div>
-
-    <!-- FIREBASE CONFIG BANNER (shown only if not configured) -->
-    <div id="config-banner" class="hidden fixed inset-0 z-[9998] flex items-center justify-center p-6 bg-slate-950/95">
-        <div class="glass-card max-w-lg w-full p-8 border border-rose-500/30 text-center space-y-4">
-            <div class="text-4xl">🔥</div>
-            <h2 class="text-xl font-bold text-white">Firebase Not Configured</h2>
-            <p class="text-slate-400 text-sm">Open <code class="bg-slate-800 px-2 py-0.5 rounded text-blue-400">index.html</code> and replace the <code class="bg-slate-800 px-2 py-0.5 rounded text-blue-400">firebaseConfig</code> object at the top of the script with your project's credentials from the Firebase Console.</p>
-            <div class="bg-slate-900 rounded-lg p-4 text-left text-xs text-slate-400 font-mono">
-                const firebaseConfig = {"{"}  <br>
-                &nbsp;&nbsp;apiKey: <span class="text-rose-400">"YOUR_API_KEY"</span>,<br>
-                &nbsp;&nbsp;projectId: <span class="text-rose-400">"YOUR_PROJECT_ID"</span>,<br>
-                &nbsp;&nbsp;...<br>
-                {"}"};
-            </div>
-        </div>
-    </div>
 
     <div class="max-w-[1600px] mx-auto">
         <!-- Header -->
@@ -221,15 +191,12 @@
                 </p>
             </div>
             
-            <div class="flex flex-wrap gap-2 items-center">
-                <!-- Firebase Status -->
-                <div id="db-status" class="connecting">
-                    <span class="dot"></span>
-                    <span id="db-status-text">Connecting...</span>
-                </div>
-
+            <div class="flex flex-wrap gap-2">
                 <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
                     <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN / නව ණය
+                </button>
+                <button onclick="setFileHandle()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
+                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> SYNC / සමමුහුර්ත
                 </button>
                 <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
                     <i data-lucide="download" class="w-4 h-4"></i> EXPORT / පිටපත්
@@ -403,7 +370,7 @@
                     <input type="date" id="loan-date" required class="w-full neo-input p-3 rounded-lg text-sm">
                 </div>
                 <div class="md:col-span-2 pt-4 flex gap-2">
-                    <button type="submit" id="loan-submit-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition-all">Create Account</button>
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition-all">Create Account</button>
                     <button type="button" onclick="closeModal('new-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
                 </div>
             </form>
@@ -448,7 +415,7 @@
                     <input type="date" id="edit-date" required class="w-full neo-input p-3 rounded-lg text-sm">
                 </div>
                 <div class="md:col-span-2 pt-4 flex gap-2">
-                    <button type="submit" id="edit-submit-btn" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm transition-all">Save Changes / සුරකින්න</button>
+                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm transition-all">Save Changes / සුරකින්න</button>
                     <button type="button" onclick="closeModal('edit-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
                 </div>
             </form>
@@ -460,6 +427,7 @@
         <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg" onclick="closeModal('sheet-modal')"></div>
         <div class="glass-card w-full max-w-5xl h-[90vh] relative z-10 flex flex-col overflow-hidden border border-white/5">
             
+            <!-- Sheet Header -->
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/40 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <img id="sheet-photo" class="w-12 h-12 rounded-lg object-cover border border-slate-700">
@@ -482,19 +450,23 @@
                 </div>
             </div>
 
+            <!-- Tabs -->
             <div class="flex gap-1 px-5 pt-4 pb-0 flex-shrink-0">
                 <button onclick="switchTab('payments-tab')" id="tab-payments" class="tab-btn active px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
                     💰 Payments / ගෙවීම්
                 </button>
                 <button onclick="switchTab('attachments-tab')" id="tab-attachments" class="tab-btn px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
-                    📎 Attachments / ලේඛන
+                    📎 Attachments / ලේඛන <span id="att-count-badge" class="att-count hidden">0</span>
                 </button>
             </div>
 
+            <!-- Tab Content -->
             <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
 
                 <!-- PAYMENTS TAB -->
                 <div id="payments-tab" class="tab-content">
+                    
+                    <!-- CHARTS ROW -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 self-start">Recovery / ප්‍රතිලාභය</p>
@@ -510,12 +482,14 @@
                                 <span class="flex items-center gap-1 text-[9px] text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Due</span>
                             </div>
                         </div>
+
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Breakdown / ගණනය</p>
                             <div class="relative h-36">
                                 <canvas id="client-bar-chart"></canvas>
                             </div>
                         </div>
+
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Payment Timeline</p>
                             <div class="relative h-36">
@@ -524,6 +498,7 @@
                         </div>
                     </div>
 
+                    <!-- STATS + FORM + TABLE -->
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
                         <div class="lg:col-span-4 space-y-3">
                             <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
@@ -532,7 +507,7 @@
                                     <input type="number" id="pay-amount" placeholder="Rs. Amount" class="w-full neo-input p-2.5 rounded-lg text-xs">
                                     <input type="date" id="pay-date" class="w-full neo-input p-2.5 rounded-lg text-xs">
                                     <input type="text" id="pay-note" placeholder="Note (optional)" class="w-full neo-input p-2.5 rounded-lg text-xs">
-                                    <button onclick="addPayment()" id="pay-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all">Confirm Payment</button>
+                                    <button onclick="addPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all">Confirm Payment</button>
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 gap-2">
@@ -572,6 +547,12 @@
                 <!-- ATTACHMENTS TAB -->
                 <div id="attachments-tab" class="tab-content hidden">
                     <div class="space-y-4">
+                        <!-- Storage info bar -->
+                        <div id="storage-info" class="hidden bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2 text-[10px] text-amber-400 flex items-center gap-2">
+                            <i data-lucide="alert-triangle" class="w-3.5 h-3.5 flex-shrink-0"></i>
+                            <span id="storage-info-text"></span>
+                        </div>
+
                         <div id="drop-zone"
                             class="drop-zone rounded-xl p-8 text-center cursor-pointer"
                             onclick="document.getElementById('doc-input').click()"
@@ -582,9 +563,10 @@
                             <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto text-slate-600 mb-3"></i>
                             <p class="text-sm font-bold text-slate-400 mb-1">Drop files here or click to upload</p>
                             <p class="text-[10px] text-slate-600">PDFs, Images, Documents — Any file type</p>
+                            <p class="text-[9px] text-slate-700 mt-2">ගොනු browser session ගෙන් save වේ. Export/Import JSON ඔස්සේ permanent save කරන්න.</p>
                         </div>
                         <div id="attachment-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
-                        <div id="no-attachments" class="text-center py-6 text-slate-600 text-xs">No attachments yet.</div>
+                        <div id="no-attachments" class="text-center py-6 text-slate-600 text-xs">No attachments yet. / ලේඛන නොමැත.</div>
                     </div>
                 </div>
             </div>
@@ -600,126 +582,74 @@
         </div>
     </div>
 
-    <!-- ========================================================
-         FIREBASE INTEGRATION
-         ======================================================== -->
-    <script type="module">
-        // ================================================================
-        //  🔥 STEP 1: PASTE YOUR FIREBASE CONFIG HERE
-        //  Get this from: Firebase Console → Project Settings → Your Apps
-        // ================================================================
-        const firebaseConfig = {
-            apiKey: "AIzaSyAMY9R4BFfbbywGx330cUKYQcbL1R2NxRo",
-            authDomain: "loanbook-529b2.firebaseapp.com",
-   	    projectId: "loanbook-529b2",
-  	    storageBucket: "loanbook-529b2.firebasestorage.app",
-  	    messagingSenderId: "53471849986",
-            appId: "1:53471849986:web:cd6ee1d18026cab77a011b",
-            measurementId: "G-H25F7M06V6"
-        };
-        // ================================================================
-
-        import { initializeApp }                          from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
-        import { getFirestore, collection, doc,
-                 addDoc, setDoc, deleteDoc,
-                 onSnapshot, query, orderBy }             from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
-
-        // ── Guard: show banner if config not filled in ──────────────────
-        const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
-        if (!isConfigured) {
-            document.getElementById('loading-overlay').classList.add('hidden');
-            document.getElementById('config-banner').classList.remove('hidden');
-            throw new Error("Firebase not configured — please fill in firebaseConfig.");
-        }
-
-        // ── Init Firebase ────────────────────────────────────────────────
-        const app = initializeApp(firebaseConfig);
-        const db  = getFirestore(app);
-        const loansCol = collection(db, "loans");
-
-        // ── Expose helpers to global scope (non-module script needs them) ─
-        window._db       = db;
-        window._loansCol = loansCol;
-        window._firestoreAPI = { doc, setDoc, addDoc, deleteDoc };
-
-        // ── Real-time listener: Firestore → UI ──────────────────────────
-        setDbStatus('connecting');
-        const q = query(loansCol, orderBy("createdAt", "asc"));
-
-        onSnapshot(q,
-            (snapshot) => {
-                window.loans = [];
-                snapshot.forEach(d => window.loans.push({ _docId: d.id, ...d.data() }));
-                setDbStatus('connected');
-                hideLoading();
-                if (window._chartsReady) refreshUI();
-                else window._pendingRefresh = true;
-            },
-            (err) => {
-                console.error("Firestore error:", err);
-                setDbStatus('error', err.code || 'error');
-                hideLoading();
-            }
-        );
-
-        // ── Save (create or update) a loan to Firestore ─────────────────
-        window.saveLoanToFirestore = async function(loanData, docId = null) {
-            const { doc: _doc, setDoc: _setDoc, addDoc: _addDoc } = window._firestoreAPI;
-            loanData.updatedAt = Date.now();
-            if (docId) {
-                await _setDoc(_doc(db, "loans", docId), loanData);
-                return docId;
-            } else {
-                loanData.createdAt = Date.now();
-                const ref = await _addDoc(loansCol, loanData);
-                return ref.id;
-            }
-        };
-
-        // ── Delete a loan from Firestore ─────────────────────────────────
-        window.deleteLoanFromFirestore = async function(docId) {
-            const { doc: _doc, deleteDoc: _del } = window._firestoreAPI;
-            await _del(_doc(db, "loans", docId));
-        };
-
-    </script>
-
-    <!-- ================================================================
-         MAIN APP SCRIPT (same as original, wired to Firestore)
-         ================================================================ -->
     <script>
-        // ── Global state ─────────────────────────────────────────────────
-        window.loans = [];
+        // ============================================================
+        // STATE
+        // ============================================================
+        let loans = []; 
         let activeLoanIndex = null;
-        let currentPhoto    = "";
-        let editPhoto       = "";
+        let fileHandle = null;
+        let currentPhoto = "";
+        let editPhoto = "";
         let recoveryChart, growthChart, comparisonChart;
         let clientDonutChart, clientBarChart, clientLineChart;
         let selectedDeactiveClient = null;
-        let deactiveSectionOpen    = false;
-        window._chartsReady = false;
+        let deactiveSectionOpen = false;
 
-        // ── Status helpers ───────────────────────────────────────────────
-        function setDbStatus(state, txt) {
-            const el   = document.getElementById('db-status');
-            const span = document.getElementById('db-status-text');
-            el.className = 'db-status ' + state;
-            // Re-apply inline style classes since we use a custom style block
-            if (state === 'connected')  { el.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(16,185,129,0.3);color:#10b981;background:rgba(16,185,129,0.08)'; }
-            if (state === 'connecting') { el.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(245,158,11,0.3);color:#f59e0b;background:rgba(245,158,11,0.08)'; }
-            if (state === 'error')      { el.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(244,63,94,0.3);color:#f43f5e;background:rgba(244,63,94,0.08)'; }
-            span.textContent = txt || (state === 'connected' ? 'Live' : state === 'connecting' ? 'Connecting...' : 'DB Error');
+        const LS_KEY = 'loanTrackerPro_v1';
+
+        // ============================================================
+        // PERSISTENCE — localStorage
+        // ============================================================
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem(LS_KEY, JSON.stringify(loans));
+            } catch(e) {
+                // localStorage full (likely large attachments)
+                showToast('⚠️ Storage full! Export JSON to save permanently.', 'amber');
+            }
         }
 
-        function hideLoading() {
-            const ov = document.getElementById('loading-overlay');
-            ov.classList.add('hidden');
+        function loadFromLocalStorage() {
+            try {
+                const raw = localStorage.getItem(LS_KEY);
+                if (raw) loans = JSON.parse(raw);
+            } catch(e) {
+                loans = [];
+            }
         }
 
-        // ── Icons ────────────────────────────────────────────────────────
+        // Save everywhere
+        function persistAll() {
+            saveToLocalStorage();
+            saveToLinkedFile();
+        }
+
+        // ============================================================
+        // TOAST
+        // ============================================================
+        function showToast(msg, color = 'emerald') {
+            const colors = {
+                emerald: 'bg-emerald-600',
+                amber: 'bg-amber-600',
+                rose: 'bg-rose-600',
+                blue: 'bg-blue-600'
+            };
+            const el = document.createElement('div');
+            el.className = `toast ${colors[color] || colors.emerald} text-white`;
+            el.textContent = msg;
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        // ============================================================
+        // ICONS
+        // ============================================================
         function initIcons() { lucide.createIcons(); }
 
-        // ── Modals ───────────────────────────────────────────────────────
+        // ============================================================
+        // MODALS
+        // ============================================================
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -730,7 +660,9 @@
             document.body.style.overflow = 'auto';
         }
 
-        // ── Tabs ─────────────────────────────────────────────────────────
+        // ============================================================
+        // TABS
+        // ============================================================
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -740,7 +672,9 @@
             if (tabId === 'attachments-tab') renderAttachments();
         }
 
-        // ── Photo Preview ────────────────────────────────────────────────
+        // ============================================================
+        // PHOTO PREVIEW
+        // ============================================================
         function previewPhoto(input, previewId, placeholderId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -755,37 +689,51 @@
             }
         }
 
-        // ── Loan helpers ─────────────────────────────────────────────────
+        // ============================================================
+        // LOAN STATUS HELPERS
+        // ============================================================
         function getLoanDue(loan) {
             const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total    = loan.amount + interest;
-            const paid     = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
+            const total = loan.amount + interest;
+            const paid = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
             return total - paid;
         }
+
         function isLoanPaid(loan) { return getLoanDue(loan) <= 0; }
 
         function getDeactiveClients() {
-            return groupByClient(window.loans).filter(g => g.loans.every(l => isLoanPaid(l)));
-        }
-        function getActiveClients() {
-            return groupByClient(window.loans).filter(g => !g.loans.every(l => isLoanPaid(l)));
+            return groupByClient(loans).filter(g => g.loans.every(l => isLoanPaid(l)));
         }
 
-        // ── Autocomplete ─────────────────────────────────────────────────
+        function getActiveClients() {
+            return groupByClient(loans).filter(g => !g.loans.every(l => isLoanPaid(l)));
+        }
+
+        // ============================================================
+        // ENSURE LOAN DEFAULTS (backward compat)
+        // ============================================================
+        function ensureDefaults(loan) {
+            if (!loan.payments)  loan.payments  = [];
+            if (!loan.documents) loan.documents = [];
+            return loan;
+        }
+
+        // ============================================================
+        // AUTOCOMPLETE: DEACTIVE CLIENTS
+        // ============================================================
         function handleNameInput(val) {
-            if (!val || val.trim().length === 0) { hideSuggestions(); return; }
+            if (!val || !val.trim()) { hideSuggestions(); return; }
             const filtered = getDeactiveClients().filter(g =>
                 g.displayName.toLowerCase().includes(val.toLowerCase())
             );
-            if (filtered.length === 0) { hideSuggestions(); return; }
-            showSuggestions(filtered);
+            filtered.length ? showSuggestions(filtered) : hideSuggestions();
         }
 
         function showSuggestions(clients) {
             const box = document.getElementById('name-suggestions');
             box.innerHTML = '';
             clients.forEach(client => {
-                const photoSrc = (client.loans[0].photo) || 
+                const photoSrc = client.loans[0].photo || 
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
                 const div = document.createElement('div');
                 div.className = 'suggestion-item';
@@ -804,13 +752,15 @@
             initIcons();
         }
 
-        function hideSuggestions() { document.getElementById('name-suggestions').classList.add('hidden'); }
+        function hideSuggestions() {
+            document.getElementById('name-suggestions').classList.add('hidden');
+        }
 
         function selectDeactiveClient(client) {
             selectedDeactiveClient = client;
             document.getElementById('borrower-name').value = client.displayName;
             hideSuggestions();
-            const photoSrc = (client.loans[0].photo) || 
+            const photoSrc = client.loans[0].photo || 
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
             document.getElementById('selected-deactive-photo').src = photoSrc;
             document.getElementById('selected-deactive-label').textContent = 
@@ -832,51 +782,49 @@
             document.getElementById('borrower-name').value = '';
         }
 
-        // ── CREATE LOAN ──────────────────────────────────────────────────
-        document.getElementById('loan-form').onsubmit = async function(e) {
+        // ============================================================
+        // CREATE LOAN
+        // ============================================================
+        document.getElementById('loan-form').onsubmit = function(e) {
             e.preventDefault();
-            const btn = document.getElementById('loan-submit-btn');
-            btn.textContent = 'Saving...'; btn.disabled = true;
-            try {
-                const loanData = {
-                    name:      document.getElementById('borrower-name').value,
-                    amount:    parseFloat(document.getElementById('loan-amount').value),
-                    interest:  parseFloat(document.getElementById('loan-interest').value),
-                    period:    parseInt(document.getElementById('loan-period').value),
-                    date:      document.getElementById('loan-date').value,
-                    photo:     currentPhoto,
-                    payments:  [],
-                    documents: []
-                };
-                await window.saveLoanToFirestore(loanData);
-                closeModal('new-loan-modal');
-                this.reset();
-                currentPhoto = "";
-                selectedDeactiveClient = null;
-                document.getElementById('photo-preview').classList.add('hidden');
-                document.getElementById('photo-placeholder').classList.remove('hidden');
-                document.getElementById('selected-deactive-hint').classList.add('hidden');
-            } catch(err) {
-                alert('Error saving: ' + err.message);
-            }
-            btn.textContent = 'Create Account'; btn.disabled = false;
+            loans.push({
+                id: Date.now(),
+                name: document.getElementById('borrower-name').value,
+                amount: parseFloat(document.getElementById('loan-amount').value),
+                interest: parseFloat(document.getElementById('loan-interest').value),
+                period: parseInt(document.getElementById('loan-period').value),
+                date: document.getElementById('loan-date').value,
+                photo: currentPhoto,
+                payments: [],
+                documents: []   // ← FIX: always initialized
+            });
+            refreshUI();
+            closeModal('new-loan-modal');
+            this.reset();
+            currentPhoto = "";
+            selectedDeactiveClient = null;
+            document.getElementById('photo-preview').classList.add('hidden');
+            document.getElementById('photo-placeholder').classList.remove('hidden');
+            document.getElementById('selected-deactive-hint').classList.add('hidden');
+            persistAll();
         };
 
-        // ── EDIT LOAN ────────────────────────────────────────────────────
+        // ============================================================
+        // EDIT LOAN
+        // ============================================================
         function openEditModal(index) {
             activeLoanIndex = index;
-            const loan = window.loans[index];
+            const loan = loans[index];
             editPhoto = loan.photo || "";
-            document.getElementById('edit-name').value     = loan.name;
-            document.getElementById('edit-amount').value   = loan.amount;
+            document.getElementById('edit-name').value = loan.name;
+            document.getElementById('edit-amount').value = loan.amount;
             document.getElementById('edit-interest').value = loan.interest;
-            document.getElementById('edit-period').value   = loan.period;
-            document.getElementById('edit-date').value     = loan.date;
-            const previewImg    = document.getElementById('edit-photo-preview');
-            const placeholder   = document.getElementById('edit-photo-placeholder');
+            document.getElementById('edit-period').value = loan.period;
+            document.getElementById('edit-date').value = loan.date;
+            const previewImg = document.getElementById('edit-photo-preview');
             previewImg.src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
             previewImg.classList.remove('hidden');
-            placeholder.classList.add('hidden');
+            document.getElementById('edit-photo-placeholder').classList.add('hidden');
             openModal('edit-loan-modal');
         }
 
@@ -885,33 +833,24 @@
             openEditModal(activeLoanIndex);
         }
 
-        document.getElementById('edit-form').onsubmit = async function(e) {
+        document.getElementById('edit-form').onsubmit = function(e) {
             e.preventDefault();
-            const btn = document.getElementById('edit-submit-btn');
-            btn.textContent = 'Saving...'; btn.disabled = true;
-            try {
-                const loan = window.loans[activeLoanIndex];
-                const updated = {
-                    ...loan,
-                    name:     document.getElementById('edit-name').value,
-                    amount:   parseFloat(document.getElementById('edit-amount').value),
-                    interest: parseFloat(document.getElementById('edit-interest').value),
-                    period:   parseInt(document.getElementById('edit-period').value),
-                    date:     document.getElementById('edit-date').value,
-                    photo:    editPhoto || loan.photo
-                };
-                // Remove internal fields before saving
-                const { _docId, ...saveData } = updated;
-                await window.saveLoanToFirestore(saveData, loan._docId);
-                closeModal('edit-loan-modal');
-                setTimeout(() => openSheet(activeLoanIndex), 300);
-            } catch(err) {
-                alert('Error saving: ' + err.message);
-            }
-            btn.textContent = 'Save Changes / සුරකින්න'; btn.disabled = false;
+            const loan = loans[activeLoanIndex];
+            loan.name = document.getElementById('edit-name').value;
+            loan.amount = parseFloat(document.getElementById('edit-amount').value);
+            loan.interest = parseFloat(document.getElementById('edit-interest').value);
+            loan.period = parseInt(document.getElementById('edit-period').value);
+            loan.date = document.getElementById('edit-date').value;
+            if (editPhoto) loan.photo = editPhoto;
+            refreshUI();
+            closeModal('edit-loan-modal');
+            persistAll();
+            setTimeout(() => openSheet(activeLoanIndex), 100);
         };
 
-        // ── Group by client name ─────────────────────────────────────────
+        // ============================================================
+        // GROUP BY CLIENT
+        // ============================================================
         function groupByClient(data) {
             const map = {};
             data.forEach(loan => {
@@ -922,42 +861,44 @@
             return Object.values(map);
         }
 
-        // ── RENDER DASHBOARD ─────────────────────────────────────────────
-        function renderDashboard(data) {
-            data = data || window.loans;
+        // ============================================================
+        // RENDER DASHBOARD
+        // ============================================================
+        function renderDashboard(data = loans) {
             const tbody = document.getElementById('loan-table-body');
             const empty = document.getElementById('empty-state');
             tbody.innerHTML = '';
 
-            const allGroups      = groupByClient(data);
-            const activeGroups   = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
+            const allGroups = groupByClient(data);
+            const activeGroups = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
             const deactiveGroups = allGroups.filter(g => g.loans.every(l => isLoanPaid(l)));
 
             if (activeGroups.length === 0 && deactiveGroups.length === 0) {
                 empty.classList.remove('hidden');
-                renderDeactiveTable([]);
                 initIcons();
+                renderDeactiveTable([]);
                 return;
             }
             empty.classList.add('hidden');
+
             activeGroups.forEach(group => renderGroupRows(tbody, group, false));
             renderDeactiveTable(deactiveGroups);
             initIcons();
         }
 
         function renderGroupRows(tbody, group, isDeactive) {
-            const isMulti  = group.loans.length > 1;
+            const isMulti = group.loans.length > 1;
             const groupKey = group.displayName.trim().toLowerCase().replace(/\s+/g, '_') + '_' + (isDeactive ? 'd' : 'a');
             const firstLoan = group.loans[0];
-            const photoSrc  = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
+            const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
 
             if (!isMulti) {
-                const loan  = group.loans[0];
-                const idx   = window.loans.indexOf(loan);
+                const loan = group.loans[0];
+                const idx = loans.indexOf(loan);
                 const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
                 const total = loan.amount + interest;
-                const paid  = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
-                const due   = total - paid;
+                const paid = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
+                const due = total - paid;
                 tbody.innerHTML += `
                     <tr class="group hover:bg-white/[0.02] transition-all cursor-pointer ${isDeactive ? 'deactive-row' : ''}" onclick="openSheet(${idx})">
                         <td class="px-6 py-4">
@@ -978,11 +919,12 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                                <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors" title="Edit"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                             </div>
                         </td>
-                    </tr>`;
+                    </tr>
+                `;
             } else {
                 tbody.innerHTML += `
                     <tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all ${isDeactive ? 'deactive-row' : ''}"
@@ -999,7 +941,9 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">${isDeactive ? '<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>' : ''}</td>
+                        <td class="px-6 py-4">
+                            ${isDeactive ? '<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>' : ''}
+                        </td>
                         <td class="px-6 py-4 text-right">
                             <i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline transition-transform" id="chevron-${groupKey}"></i>
                         </td>
@@ -1009,13 +953,14 @@
                             <table class="w-full">
                                 <tbody>
                                     ${group.loans.map(loan => {
-                                        const idx = window.loans.indexOf(loan);
+                                        const idx = loans.indexOf(loan);
                                         const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
                                         const total = loan.amount + interest;
-                                        const paid  = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
-                                        const due   = total - paid;
+                                        const paid = (loan.payments||[]).reduce((s, p) => s + p.amount, 0);
+                                        const due = total - paid;
                                         return `
-                                            <tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all" onclick="openSheet(${idx})">
+                                            <tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all"
+                                                onclick="openSheet(${idx})">
                                                 <td class="px-6 py-3 pl-16">
                                                     <div>
                                                         <div class="text-[10px] font-bold text-slate-300">ණය #${idx+1} — ${loan.date}</div>
@@ -1035,31 +980,40 @@
                                                         <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                                                     </div>
                                                 </td>
-                                            </tr>`;
+                                            </tr>
+                                        `;
                                     }).join('')}
                                 </tbody>
                             </table>
                         </td>
-                    </tr>`;
+                    </tr>
+                `;
             }
         }
 
-        // ── Deactive table ───────────────────────────────────────────────
+        // ============================================================
+        // DEACTIVE TABLE
+        // ============================================================
         function renderDeactiveTable(deactiveGroups) {
             const section = document.getElementById('deactive-section');
-            const tbody   = document.getElementById('deactive-table-body');
-            const badge   = document.getElementById('deactive-count-badge');
+            const tbody = document.getElementById('deactive-table-body');
+            const badge = document.getElementById('deactive-count-badge');
+
             if (deactiveGroups.length === 0) { section.classList.add('hidden'); return; }
+
             section.classList.remove('hidden');
             badge.textContent = deactiveGroups.length;
-            tbody.innerHTML   = '';
+            tbody.innerHTML = '';
+
             deactiveGroups.forEach(group => {
-                const firstLoan    = group.loans[0];
-                const photoSrc     = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
-                const totalPaid    = group.loans.reduce((s, l) => s + (l.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
-                const totalPrinc   = group.loans.reduce((s, l) => s + l.amount, 0);
-                const latestLoan   = group.loans[group.loans.length - 1];
-                const latestIdx    = window.loans.indexOf(latestLoan);
+                const firstLoan = group.loans[0];
+                const photoSrc = firstLoan.photo || 
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
+                const totalPaid = group.loans.reduce((s, l) => s + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
+                const totalPrincipal = group.loans.reduce((s, l) => s + l.amount, 0);
+                const latestLoan = group.loans[group.loans.length - 1];
+                const latestIdx = loans.indexOf(latestLoan);
+
                 tbody.innerHTML += `
                     <tr class="deactive-row hover:bg-white/[0.02] transition-all cursor-pointer" onclick="openSheet(${latestIdx})">
                         <td class="px-6 py-4">
@@ -1076,28 +1030,34 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrinc.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td>
                         <td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td>
-                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span></td>
+                        <td class="px-6 py-4">
+                            <span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span>
+                        </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button onclick="event.stopPropagation(); openNewLoanForDeactive('${group.displayName.replace(/'/g, "\\'")}')"
+                                <button onclick="event.stopPropagation(); openNewLoanForDeactive('${group.displayName.replace(/'/g, "\\'")}')" 
                                     class="text-slate-600 hover:text-blue-400 transition-colors text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded">
                                     <i data-lucide="plus" class="w-3 h-3"></i> නව ණය
                                 </button>
                                 <button onclick="event.stopPropagation(); deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                             </div>
                         </td>
-                    </tr>`;
+                    </tr>
+                `;
             });
             initIcons();
         }
 
         function toggleDeactiveSection() {
             deactiveSectionOpen = !deactiveSectionOpen;
-            document.getElementById('deactive-table-wrapper').classList.toggle('hidden', !deactiveSectionOpen);
-            document.getElementById('deactive-chevron').style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
-            document.getElementById('deactive-toggle-label').textContent = deactiveSectionOpen ? 'Hide' : 'Show';
+            const wrapper = document.getElementById('deactive-table-wrapper');
+            const chevron = document.getElementById('deactive-chevron');
+            const label = document.getElementById('deactive-toggle-label');
+            wrapper.classList.toggle('hidden', !deactiveSectionOpen);
+            chevron.style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
+            label.textContent = deactiveSectionOpen ? 'Hide' : 'Show';
         }
 
         function openNewLoanForDeactive(name) {
@@ -1119,43 +1079,65 @@
         }
 
         function searchLoans(val) {
-            const filtered = window.loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase()));
-            renderDashboard(filtered);
+            renderDashboard(loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase())));
         }
 
-        // ── OPEN SHEET ───────────────────────────────────────────────────
+        // ============================================================
+        // OPEN SHEET
+        // ============================================================
         function openSheet(index) {
             activeLoanIndex = index;
-            const loan     = window.loans[index];
+            const loan = ensureDefaults(loans[index]);
             const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total    = loan.amount + interest;
-            const paid     = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
-            const due      = total - paid;
-            const pct      = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+            const total = loan.amount + interest;
+            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
+            const due = total - paid;
+            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
-            document.getElementById('sheet-photo').src            = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-            document.getElementById('sheet-title').innerText      = loan.name;
-            document.getElementById('sheet-subtitle').innerText   = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
-            document.getElementById('sheet-balance-due').innerText         = `Rs. ${due.toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText          = `Rs. ${paid.toLocaleString()}`;
+            document.getElementById('sheet-photo').src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+            document.getElementById('sheet-title').innerText = loan.name;
+            document.getElementById('sheet-subtitle').innerText = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
+            document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
+            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
             document.getElementById('sheet-total-with-interest').innerText = `Rs. ${total.toLocaleString()}`;
 
             setTimeout(() => {
-                document.getElementById('sheet-progress-bar').style.width  = pct + '%';
+                document.getElementById('sheet-progress-bar').style.width = pct + '%';
                 document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
             }, 100);
 
+            // Update attachment badge
+            updateAttachmentBadge();
+            
             switchTab('payments-tab');
             renderPaymentHistory();
             openModal('sheet-modal');
             setTimeout(() => renderClientCharts(loan, paid, due, total, interest), 120);
         }
 
-        // ── CLIENT CHARTS ────────────────────────────────────────────────
+        // ============================================================
+        // ATTACHMENT BADGE
+        // ============================================================
+        function updateAttachmentBadge() {
+            if (activeLoanIndex === null) return;
+            const loan = loans[activeLoanIndex];
+            const count = (loan.documents || []).length;
+            const badge = document.getElementById('att-count-badge');
+            if (count > 0) {
+                badge.textContent = count;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // ============================================================
+        // CLIENT CHARTS
+        // ============================================================
         function renderClientCharts(loan, paid, due, total, interest) {
             if (clientDonutChart) { clientDonutChart.destroy(); clientDonutChart = null; }
-            if (clientBarChart)   { clientBarChart.destroy();   clientBarChart   = null; }
-            if (clientLineChart)  { clientLineChart.destroy();  clientLineChart  = null; }
+            if (clientBarChart)   { clientBarChart.destroy();   clientBarChart = null; }
+            if (clientLineChart)  { clientLineChart.destroy();  clientLineChart = null; }
 
             const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
             animateCount('donut-pct', 0, pct, '%', 900);
@@ -1164,8 +1146,22 @@
             if (donutCtx) {
                 clientDonutChart = new Chart(donutCtx, {
                     type: 'doughnut',
-                    data: { labels: ['Paid','Due'], datasets: [{ data: paid > 0 || due > 0 ? [paid, Math.max(0,due)] : [0,1], backgroundColor: ['#10b981','#f43f5e'], borderWidth: 0, hoverOffset: 6 }] },
-                    options: { responsive: true, maintainAspectRatio: true, cutout: '72%', animation: { animateRotate: true, duration: 900, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } } }
+                    data: {
+                        labels: ['Paid', 'Due'],
+                        datasets: [{
+                            data: paid > 0 || due > 0 ? [paid, Math.max(0, due)] : [0, 1],
+                            backgroundColor: ['#10b981', '#f43f5e'],
+                            borderWidth: 0, hoverOffset: 6
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: true, cutout: '72%',
+                        animation: { animateRotate: true, duration: 900, easing: 'easeOutQuart' },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } }
+                        }
+                    }
                 });
             }
 
@@ -1173,25 +1169,49 @@
             if (barCtx) {
                 clientBarChart = new Chart(barCtx, {
                     type: 'bar',
-                    data: { labels: ['Principal','Interest','Paid','Balance'], datasets: [{ data: [loan.amount, interest, paid, Math.max(0,due)], backgroundColor: ['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'], borderRadius: 5, borderSkipped: false }] },
-                    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800, easing: 'easeOutBounce', delay: ctx => ctx.dataIndex * 80 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } } } }
+                    data: {
+                        labels: ['Principal', 'Interest', 'Paid', 'Balance'],
+                        datasets: [{
+                            data: [loan.amount, interest, paid, Math.max(0, due)],
+                            backgroundColor: ['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'],
+                            borderRadius: 5, borderSkipped: false
+                        }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: { duration: 800, easing: 'easeOutBounce', delay: ctx => ctx.dataIndex * 80 },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } },
+                        scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } } }
+                    }
                 });
             }
 
             const lineCtx = document.getElementById('client-line-chart');
             if (lineCtx) {
-                const sorted  = [...(loan.payments || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
-                const labels  = []; const cumData = []; let running = 0;
-                sorted.forEach(p => { labels.push(p.date.substring(5)); running += p.amount; cumData.push(running); });
-                const lineLabels = labels.length > 0 ? ['Start', ...labels] : ['Start'];
-                const lineData   = labels.length > 0 ? [0, ...cumData] : [0];
+                const sorted = [...(loan.payments||[])].sort((a, b) => new Date(a.date) - new Date(b.date));
+                let running = 0;
+                const labels = ['Start'];
+                const cumData = [0];
+                sorted.forEach(p => {
+                    labels.push(p.date.substring(5));
+                    running += p.amount;
+                    cumData.push(running);
+                });
                 clientLineChart = new Chart(lineCtx, {
                     type: 'line',
-                    data: { labels: lineLabels, datasets: [
-                        { label: 'Cumulative Paid', data: lineData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', borderWidth: 2 },
-                        { label: 'Total Due', data: lineLabels.map(() => total), borderColor: 'rgba(244,63,94,0.3)', borderDash: [4,4], borderWidth: 1, pointRadius: 0, fill: false, tension: 0 }
-                    ]},
-                    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 1000, easing: 'easeOutCubic' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 7 }, maxTicksLimit: 5 } } } }
+                    data: {
+                        labels,
+                        datasets: [
+                            { label: 'Cumulative Paid', data: cumData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', borderWidth: 2 },
+                            { label: 'Total Due', data: labels.map(() => total), borderColor: 'rgba(244,63,94,0.3)', borderDash: [4,4], borderWidth: 1, pointRadius: 0, fill: false, tension: 0 }
+                        ]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        animation: { duration: 1000, easing: 'easeOutCubic' },
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } },
+                        scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 7 }, maxTicksLimit: 5 } } }
+                    }
                 });
             }
         }
@@ -1202,72 +1222,81 @@
             const start = performance.now();
             function step(now) {
                 const progress = Math.min((now - start) / duration, 1);
-                const ease     = 1 - Math.pow(1 - progress, 3);
+                const ease = 1 - Math.pow(1 - progress, 3);
                 el.textContent = Math.round(from + (to - from) * ease) + suffix;
                 if (progress < 1) requestAnimationFrame(step);
             }
             requestAnimationFrame(step);
         }
 
-        // ── ADD PAYMENT ──────────────────────────────────────────────────
-        async function addPayment() {
-            const amtIn  = document.getElementById('pay-amount');
+        // ============================================================
+        // PAYMENTS
+        // ============================================================
+        function addPayment() {
+            const amtIn = document.getElementById('pay-amount');
             const dateIn = document.getElementById('pay-date');
             const noteIn = document.getElementById('pay-note');
             if (!amtIn.value || !dateIn.value) return alert('Please enter amount and date.');
+            
+            ensureDefaults(loans[activeLoanIndex]);
+            loans[activeLoanIndex].payments.push({ 
+                amount: parseFloat(amtIn.value), 
+                date: dateIn.value,
+                note: noteIn.value || ''
+            });
 
-            const btn = document.getElementById('pay-btn');
-            btn.textContent = 'Saving...'; btn.disabled = true;
+            const loan = loans[activeLoanIndex];
+            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+            const total = loan.amount + interest;
+            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
+            const due = total - paid;
+            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
-            try {
-                const loan = window.loans[activeLoanIndex];
-                const updatedPayments = [...(loan.payments || []), {
-                    amount: parseFloat(amtIn.value),
-                    date:   dateIn.value,
-                    note:   noteIn.value || ''
-                }];
-                const { _docId, ...saveData } = loan;
-                saveData.payments = updatedPayments;
-                await window.saveLoanToFirestore(saveData, loan._docId);
-
-                amtIn.value = '';
-                noteIn.value = '';
-
-                // Check if paid — notification handled by real-time listener re-render
-                const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-                const total    = loan.amount + interest;
-                const newPaid  = updatedPayments.reduce((s, p) => s + p.amount, 0);
-                if (total - newPaid <= 0) showPaidNotification(loan.name);
-            } catch(err) {
-                alert('Error: ' + err.message);
-            }
-            btn.textContent = 'Confirm Payment'; btn.disabled = false;
+            document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
+            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
+            document.getElementById('sheet-progress-bar').style.width = pct + '%';
+            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
+            
+            renderClientCharts(loan, paid, due, total, interest);
+            if (due <= 0) showPaidNotification(loan.name);
+            
+            refreshUI();
+            renderPaymentHistory();
+            amtIn.value = '';
+            noteIn.value = '';
+            persistAll();
         }
 
         function showPaidNotification(name) {
-            const notif = document.createElement('div');
-            notif.className = 'fixed top-6 left-1/2 -translate-x-1/2 z-[999] bg-emerald-600 text-white px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-3 shadow-2xl fade-in';
-            notif.innerHTML = `<span class="text-xl">🎉</span> ${name} — ණය ගෙවා ඉවරයි! Auto-deactivated.`;
-            document.body.appendChild(notif);
-            setTimeout(() => notif.remove(), 4000);
+            showToast(`🎉 ${name} — ණය ගෙවා ඉවරයි! Auto-deactivated.`, 'emerald');
         }
 
-        async function deletePayment(idx) {
+        function deletePayment(idx) {
             if (!confirm('Delete this payment?')) return;
-            const loan = window.loans[activeLoanIndex];
-            const updatedPayments = [...(loan.payments || [])];
-            updatedPayments.splice(idx, 1);
-            const { _docId, ...saveData } = loan;
-            saveData.payments = updatedPayments;
-            await window.saveLoanToFirestore(saveData, loan._docId);
+            loans[activeLoanIndex].payments.splice(idx, 1);
+            const loan = loans[activeLoanIndex];
+            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+            const total = loan.amount + interest;
+            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
+            const due = total - paid;
+            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+
+            document.getElementById('sheet-balance-due').innerText = `Rs. ${(total - paid).toLocaleString()}`;
+            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
+            document.getElementById('sheet-progress-bar').style.width = pct + '%';
+            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
+
+            renderClientCharts(loan, paid, due, total, interest);
+            refreshUI();
             renderPaymentHistory();
+            persistAll();
         }
 
         function renderPaymentHistory() {
-            const tbody      = document.getElementById('payment-history-body');
+            const tbody = document.getElementById('payment-history-body');
             const noPayments = document.getElementById('no-payments');
-            tbody.innerHTML  = '';
-            const payments   = window.loans[activeLoanIndex]?.payments || [];
+            tbody.innerHTML = '';
+            const payments = (loans[activeLoanIndex].payments || []);
             if (payments.length === 0) { noPayments.classList.remove('hidden'); return; }
             noPayments.classList.add('hidden');
             const sorted = [...payments].map((p, i) => ({ ...p, i })).sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1282,41 +1311,81 @@
                                 <i data-lucide="trash-2" class="w-3 h-3"></i>
                             </button>
                         </td>
-                    </tr>`;
+                    </tr>
+                `;
             });
             initIcons();
         }
 
-        // ── ATTACHMENTS ──────────────────────────────────────────────────
-        function handleDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
-        function handleDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+        // ============================================================
+        // ATTACHMENTS — FIXED
+        // ============================================================
+        function handleDragOver(e) {
+            e.preventDefault();
+            document.getElementById('drop-zone').classList.add('drag-over');
+        }
+        function handleDragLeave(e) {
+            document.getElementById('drop-zone').classList.remove('drag-over');
+        }
         function handleDrop(e) {
             e.preventDefault();
             document.getElementById('drop-zone').classList.remove('drag-over');
             if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files);
         }
-        function attachDocs(input) { if (!input.files.length) return; processFiles(input.files); }
+
+        function attachDocs(input) {
+            if (input.files && input.files.length) processFiles(input.files);
+            // Reset input so same file can be re-added after removal
+            input.value = '';
+        }
 
         function processFiles(files) {
-            const loan = window.loans[activeLoanIndex];
-            if (!loan.documents) loan.documents = [];
+            // Ensure documents array exists
+            ensureDefaults(loans[activeLoanIndex]);
+            
             let processed = 0;
+            const total = files.length;
+
+            // Warn about large files
             for (let file of files) {
+                if (file.size > 2 * 1024 * 1024) { // > 2MB
+                    const info = document.getElementById('storage-info');
+                    document.getElementById('storage-info-text').textContent = 
+                        `ගොනු ප්‍රමාණය විශාලයි (${(file.size/1048576).toFixed(1)} MB). Browser storage සසර ගනී. JSON Export ඔස්සේ permanent backup ගන්න.`;
+                    info.classList.remove('hidden');
+                    setTimeout(() => info.classList.add('hidden'), 8000);
+                    break;
+                }
+            }
+
+            Array.from(files).forEach(file => {
                 const reader = new FileReader();
-                reader.onload = async e => {
-                    const updatedDocs = [...(loan.documents || []), {
-                        name: file.name, data: e.target.result,
-                        size: file.size, type: file.type,
+                reader.onload = e => {
+                    loans[activeLoanIndex].documents.push({ 
+                        name: file.name, 
+                        data: e.target.result,
+                        size: file.size,
+                        type: file.type || '',
                         addedDate: new Date().toISOString().split('T')[0]
-                    }];
-                    const { _docId, ...saveData } = loan;
-                    saveData.documents = updatedDocs;
-                    await window.saveLoanToFirestore(saveData, loan._docId);
+                    });
                     processed++;
-                    if (processed === files.length) renderAttachments();
+                    if (processed === total) {
+                        updateAttachmentBadge();
+                        renderAttachments();
+                        persistAll();
+                        showToast(`📎 ${total} ගොනු${total > 1 ? '' : ''} සාර්ථකව එකතු විය!`, 'blue');
+                    }
+                };
+                reader.onerror = () => {
+                    processed++;
+                    showToast(`❌ "${file.name}" කියවීමට නොහැකි විය.`, 'rose');
+                    if (processed === total) {
+                        updateAttachmentBadge();
+                        renderAttachments();
+                    }
                 };
                 reader.readAsDataURL(file);
-            }
+            });
         }
 
         function getFileIcon(type, name) {
@@ -1327,41 +1396,74 @@
             if (type.includes('zip') || type.includes('compressed')) return '🗜️';
             return '📎';
         }
+
         function formatSize(bytes) {
+            if (!bytes) return '';
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
             return (bytes / 1048576).toFixed(1) + ' MB';
         }
 
         function renderAttachments() {
-            const grid  = document.getElementById('attachment-grid');
+            if (activeLoanIndex === null) return;
+            ensureDefaults(loans[activeLoanIndex]);
+            
+            const grid = document.getElementById('attachment-grid');
             const noAtt = document.getElementById('no-attachments');
-            const docs  = window.loans[activeLoanIndex]?.documents || [];
+            const docs = loans[activeLoanIndex].documents;
             grid.innerHTML = '';
-            if (docs.length === 0) { noAtt.classList.remove('hidden'); return; }
+
+            if (docs.length === 0) {
+                noAtt.classList.remove('hidden');
+                return;
+            }
             noAtt.classList.add('hidden');
+
             docs.forEach((doc, idx) => {
                 const isImage = doc.type && doc.type.startsWith('image/');
-                const icon    = getFileIcon(doc.type || '', doc.name);
-                const size    = doc.size ? formatSize(doc.size) : '';
+                const icon = getFileIcon(doc.type || '', doc.name);
+                const size = formatSize(doc.size);
+                
                 grid.innerHTML += `
                     <div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">
-                        ${isImage ? `<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')">
-                            <img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                        </div>` : `<div class="h-32 bg-slate-950/60 flex items-center justify-center text-4xl cursor-pointer" onclick="window.open('${doc.data}', '_blank')">${icon}</div>`}
+                        ${isImage ? `
+                            <div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')">
+                                <img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                            </div>
+                        ` : `
+                            <div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2 cursor-pointer" onclick="openAttachment('${idx}')">
+                                <span class="text-4xl">${icon}</span>
+                                <span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center truncate w-full text-center">${doc.type || 'File'}</span>
+                            </div>
+                        `}
                         <div class="p-3">
                             <p class="text-[10px] font-bold text-slate-300 truncate mb-1" title="${doc.name}">${doc.name}</p>
                             <div class="flex items-center justify-between">
                                 <span class="text-[8px] text-slate-600">${size}${doc.addedDate ? ' · ' + doc.addedDate : ''}</span>
                                 <div class="flex gap-2">
-                                    <a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors"><i data-lucide="download" class="w-3 h-3"></i></a>
-                                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                                    <a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors" title="Download">
+                                        <i data-lucide="download" class="w-3 h-3"></i>
+                                    </a>
+                                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors" title="Remove">
+                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
+                                    </button>
                                 </div>
                             </div>
                         </div>
-                    </div>`;
+                    </div>
+                `;
             });
             initIcons();
+        }
+
+        function openAttachment(idx) {
+            const doc = loans[activeLoanIndex].documents[idx];
+            // For PDFs and other files, open in new tab
+            const win = window.open();
+            if (win) {
+                win.document.write(`<iframe src="${doc.data}" style="width:100%;height:100vh;border:none;"></iframe>`);
+                win.document.title = doc.name;
+            }
         }
 
         function previewImage(src) {
@@ -1369,70 +1471,76 @@
             openModal('image-preview-modal');
         }
 
-        async function removeDoc(idx) {
+        function removeDoc(idx) {
             if (!confirm('Remove this attachment?')) return;
-            const loan = window.loans[activeLoanIndex];
-            const updatedDocs = [...(loan.documents || [])];
-            updatedDocs.splice(idx, 1);
-            const { _docId, ...saveData } = loan;
-            saveData.documents = updatedDocs;
-            await window.saveLoanToFirestore(saveData, loan._docId);
+            loans[activeLoanIndex].documents.splice(idx, 1);
+            updateAttachmentBadge();
             renderAttachments();
+            persistAll();
         }
 
-        // ── DELETE LOAN ──────────────────────────────────────────────────
-        async function deleteLoan(index) {
-            if (!confirm('මෙම ගනුදෙනුකරු ඉවත් කිරීමට ඔබට විශ්වාසද?')) return;
-            const loan = window.loans[index];
-            await window.deleteLoanFromFirestore(loan._docId);
-            // UI updates automatically via onSnapshot
+        // ============================================================
+        // DELETE LOAN
+        // ============================================================
+        function deleteLoan(index) {
+            if (confirm('මෙම ගනුදෙනුකරු ඉවත් කිරීමට ඔබට විශ්වාසද?')) {
+                loans.splice(index, 1);
+                refreshUI();
+                persistAll();
+            }
         }
 
-        // ── STATS ────────────────────────────────────────────────────────
+        // ============================================================
+        // STATS
+        // ============================================================
         function updateStats() {
-            const principal   = window.loans.reduce((sum, l) => sum + l.amount, 0);
-            const collected   = window.loans.reduce((sum, l) => sum + (l.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
-            const totalInt    = window.loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
-            const outstanding = principal + totalInt - collected;
+            const principal = loans.reduce((sum, l) => sum + l.amount, 0);
+            const collected = loans.reduce((sum, l) => sum + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
+            const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
+            const outstanding = (principal + totalInt - collected);
             const activeCount = getActiveClients().length;
-
-            document.getElementById('total-clients').innerText     = activeCount;
-            document.getElementById('total-loaned').innerText      = `Rs. ${principal.toLocaleString()}`;
-            document.getElementById('total-collected').innerText   = `Rs. ${collected.toLocaleString()}`;
+            
+            document.getElementById('total-clients').innerText = activeCount;
+            document.getElementById('total-loaned').innerText = `Rs. ${principal.toLocaleString()}`;
+            document.getElementById('total-collected').innerText = `Rs. ${collected.toLocaleString()}`;
             document.getElementById('total-outstanding').innerText = `Rs. ${outstanding.toLocaleString()}`;
-            document.getElementById('total-interest').innerText    = `Rs. ${totalInt.toLocaleString()}`;
+            document.getElementById('total-interest').innerText = `Rs. ${totalInt.toLocaleString()}`;
         }
 
-        // ── GLOBAL CHARTS ────────────────────────────────────────────────
+        // ============================================================
+        // CHARTS
+        // ============================================================
         function initCharts() {
             const commonOptions = {
-                responsive: true, maintainAspectRatio: false,
+                responsive: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { labels: { color: '#64748b', font: { size: 9 } } } }
             };
+
             recoveryChart = new Chart(document.getElementById('recoveryPieChart'), {
                 type: 'doughnut',
-                data: { labels: ['Paid','Due'], datasets: [{ data: [0,1], backgroundColor: ['#10b981','#f43f5e'], borderWidth: 0 }] },
+                data: { labels: ['Paid', 'Due'], datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] },
                 options: { ...commonOptions, cutout: '75%' }
             });
+
             growthChart = new Chart(document.getElementById('growthLineChart'), {
                 type: 'line',
                 data: { labels: [], datasets: [{ label: 'Loans', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.05)', fill: true, tension: 0.4 }] },
                 options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } } }, plugins: { legend: { display: false } } }
             });
+
             comparisonChart = new Chart(document.getElementById('comparisonBarChart'), {
                 type: 'bar',
-                data: { labels: ['Prin.','Paid','Int.'], datasets: [{ data: [0,0,0], backgroundColor: ['#3b82f6','#10b981','#f59e0b'], borderRadius: 4 }] },
+                data: { labels: ['Prin.', 'Paid', 'Int.'], datasets: [{ data: [0,0,0], backgroundColor: ['#3b82f6','#10b981','#f59e0b'], borderRadius: 4 }] },
                 options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } } }, plugins: { legend: { display: false } } }
             });
-            window._chartsReady = true;
-            if (window._pendingRefresh) { refreshUI(); window._pendingRefresh = false; }
         }
 
         function updateCharts() {
-            const principal   = window.loans.reduce((sum, l) => sum + l.amount, 0);
-            const collected   = window.loans.reduce((sum, l) => sum + (l.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
-            const totalInt    = window.loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
-            const outstanding = principal + totalInt - collected;
+            const principal = loans.reduce((sum, l) => sum + l.amount, 0);
+            const collected = loans.reduce((sum, l) => sum + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
+            const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
+            const outstanding = (principal + totalInt - collected);
 
             recoveryChart.data.datasets[0].data = [collected, outstanding > 0 ? outstanding : 0];
             recoveryChart.update();
@@ -1440,7 +1548,7 @@
             comparisonChart.update();
 
             const monthlyData = {};
-            window.loans.forEach(l => {
+            loans.forEach(l => {
                 const month = l.date.substring(0, 7);
                 monthlyData[month] = (monthlyData[month] || 0) + l.amount;
             });
@@ -1450,70 +1558,57 @@
             growthChart.update();
         }
 
-        // ── EXPORT ───────────────────────────────────────────────────────
+        // ============================================================
+        // FILE SYNC (File System Access API)
+        // ============================================================
+        async function setFileHandle() {
+            try {
+                [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }] });
+                const file = await fileHandle.getFile();
+                loans = JSON.parse(await file.text());
+                // Ensure all loans have defaults
+                loans.forEach(ensureDefaults);
+                refreshUI();
+                saveToLocalStorage();
+                showToast('✅ File synced successfully!', 'emerald');
+            } catch(err) { 
+                if (err.name !== 'AbortError') showToast('❌ File sync failed.', 'rose');
+            }
+        }
+
+        async function saveToLinkedFile() {
+            if (!fileHandle) return;
+            try {
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify(loans, null, 2));
+                await writable.close();
+            } catch(e) {}
+        }
+
         function downloadJSON() {
-            const cleaned = window.loans.map(({ _docId, ...rest }) => rest);
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cleaned, null, 2));
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
             dl.setAttribute("download", `loan_book_${new Date().toISOString().split('T')[0]}.json`);
             dl.click();
         }
 
-        // ── MAIN ─────────────────────────────────────────────────────────
+        // ============================================================
+        // MAIN
+        // ============================================================
         function refreshUI() {
             renderDashboard();
             updateStats();
             updateCharts();
-            // Refresh open sheet if visible
-            if (!document.getElementById('sheet-modal').classList.contains('hidden') && activeLoanIndex !== null) {
-                const loan = window.loans[activeLoanIndex];
-                if (loan) {
-                    const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-                    const total    = loan.amount + interest;
-                    const paid     = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
-                    const due      = total - paid;
-                    const pct      = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-                    document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
-                    document.getElementById('sheet-total-paid').innerText  = `Rs. ${paid.toLocaleString()}`;
-                    document.getElementById('sheet-progress-bar').style.width  = pct + '%';
-                    document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-                    renderPaymentHistory();
-                }
-            }
         }
 
         window.onload = () => {
+            loadFromLocalStorage();   // ← Load from localStorage first
+            loans.forEach(ensureDefaults);
             initCharts();
+            refreshUI();
             initIcons();
         };
-
-        // ── Make functions available globally ────────────────────────────
-        window.openModal              = openModal;
-        window.closeModal             = closeModal;
-        window.switchTab              = switchTab;
-        window.previewPhoto           = previewPhoto;
-        window.handleNameInput        = handleNameInput;
-        window.hideSuggestions        = hideSuggestions;
-        window.clearSelectedDeactive  = clearSelectedDeactive;
-        window.openEditModal          = openEditModal;
-        window.openEditFromSheet      = openEditFromSheet;
-        window.toggleDeactiveSection  = toggleDeactiveSection;
-        window.openNewLoanForDeactive = openNewLoanForDeactive;
-        window.toggleClientGroup      = toggleClientGroup;
-        window.searchLoans            = searchLoans;
-        window.openSheet              = openSheet;
-        window.addPayment             = addPayment;
-        window.deletePayment          = deletePayment;
-        window.deleteLoan             = deleteLoan;
-        window.handleDragOver         = handleDragOver;
-        window.handleDragLeave        = handleDragLeave;
-        window.handleDrop             = handleDrop;
-        window.attachDocs             = attachDocs;
-        window.previewImage           = previewImage;
-        window.removeDoc              = removeDoc;
-        window.downloadJSON           = downloadJSON;
-        window.refreshUI              = refreshUI;
     </script>
 </body>
 </html>
