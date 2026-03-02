@@ -209,9 +209,133 @@
             to   { opacity:1; transform: translateY(0) scale(1); }
         }
         .pin-card { animation: pinSlideUp 0.5s cubic-bezier(0.34,1.56,0.64,1) both; }
+
+        /* =============================================
+           THEME SYSTEM
+        ============================================= */
+        /* ---- LIGHT THEME ---- */
+        body.theme-light {
+            background-color: #f0f4f8;
+            color: #1e293b;
+        }
+        body.theme-light .glass-card {
+            background: rgba(255,255,255,0.75);
+            border: 1px solid rgba(0,0,0,0.07);
+            color: #1e293b;
+        }
+        body.theme-light .neo-input {
+            background: rgba(240,244,248,0.9) !important;
+            border: 1px solid rgba(0,0,0,0.12) !important;
+            color: #1e293b !important;
+        }
+        body.theme-light table thead { background: rgba(241,245,249,0.8); }
+        body.theme-light .text-slate-500 { color: #64748b; }
+        body.theme-light #pin-lock-screen { background: #f0f4f8; }
+        body.theme-light .pin-key { background: rgba(241,245,249,0.9); border-color: rgba(0,0,0,0.1); color: #1e293b; }
+        body.theme-light .pin-key:hover { background: rgba(59,130,246,0.12); }
+        body.theme-light .bg-slate-800, body.theme-light .bg-slate-900\/20, body.theme-light .bg-slate-900\/50 { background: rgba(241,245,249,0.8) !important; }
+        body.theme-light header { border-color: rgba(0,0,0,0.08) !important; }
+        body.theme-light .divide-y.divide-slate-800\/40 > * { border-color: rgba(0,0,0,0.06) !important; }
+
+        /* ---- TIME THEME BASE ---- */
+        body.theme-time {
+            transition: background-color 60s ease, color 2s ease;
+        }
+        body.theme-time .glass-card {
+            backdrop-filter: blur(14px);
+            border: 1px solid rgba(255,255,255,0.12);
+            transition: background 60s ease, border-color 2s ease;
+        }
+
+        /* Scene canvas */
+        #time-canvas {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+        }
+        body.theme-time #time-canvas { display: block; }
+        body.theme-time .max-w-\[1600px\] { position: relative; z-index: 1; }
+        body.theme-time #pin-lock-screen { position: fixed; z-index: 9000; }
+
+        /* Theme toggle pill */
+        #theme-toggle-wrap {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(15,23,42,0.5);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 99px;
+            padding: 4px 6px;
+        }
+        body.theme-light #theme-toggle-wrap {
+            background: rgba(241,245,249,0.8);
+            border-color: rgba(0,0,0,0.1);
+        }
+        .theme-btn {
+            padding: 4px 10px;
+            border-radius: 99px;
+            font-size: 10px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: #64748b;
+            border: none;
+            background: transparent;
+            display: flex; align-items: center; gap: 4px;
+        }
+        .theme-btn:hover { color: #94a3b8; background: rgba(255,255,255,0.06); }
+        .theme-btn.active { background: rgba(59,130,246,0.2); color: #60a5fa; }
+        body.theme-light .theme-btn.active { background: rgba(59,130,246,0.15); color: #2563eb; }
+        body.theme-time .theme-btn.active { background: rgba(255,255,255,0.15); color: #fff; }
+
+        /* DateTime widget */
+        #datetime-widget {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            line-height: 1.2;
+        }
+        #dt-time {
+            font-family: 'Orbitron', monospace;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: #60a5fa;
+            letter-spacing: 0.05em;
+        }
+        #dt-date {
+            font-size: 10px;
+            color: #64748b;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+        body.theme-light #dt-time { color: #2563eb; }
+        body.theme-time #dt-time { color: #fff; text-shadow: 0 0 20px rgba(255,255,255,0.5); }
+
+        /* ---- ANIMATED SCENE ELEMENTS ---- */
+        @keyframes floatBird1 {
+            0%   { transform: translate(-80px, 0px) scaleX(1); }
+            45%  { transform: translate(calc(100vw + 80px), -30px) scaleX(1); }
+            46%  { transform: translate(calc(100vw + 80px), -30px) scaleX(-1); }
+            100% { transform: translate(-80px, 0px) scaleX(-1); }
+        }
+        @keyframes floatBird2 {
+            0%   { transform: translate(-80px, 0px) scaleX(1); }
+            48%  { transform: translate(calc(100vw + 80px), 20px) scaleX(1); }
+            49%  { transform: translate(calc(100vw + 80px), 20px) scaleX(-1); }
+            100% { transform: translate(-80px, 0px) scaleX(-1); }
+        }
+        @keyframes twinkle { 0%,100%{opacity:1;} 50%{opacity:0.2;} }
+        @keyframes moonGlow { 0%,100%{filter:drop-shadow(0 0 20px rgba(200,210,255,0.5));} 50%{filter:drop-shadow(0 0 40px rgba(200,210,255,0.9));} }
+        @keyframes sunRise { 0%{transform:translateY(30px);opacity:0.6;} 100%{transform:translateY(0);opacity:1;} }
+        @keyframes cloudDrift { 0%{transform:translateX(0);} 100%{transform:translateX(60px);} }
     </style>
 </head>
 <body class="p-4 md:p-6 custom-scrollbar">
+
+<!-- Time Theme Scene Canvas -->
+<canvas id="time-canvas"></canvas>
 
 <!-- ===== PIN LOCK SCREEN ===== -->
 <div id="pin-lock-screen">
@@ -420,6 +544,23 @@
                 </span>
             </p>
         </div>
+
+        <!-- DateTime + Theme -->
+        <div class="flex flex-wrap items-center gap-3">
+            <!-- DateTime Widget -->
+            <div id="datetime-widget">
+                <div id="dt-time">00:00:00</div>
+                <div id="dt-date">Loading...</div>
+            </div>
+
+            <!-- Theme Toggle -->
+            <div id="theme-toggle-wrap">
+                <button class="theme-btn active" id="theme-btn-dark" onclick="setTheme('dark')" title="Dark">🌙 Dark</button>
+                <button class="theme-btn" id="theme-btn-light" onclick="setTheme('light')" title="Light">☀️ Light</button>
+                <button class="theme-btn" id="theme-btn-time" onclick="setTheme('time')" title="Time Theme">🎨 Time</button>
+            </div>
+        </div>
+
         <div class="flex flex-wrap gap-2">
             <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
                 <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN
@@ -2034,6 +2175,408 @@ function generateClientPDF(group, includePayments) {
     const safeName = group.displayName.replace(/[^a-zA-Z0-9]/g,'_');
     doc.save(`LoanBook_${safeName}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
+
+// ============================================================
+// DATETIME (Sri Lanka Standard Time - UTC+5:30)
+// ============================================================
+function updateDateTime() {
+    const now = new Date();
+    // Sri Lanka Standard Time: UTC+5:30
+    const slst = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Colombo' }));
+    
+    const h = String(slst.getHours()).padStart(2,'0');
+    const m = String(slst.getMinutes()).padStart(2,'0');
+    const s = String(slst.getSeconds()).padStart(2,'0');
+    document.getElementById('dt-time').textContent = `${h}:${m}:${s}`;
+    
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const dayName = days[slst.getDay()];
+    const date = slst.getDate();
+    const month = months[slst.getMonth()];
+    const year = slst.getFullYear();
+    document.getElementById('dt-date').textContent = `${dayName}, ${date} ${month} ${year} · SLST`;
+    
+    // Update time theme if active
+    if (document.body.classList.contains('theme-time')) {
+        updateTimeTheme(slst.getHours(), slst.getMinutes());
+    }
+}
+setInterval(updateDateTime, 1000);
+updateDateTime();
+
+// ============================================================
+// THEME SYSTEM
+// ============================================================
+let currentTheme = localStorage.getItem('loanTrackerTheme') || 'dark';
+let timeThemeRAF = null;
+let sceneAnimFrame = null;
+
+function setTheme(theme) {
+    currentTheme = theme;
+    localStorage.setItem('loanTrackerTheme', theme);
+    
+    // Remove all theme classes
+    document.body.classList.remove('theme-light', 'theme-dark', 'theme-time');
+    document.body.style.backgroundColor = '';
+    document.body.style.color = '';
+    
+    // Update active buttons
+    document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(`theme-btn-${theme}`)?.classList.add('active');
+    
+    if (theme === 'dark') {
+        // Default dark - reset to original styles
+        document.body.style.backgroundColor = '#020617';
+        document.body.style.color = '#f8fafc';
+        stopTimeTheme();
+    } else if (theme === 'light') {
+        document.body.classList.add('theme-light');
+        stopTimeTheme();
+    } else if (theme === 'time') {
+        document.body.classList.add('theme-time');
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' }));
+        updateTimeTheme(now.getHours(), now.getMinutes());
+        startSceneAnimation();
+    }
+}
+
+function stopTimeTheme() {
+    if (sceneAnimFrame) { cancelAnimationFrame(sceneAnimFrame); sceneAnimFrame = null; }
+    const canvas = document.getElementById('time-canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}
+
+// Time-of-day color palettes
+const timePalettes = {
+    // 5-8: Dawn/Sunrise
+    dawn: {
+        sky: ['#1a0533', '#4a1942', '#b05030', '#f97316', '#fed7aa'],
+        ground: 'rgba(180,60,10,0.2)',
+        cardBg: 'rgba(30,10,50,0.55)',
+        timeColor: '#fed7aa',
+        label: 'Dawn 🌅',
+        stars: true, moon: false, sun: true, birds: true, clouds: false
+    },
+    // 8-12: Morning
+    morning: {
+        sky: ['#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd', '#e0f2fe'],
+        ground: 'rgba(16,185,129,0.1)',
+        cardBg: 'rgba(2,30,60,0.45)',
+        timeColor: '#0ea5e9',
+        label: 'Morning ☀️',
+        stars: false, moon: false, sun: true, birds: true, clouds: true
+    },
+    // 12-17: Afternoon
+    afternoon: {
+        sky: ['#0284c7', '#0ea5e9', '#38bdf8', '#7dd3fc', '#bae6fd'],
+        ground: 'rgba(16,185,129,0.08)',
+        cardBg: 'rgba(2,20,50,0.4)',
+        timeColor: '#38bdf8',
+        label: 'Afternoon 🌤️',
+        stars: false, moon: false, sun: true, birds: false, clouds: true
+    },
+    // 17-20: Sunset/Dusk
+    sunset: {
+        sky: ['#1e1b4b', '#7c3aed', '#c2410c', '#ea580c', '#fb923c'],
+        ground: 'rgba(124,58,237,0.15)',
+        cardBg: 'rgba(15,5,40,0.55)',
+        timeColor: '#fb923c',
+        label: 'Sunset 🌇',
+        stars: false, moon: false, sun: true, birds: true, clouds: false
+    },
+    // 20-22: Evening/Dusk
+    evening: {
+        sky: ['#0f0c29', '#1e1b4b', '#312e81', '#4338ca', '#6d28d9'],
+        ground: 'rgba(67,56,202,0.12)',
+        cardBg: 'rgba(10,8,30,0.6)',
+        timeColor: '#818cf8',
+        label: 'Evening 🌆',
+        stars: true, moon: true, birds: false, clouds: false
+    },
+    // 22-5: Night
+    night: {
+        sky: ['#020617', '#040927', '#060c33', '#0a0f3d', '#0d1347'],
+        ground: 'rgba(30,58,138,0.1)',
+        cardBg: 'rgba(2,6,18,0.65)',
+        timeColor: '#c7d2fe',
+        label: 'Night 🌙',
+        stars: true, moon: true, birds: false, clouds: false
+    }
+};
+
+function getPalette(hour) {
+    if (hour >= 5 && hour < 8)  return timePalettes.dawn;
+    if (hour >= 8 && hour < 12) return timePalettes.morning;
+    if (hour >= 12 && hour < 17) return timePalettes.afternoon;
+    if (hour >= 17 && hour < 20) return timePalettes.sunset;
+    if (hour >= 20 && hour < 22) return timePalettes.evening;
+    return timePalettes.night;
+}
+
+// Scene state
+const sceneState = {
+    birds: [],
+    stars: [],
+    clouds: [],
+    moonX: 0, moonY: 0,
+    sunX: 0, sunY: 0,
+    initialized: false
+};
+
+function initSceneState(palette, w, h) {
+    // Stars
+    sceneState.stars = [];
+    for (let i = 0; i < 120; i++) {
+        sceneState.stars.push({
+            x: Math.random() * w,
+            y: Math.random() * h * 0.7,
+            r: Math.random() * 1.5 + 0.3,
+            twinkleOffset: Math.random() * Math.PI * 2,
+            twinkleSpeed: 0.02 + Math.random() * 0.03
+        });
+    }
+    // Birds
+    sceneState.birds = [];
+    for (let i = 0; i < 5; i++) {
+        sceneState.birds.push({
+            x: Math.random() * w,
+            y: h * 0.1 + Math.random() * h * 0.25,
+            speed: 0.8 + Math.random() * 1.2,
+            flapOffset: Math.random() * Math.PI * 2,
+            scale: 0.6 + Math.random() * 0.6
+        });
+    }
+    // Clouds
+    sceneState.clouds = [];
+    for (let i = 0; i < 4; i++) {
+        sceneState.clouds.push({
+            x: Math.random() * w,
+            y: h * 0.08 + Math.random() * h * 0.18,
+            speed: 0.15 + Math.random() * 0.25,
+            scale: 0.8 + Math.random() * 1.2,
+            opacity: 0.55 + Math.random() * 0.35
+        });
+    }
+    sceneState.moonX = w * 0.8;
+    sceneState.moonY = h * 0.15;
+    sceneState.initialized = true;
+}
+
+let lastPaletteKey = '';
+function updateTimeTheme(hour, minute) {
+    const palette = getPalette(hour);
+    // Update CSS variable colors
+    document.body.style.backgroundColor = palette.sky[0];
+    document.querySelectorAll('.glass-card').forEach(el => {
+        el.style.background = palette.cardBg;
+    });
+    document.getElementById('dt-time').style.color = palette.timeColor;
+}
+
+let sceneTime = 0;
+function startSceneAnimation() {
+    const canvas = document.getElementById('time-canvas');
+    
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        sceneState.initialized = false;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+    
+    function draw() {
+        const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Colombo' }));
+        const hour = now.getHours();
+        const palette = getPalette(hour);
+        const w = canvas.width, h = canvas.height;
+        const ctx = canvas.getContext('2d');
+        
+        if (!sceneState.initialized || canvas.width !== w) {
+            initSceneState(palette, w, h);
+        }
+        
+        sceneTime += 0.016;
+        ctx.clearRect(0, 0, w, h);
+        
+        // Sky gradient
+        const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+        palette.sky.forEach((color, i) => {
+            skyGrad.addColorStop(i / (palette.sky.length - 1), color);
+        });
+        ctx.fillStyle = skyGrad;
+        ctx.fillRect(0, 0, w, h);
+        
+        // Stars
+        if (palette.stars) {
+            sceneState.stars.forEach(star => {
+                const twinkle = 0.4 + 0.6 * Math.abs(Math.sin(sceneTime * star.twinkleSpeed * 60 + star.twinkleOffset));
+                ctx.beginPath();
+                ctx.arc(star.x, star.y, star.r, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(255,255,240,${twinkle})`;
+                ctx.fill();
+                // Occasional sparkle
+                if (twinkle > 0.85) {
+                    ctx.beginPath();
+                    ctx.moveTo(star.x - star.r * 3, star.y);
+                    ctx.lineTo(star.x + star.r * 3, star.y);
+                    ctx.moveTo(star.x, star.y - star.r * 3);
+                    ctx.lineTo(star.x, star.y + star.r * 3);
+                    ctx.strokeStyle = `rgba(255,255,220,${(twinkle - 0.85) * 3})`;
+                    ctx.lineWidth = 0.5;
+                    ctx.stroke();
+                }
+            });
+        }
+        
+        // Moon
+        if (palette.moon) {
+            const mx = w * 0.78 + Math.sin(sceneTime * 0.05) * 5;
+            const my = h * 0.12 + Math.cos(sceneTime * 0.03) * 3;
+            const moonGlow = 12 + 6 * Math.sin(sceneTime * 0.5);
+            
+            // Glow
+            const moonGrad = ctx.createRadialGradient(mx, my, 5, mx, my, moonGlow * 4);
+            moonGrad.addColorStop(0, 'rgba(200,210,255,0.25)');
+            moonGrad.addColorStop(1, 'rgba(200,210,255,0)');
+            ctx.beginPath();
+            ctx.arc(mx, my, moonGlow * 4, 0, Math.PI * 2);
+            ctx.fillStyle = moonGrad;
+            ctx.fill();
+            
+            // Moon body
+            ctx.beginPath();
+            ctx.arc(mx, my, 28, 0, Math.PI * 2);
+            ctx.fillStyle = '#dde7ff';
+            ctx.shadowBlur = moonGlow;
+            ctx.shadowColor = 'rgba(200,210,255,0.8)';
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Craters
+            const craters = [{cx:-8,cy:-6,r:5},{cx:10,cy:8,r:4},{cx:-2,cy:12,r:3},{cx:12,cy:-10,r:3.5}];
+            craters.forEach(c => {
+                ctx.beginPath();
+                ctx.arc(mx + c.cx, my + c.cy, c.r, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(170,185,230,0.6)';
+                ctx.fill();
+            });
+        }
+        
+        // Sun
+        if (palette.sun) {
+            const sunProgress = hour >= 17 ? 1 - (hour - 17) / 5 : (hour - 5) / 12;
+            const sx = w * (0.1 + sunProgress * 0.8);
+            const sy = h * (0.15 + 0.2 * Math.sin(Math.PI * sunProgress));
+            
+            const sunColor = hour >= 17 ? '#f97316' : hour < 8 ? '#fb923c' : '#fbbf24';
+            const sunGlowColor = hour >= 17 ? 'rgba(249,115,22,0.3)' : 'rgba(251,191,36,0.3)';
+            
+            // Sun glow
+            const sGrad = ctx.createRadialGradient(sx, sy, 10, sx, sy, 80);
+            sGrad.addColorStop(0, sunGlowColor);
+            sGrad.addColorStop(1, 'rgba(0,0,0,0)');
+            ctx.beginPath();
+            ctx.arc(sx, sy, 80, 0, Math.PI * 2);
+            ctx.fillStyle = sGrad;
+            ctx.fill();
+            
+            // Sun body
+            ctx.beginPath();
+            ctx.arc(sx, sy, 30, 0, Math.PI * 2);
+            ctx.fillStyle = sunColor;
+            ctx.shadowBlur = 30;
+            ctx.shadowColor = sunColor;
+            ctx.fill();
+            ctx.shadowBlur = 0;
+            
+            // Rays (morning)
+            if (hour >= 8 && hour < 17) {
+                for (let i = 0; i < 8; i++) {
+                    const angle = (i / 8) * Math.PI * 2 + sceneTime * 0.3;
+                    const innerR = 36, outerR = 50;
+                    ctx.beginPath();
+                    ctx.moveTo(sx + Math.cos(angle) * innerR, sy + Math.sin(angle) * innerR);
+                    ctx.lineTo(sx + Math.cos(angle) * outerR, sy + Math.sin(angle) * outerR);
+                    ctx.strokeStyle = `rgba(251,191,36,0.5)`;
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+            }
+        }
+        
+        // Clouds
+        if (palette.clouds) {
+            sceneState.clouds.forEach(cloud => {
+                cloud.x += cloud.speed * 0.5;
+                if (cloud.x > w + 200) cloud.x = -200;
+                
+                ctx.save();
+                ctx.globalAlpha = cloud.opacity;
+                ctx.fillStyle = 'rgba(255,255,255,0.85)';
+                
+                const cx = cloud.x, cy = cloud.y, s = cloud.scale;
+                // Cloud shape: multiple circles
+                const puffs = [{x:0,y:0,r:30},{x:30,y:-15,r:22},{x:55,y:0,r:28},{x:80,y:0,r:20},{x:-25,y:5,r:18}];
+                puffs.forEach(p => {
+                    ctx.beginPath();
+                    ctx.arc(cx + p.x * s, cy + p.y * s, p.r * s, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.restore();
+            });
+        }
+        
+        // Birds
+        if (palette.birds) {
+            sceneState.birds.forEach(bird => {
+                bird.x += bird.speed * 0.8;
+                if (bird.x > w + 50) { bird.x = -50; bird.y = h * 0.05 + Math.random() * h * 0.25; }
+                
+                const flap = Math.sin(sceneTime * 8 + bird.flapOffset);
+                const s = bird.scale;
+                
+                ctx.save();
+                ctx.translate(bird.x, bird.y);
+                ctx.scale(s, s);
+                ctx.strokeStyle = 'rgba(30,30,30,0.7)';
+                ctx.lineWidth = 1.5;
+                ctx.lineCap = 'round';
+                
+                // Simple bird: two curved wings
+                ctx.beginPath();
+                ctx.moveTo(-12, 0);
+                ctx.quadraticCurveTo(-6, flap * 8, 0, 0);
+                ctx.quadraticCurveTo(6, flap * 8, 12, 0);
+                ctx.stroke();
+                
+                ctx.restore();
+            });
+        }
+        
+        // Horizon haze
+        const hazeGrad = ctx.createLinearGradient(0, h * 0.55, 0, h);
+        hazeGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        hazeGrad.addColorStop(1, palette.sky[palette.sky.length - 1] + '88');
+        ctx.fillStyle = hazeGrad;
+        ctx.fillRect(0, h * 0.55, w, h);
+        
+        sceneAnimFrame = requestAnimationFrame(draw);
+    }
+    
+    if (sceneAnimFrame) cancelAnimationFrame(sceneAnimFrame);
+    draw();
+}
+
+// Apply saved theme on load
+(function applyInitialTheme() {
+    const saved = localStorage.getItem('loanTrackerTheme') || 'dark';
+    // slight delay so DOM is ready
+    setTimeout(() => setTheme(saved), 100);
+})();
 
 // ============================================================
 // INIT
