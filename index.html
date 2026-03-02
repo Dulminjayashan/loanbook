@@ -74,6 +74,10 @@
             <button onclick="forceSyncFromCloud()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all">
                 <i data-lucide="refresh-cw" class="w-4 h-4"></i> REFRESH
             </button>
+            <label class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-emerald-600 cursor-pointer transition-all">
+                <i data-lucide="upload" class="w-4 h-4"></i> IMPORT
+                <input type="file" accept=".json" hidden onchange="importJSON(this)">
+            </label>
             <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
                 <i data-lucide="download" class="w-4 h-4"></i> EXPORT
             </button>
@@ -886,7 +890,31 @@ function updateCharts() {
     growthChart.data.datasets[0].data = sm.map(m=>md[m]); growthChart.update();
 }
 
-function downloadJSON() {
+function importJSON(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async e => {
+        try {
+            const data = JSON.parse(e.target.result);
+            if (!Array.isArray(data)) throw new Error('Invalid format');
+            loans = data;
+            loans.forEach(ensureDefaults);
+            refreshUI();
+            saveToLocalStorage();
+            setSyncStatus('saving', 'Uploading…');
+            showToast(`📥 ${loans.length} records imported! Uploading to cloud…`, 'blue');
+            await saveToCloud();
+            showToast('✅ Cloud ට successfully upload විය!', 'emerald');
+        } catch(err) {
+            showToast('❌ Invalid JSON file.', 'rose');
+        }
+    };
+    reader.readAsText(file);
+    input.value = '';
+}
+
+
     const s="data:text/json;charset=utf-8,"+encodeURIComponent(JSON.stringify(loans,null,2));
     const a=document.createElement('a'); a.setAttribute('href',s); a.setAttribute('download',`loan_book_${new Date().toISOString().split('T')[0]}.json`); a.click();
 }
