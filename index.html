@@ -7,6 +7,9 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;600;700&family=Orbitron:wght@700&display=swap');
         :root { --primary: #3b82f6; --secondary: #6366f1; --bg: #020617; }
@@ -131,8 +134,25 @@
         }
 
         /* =============================================
-           PIN LOCK SCREEN
+           EXPORT MODAL
         ============================================= */
+        .client-check-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 8px 12px; border-radius: 8px; cursor: pointer;
+            border: 1px solid rgba(255,255,255,0.04);
+            transition: all 0.15s;
+        }
+        .client-check-item:hover { background: rgba(255,255,255,0.04); border-color: rgba(99,102,241,0.3); }
+        .client-check-item.selected { background: rgba(99,102,241,0.08); border-color: rgba(99,102,241,0.3); }
+        .export-type-btn {
+            flex: 1; padding: 16px 12px; border-radius: 12px; cursor: pointer;
+            border: 2px solid rgba(255,255,255,0.06); background: rgba(15,23,42,0.5);
+            transition: all 0.2s; text-align: center;
+        }
+        .export-type-btn:hover { border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.08); }
+        .export-type-btn.active { border-color: #6366f1; background: rgba(99,102,241,0.15); }
+        @keyframes exportPop { from{opacity:0;transform:scale(0.95) translateY(10px);}to{opacity:1;transform:none;} }
+        .export-pop { animation: exportPop 0.25s cubic-bezier(0.34,1.56,0.64,1); }
         #pin-lock-screen {
             position: fixed;
             inset: 0;
@@ -387,7 +407,7 @@
             <button onclick="openDropboxSetup()" class="bg-slate-800 text-slate-400 px-3 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all" title="Dropbox Settings">
                 <i data-lucide="settings" class="w-4 h-4"></i>
             </button>
-            <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
+            <button onclick="openExportModal()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-violet-500 hover:text-violet-400 transition-all">
                 <i data-lucide="download" class="w-4 h-4"></i> EXPORT
             </button>
             <button onclick="lockApp()" class="bg-slate-800 text-slate-500 px-3 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-rose-500 hover:text-rose-400 transition-all" title="Lock App">
@@ -603,6 +623,110 @@
 <div id="image-preview-modal" class="hidden fixed inset-0 z-[200] flex items-center justify-center p-4">
     <div class="absolute inset-0 bg-black/95" onclick="closeModal('image-preview-modal')"></div>
     <div class="relative z-10 max-w-4xl w-full"><img id="preview-img" class="max-h-[85vh] mx-auto rounded-xl object-contain"><button onclick="closeModal('image-preview-modal')" class="absolute top-2 right-2 bg-slate-800 p-2 rounded-lg text-white"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+</div>
+
+<!-- ===== MODAL: EXPORT (EXCEL + PDF) ===== -->
+<div id="export-modal" class="hidden fixed inset-0 z-[150] flex items-center justify-center p-4">
+    <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeModal('export-modal')"></div>
+    <div class="glass-card w-full max-w-2xl relative z-10 border border-white/10 max-h-[90vh] flex flex-col export-pop">
+        <!-- Header -->
+        <div class="p-6 border-b border-slate-800 flex justify-between items-center flex-shrink-0">
+            <div>
+                <h2 class="text-lg font-bold flex items-center gap-2"><i data-lucide="download" class="w-5 h-5 text-violet-400"></i> Export Reports</h2>
+                <p class="text-slate-500 text-[10px] mt-0.5">Excel / PDF format එකකින් export කරන්න</p>
+            </div>
+            <button onclick="closeModal('export-modal')" class="bg-slate-800 p-2 rounded-lg text-slate-400 hover:text-white transition-all"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-6 custom-scrollbar space-y-6">
+            <!-- Export Type -->
+            <div>
+                <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Export Format</p>
+                <div class="flex gap-3">
+                    <div class="export-type-btn active" id="exp-btn-excel" onclick="setExportType('excel')">
+                        <div class="text-3xl mb-2">📊</div>
+                        <p class="text-sm font-bold text-white">Excel (.xlsx)</p>
+                        <p class="text-[9px] text-slate-500 mt-1">All clients / payments spreadsheet</p>
+                    </div>
+                    <div class="export-type-btn" id="exp-btn-pdf" onclick="setExportType('pdf')">
+                        <div class="text-3xl mb-2">📄</div>
+                        <p class="text-sm font-bold text-white">PDF Report</p>
+                        <p class="text-[9px] text-slate-500 mt-1">Detailed client reports</p>
+                    </div>
+                    <div class="export-type-btn" id="exp-btn-json" onclick="setExportType('json')">
+                        <div class="text-3xl mb-2">🗂️</div>
+                        <p class="text-sm font-bold text-white">JSON Backup</p>
+                        <p class="text-[9px] text-slate-500 mt-1">Full data backup file</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Client Selection -->
+            <div>
+                <div class="flex items-center justify-between mb-3">
+                    <p class="text-[9px] font-bold text-slate-500 uppercase">Client Selection</p>
+                    <div class="flex gap-2">
+                        <button onclick="selectAllClients()" class="text-[9px] text-blue-400 font-bold hover:text-blue-300 px-2 py-1 rounded border border-blue-500/30 hover:border-blue-400 transition-all">All Select</button>
+                        <button onclick="deselectAllClients()" class="text-[9px] text-slate-500 font-bold hover:text-slate-400 px-2 py-1 rounded border border-slate-700 transition-all">None</button>
+                    </div>
+                </div>
+
+                <!-- All / Individual toggle -->
+                <div class="flex gap-2 mb-3">
+                    <button onclick="setClientScope('all')" id="scope-all-btn" class="flex-1 py-2 rounded-lg text-[10px] font-bold border border-blue-500/40 bg-blue-500/10 text-blue-400 transition-all">📋 All Clients</button>
+                    <button onclick="setClientScope('select')" id="scope-select-btn" class="flex-1 py-2 rounded-lg text-[10px] font-bold border border-slate-700 text-slate-500 transition-all">☑️ Select Clients</button>
+                </div>
+
+                <!-- Client list (shown when select mode) -->
+                <div id="client-list-container" class="hidden space-y-1.5 max-h-52 overflow-y-auto custom-scrollbar">
+                    <!-- dynamically populated -->
+                </div>
+            </div>
+
+            <!-- Excel-specific options -->
+            <div id="excel-options">
+                <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Excel Options</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="xlsx-include-payments" checked class="w-3.5 h-3.5 accent-indigo-500">
+                        <span class="text-xs text-slate-300">Payment History Sheet</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="xlsx-include-summary" checked class="w-3.5 h-3.5 accent-indigo-500">
+                        <span class="text-xs text-slate-300">Summary Sheet</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="xlsx-active-only" class="w-3.5 h-3.5 accent-indigo-500">
+                        <span class="text-xs text-slate-300">Active Only</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- PDF-specific options -->
+            <div id="pdf-options" class="hidden">
+                <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">PDF Options</p>
+                <div class="grid grid-cols-2 gap-3">
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="pdf-include-payments" checked class="w-3.5 h-3.5 accent-indigo-500">
+                        <span class="text-xs text-slate-300">Payment History</span>
+                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" id="pdf-separate-files" class="w-3.5 h-3.5 accent-indigo-500">
+                        <span class="text-xs text-slate-300">Separate PDF per client</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="p-6 border-t border-slate-800 flex gap-3 flex-shrink-0">
+            <button onclick="runExport()" id="export-run-btn" class="flex-1 bg-violet-600 hover:bg-violet-500 text-white py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all">
+                <i data-lucide="download" class="w-4 h-4"></i>
+                <span id="export-run-label">Export Excel</span>
+            </button>
+            <button onclick="closeModal('export-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-xl font-bold text-sm hover:text-white transition-all">Cancel</button>
+        </div>
+    </div>
 </div>
 
 </div><!-- end #main-app -->
@@ -1311,6 +1435,451 @@ function renderOverviewCharts(collected,outstanding,totalLoaned){
         const data=groups.slice(0,8).map(g=>{const totalPaid=g.loans.reduce((s,l)=>{const interest=Math.round((l.amount*(l.interest/100))*l.period);const total=l.amount+interest;const paid=(l.payments||[]).reduce((ps,p)=>ps+p.amount,0);return s+paid;},0);return totalPaid;});
         comparisonChart=new Chart(barCtx2,{type:'bar',data:{labels,datasets:[{label:'Collected',data,backgroundColor:'rgba(99,102,241,0.7)',borderRadius:4,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>` Rs. ${ctx.raw.toLocaleString()}`}}},scales:{y:{display:false,beginAtZero:true},x:{grid:{display:false},ticks:{color:'#475569',font:{size:7}}}}}});
     }
+}
+
+// ============================================================
+// EXPORT SYSTEM — EXCEL + PDF + JSON
+// ============================================================
+let exportType = 'excel';
+let exportScope = 'all'; // 'all' | 'select'
+let selectedExportClients = new Set();
+
+function openExportModal() {
+    populateClientList();
+    setExportType('excel');
+    setClientScope('all');
+    openModal('export-modal');
+}
+
+function setExportType(type) {
+    exportType = type;
+    ['excel','pdf','json'].forEach(t => {
+        document.getElementById(`exp-btn-${t}`).classList.toggle('active', t === type);
+    });
+    document.getElementById('excel-options').classList.toggle('hidden', type !== 'excel');
+    document.getElementById('pdf-options').classList.toggle('hidden', type !== 'pdf');
+    const labels = { excel:'Export Excel (.xlsx)', pdf:'Export PDF', json:'Export JSON Backup' };
+    document.getElementById('export-run-label').textContent = labels[type];
+}
+
+function setClientScope(scope) {
+    exportScope = scope;
+    document.getElementById('scope-all-btn').className = `flex-1 py-2 rounded-lg text-[10px] font-bold border transition-all ${scope==='all'?'border-blue-500/40 bg-blue-500/10 text-blue-400':'border-slate-700 text-slate-500'}`;
+    document.getElementById('scope-select-btn').className = `flex-1 py-2 rounded-lg text-[10px] font-bold border transition-all ${scope==='select'?'border-blue-500/40 bg-blue-500/10 text-blue-400':'border-slate-700 text-slate-500'}`;
+    document.getElementById('client-list-container').classList.toggle('hidden', scope !== 'select');
+}
+
+function populateClientList() {
+    const container = document.getElementById('client-list-container');
+    const groups = groupByClient(loans);
+    container.innerHTML = '';
+    selectedExportClients = new Set(groups.map(g => g.displayName));
+    groups.forEach(group => {
+        const interest = group.loans.reduce((s,l) => s + Math.round((l.amount*(l.interest/100))*l.period), 0);
+        const totalAmt = group.loans.reduce((s,l) => s+l.amount, 0) + interest;
+        const paid = group.loans.reduce((s,l) => s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0), 0);
+        const pct = totalAmt > 0 ? Math.min(100,Math.round((paid/totalAmt)*100)) : 0;
+        const isPaid = group.loans.every(l => isLoanPaid(l));
+        const photoSrc = group.loans[0].photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=6366f1&color=fff`;
+        const div = document.createElement('div');
+        div.className = 'client-check-item selected';
+        div.id = `exp-client-${group.displayName.replace(/\W/g,'_')}`;
+        div.innerHTML = `
+            <input type="checkbox" checked class="w-3.5 h-3.5 accent-indigo-500 flex-shrink-0" onchange="toggleExportClient('${group.displayName.replace(/'/g,"\\'")}', this.checked, this.closest('.client-check-item'))">
+            <img src="${photoSrc}" class="w-7 h-7 rounded-lg object-cover flex-shrink-0">
+            <div class="flex-1 min-w-0">
+                <div class="text-xs font-bold text-white truncate">${group.displayName}</div>
+                <div class="text-[8px] text-slate-500">${group.loans.length} loan${group.loans.length>1?'s':''} · ${pct}% paid</div>
+            </div>
+            <span class="text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${isPaid?'bg-emerald-500/15 text-emerald-400':'bg-rose-500/10 text-rose-400'}">${isPaid?'✓ Done':'Active'}</span>`;
+        container.appendChild(div);
+    });
+}
+
+function toggleExportClient(name, checked, el) {
+    if (checked) { selectedExportClients.add(name); el.classList.add('selected'); }
+    else { selectedExportClients.delete(name); el.classList.remove('selected'); }
+}
+function selectAllClients() {
+    document.querySelectorAll('#client-list-container input[type=checkbox]').forEach(cb => { cb.checked=true; cb.closest('.client-check-item').classList.add('selected'); });
+    groupByClient(loans).forEach(g => selectedExportClients.add(g.displayName));
+}
+function deselectAllClients() {
+    document.querySelectorAll('#client-list-container input[type=checkbox]').forEach(cb => { cb.checked=false; cb.closest('.client-check-item').classList.remove('selected'); });
+    selectedExportClients.clear();
+}
+
+function getExportLoans() {
+    if (exportScope === 'all') return loans;
+    return loans.filter(l => selectedExportClients.has(l.name));
+}
+
+function runExport() {
+    const btn = document.getElementById('export-run-btn');
+    const origHTML = btn.innerHTML;
+    btn.innerHTML = `<svg class="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 11-6.219-8.56"/></svg> Generating...`;
+    btn.disabled = true;
+    setTimeout(() => {
+        try {
+            if (exportType === 'excel') exportExcel();
+            else if (exportType === 'pdf') exportPDF();
+            else downloadJSON();
+            closeModal('export-modal');
+        } catch(e) {
+            console.error(e);
+            showToast('❌ Export failed: ' + e.message, 'rose');
+        } finally {
+            btn.innerHTML = origHTML;
+            btn.disabled = false;
+            setTimeout(initIcons, 50);
+        }
+    }, 100);
+}
+
+// ============================================================
+// EXCEL EXPORT (SheetJS)
+// ============================================================
+function exportExcel() {
+    const targetLoans = getExportLoans();
+    if (!targetLoans.length) { showToast('⚠️ Clients select කරන්න!', 'amber'); return; }
+    const includePay = document.getElementById('xlsx-include-payments').checked;
+    const includeSummary = document.getElementById('xlsx-include-summary').checked;
+    const activeOnly = document.getElementById('xlsx-active-only').checked;
+    const filtered = activeOnly ? targetLoans.filter(l => !isLoanPaid(l)) : targetLoans;
+
+    const wb = XLSX.utils.book_new();
+
+    // ── SUMMARY SHEET ──────────────────────────────────────
+    if (includeSummary) {
+        const summaryData = [];
+        // Title row
+        summaryData.push(['LOAN TRACKER PRO — Client Summary', '', '', '', '', '', '', '']);
+        summaryData.push([`Generated: ${new Date().toLocaleString()}`, '', '', '', '', '', '', '']);
+        summaryData.push([]);
+        summaryData.push(['Client Name', 'Loan Date', 'Principal (Rs.)', 'Interest Rate %', 'Period (Months)', 'Interest (Rs.)', 'Total Due (Rs.)', 'Total Paid (Rs.)', 'Balance (Rs.)', 'Recovery %', 'Status']);
+        const groups = groupByClient(filtered);
+        groups.forEach(group => {
+            group.loans.forEach((loan, li) => {
+                const interest = Math.round((loan.amount*(loan.interest/100))*loan.period);
+                const total = loan.amount + interest;
+                const paid = (loan.payments||[]).reduce((s,p)=>s+p.amount,0);
+                const due = Math.max(0, total - paid);
+                const pct = total > 0 ? Math.round((paid/total)*100) : 0;
+                summaryData.push([
+                    li === 0 ? group.displayName : `  └ Loan #${li+1}`,
+                    loan.date,
+                    loan.amount,
+                    loan.interest,
+                    loan.period,
+                    interest,
+                    total,
+                    paid,
+                    due,
+                    pct + '%',
+                    due <= 0 ? '✓ PAID' : 'Active'
+                ]);
+            });
+        });
+        // Totals row
+        const totals = filtered.reduce((acc, loan) => {
+            const interest = Math.round((loan.amount*(loan.interest/100))*loan.period);
+            const total = loan.amount + interest;
+            const paid = (loan.payments||[]).reduce((s,p)=>s+p.amount,0);
+            acc.principal += loan.amount; acc.interest += interest; acc.total += total;
+            acc.paid += paid; acc.balance += Math.max(0, total-paid);
+            return acc;
+        }, {principal:0,interest:0,total:0,paid:0,balance:0});
+        summaryData.push([]);
+        summaryData.push(['TOTAL', '', totals.principal, '', '', totals.interest, totals.total, totals.paid, totals.balance, '', '']);
+
+        const ws = XLSX.utils.aoa_to_sheet(summaryData);
+        // Column widths
+        ws['!cols'] = [22,12,16,14,16,16,16,16,16,12,10].map(w=>({wch:w}));
+        // Merge title
+        ws['!merges'] = [
+            {s:{r:0,c:0}, e:{r:0,c:10}},
+            {s:{r:1,c:0}, e:{r:1,c:10}},
+        ];
+        XLSX.utils.book_append_sheet(wb, ws, 'Client Summary');
+    }
+
+    // ── PAYMENTS SHEET ─────────────────────────────────────
+    if (includePay) {
+        const payData = [];
+        payData.push(['LOAN TRACKER PRO — Payment History', '', '', '', '', '']);
+        payData.push([]);
+        payData.push(['Client Name', 'Loan Date', 'Principal (Rs.)', 'Payment Date', 'Amount Paid (Rs.)', 'Note', 'Running Total (Rs.)']);
+        filtered.forEach(loan => {
+            const payments = [...(loan.payments||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
+            if (payments.length === 0) {
+                payData.push([loan.name, loan.date, loan.amount, '—', '—', 'No payments yet', '—']);
+            } else {
+                let running = 0;
+                payments.forEach((p, pi) => {
+                    running += p.amount;
+                    payData.push([
+                        pi === 0 ? loan.name : '',
+                        pi === 0 ? loan.date : '',
+                        pi === 0 ? loan.amount : '',
+                        p.date, p.amount, p.note || '', running
+                    ]);
+                });
+            }
+        });
+        const ws2 = XLSX.utils.aoa_to_sheet(payData);
+        ws2['!cols'] = [22,12,16,14,16,28,16].map(w=>({wch:w}));
+        ws2['!merges'] = [{s:{r:0,c:0}, e:{r:0,c:6}}];
+        XLSX.utils.book_append_sheet(wb, ws2, 'Payment History');
+    }
+
+    // ── PER CLIENT SHEETS ──────────────────────────────────
+    const groups = groupByClient(filtered);
+    groups.forEach(group => {
+        const sheetName = group.displayName.replace(/[:\\\/\?\*\[\]]/g,'').substring(0, 28);
+        const rows = [];
+        rows.push([`Client: ${group.displayName}`, '', '', '', '']);
+        rows.push([]);
+        group.loans.forEach((loan, li) => {
+            const interest = Math.round((loan.amount*(loan.interest/100))*loan.period);
+            const total = loan.amount + interest;
+            const paid = (loan.payments||[]).reduce((s,p)=>s+p.amount,0);
+            const due = Math.max(0, total - paid);
+            rows.push([`Loan #${li+1}`, '', '', '', '']);
+            rows.push(['Principal', loan.amount, '', 'Interest', interest]);
+            rows.push(['Total Due', total, '', 'Total Paid', paid]);
+            rows.push(['Balance', due, '', 'Recovery', `${total>0?Math.round((paid/total)*100):0}%`]);
+            rows.push(['Date', loan.date, '', 'Period', `${loan.period} Months`]);
+            rows.push(['Interest Rate', `${loan.interest}%`, '', 'Status', due<=0?'✓ PAID':'Active']);
+            rows.push([]);
+            rows.push(['Payment Date', 'Amount (Rs.)', 'Note', 'Running Total', '']);
+            const payments = [...(loan.payments||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
+            let running = 0;
+            if (payments.length === 0) rows.push(['No payments', '', '', '', '']);
+            payments.forEach(p => { running+=p.amount; rows.push([p.date, p.amount, p.note||'', running, '']); });
+            rows.push([]);
+        });
+        const ws3 = XLSX.utils.aoa_to_sheet(rows);
+        ws3['!cols'] = [18,14,4,16,14].map(w=>({wch:w}));
+        XLSX.utils.book_append_sheet(wb, ws3, sheetName);
+    });
+
+    const date = new Date().toISOString().split('T')[0];
+    XLSX.writeFile(wb, `LoanBook_Export_${date}.xlsx`);
+    showToast(`✅ Excel export සාර්ථකයි! (${filtered.length} loans)`, 'emerald');
+}
+
+// ============================================================
+// PDF EXPORT (jsPDF + autoTable)
+// ============================================================
+function exportPDF() {
+    const { jsPDF } = window.jspdf;
+    const targetLoans = getExportLoans();
+    if (!targetLoans.length) { showToast('⚠️ Clients select කරන්න!', 'amber'); return; }
+    const includePayments = document.getElementById('pdf-include-payments').checked;
+    const separateFiles = document.getElementById('pdf-separate-files').checked;
+    const groups = groupByClient(targetLoans);
+
+    if (separateFiles) {
+        groups.forEach(group => generateClientPDF(group, includePayments));
+        showToast(`✅ ${groups.length} PDF files downloaded!`, 'emerald');
+    } else {
+        generateCombinedPDF(groups, includePayments);
+    }
+}
+
+function pdfHeader(doc, title, subtitle='') {
+    // Dark header bar
+    doc.setFillColor(2, 6, 23);
+    doc.rect(0, 0, 210, 28, 'F');
+    doc.setFillColor(59, 130, 246);
+    doc.rect(0, 0, 4, 28, 'F');
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(14); doc.setFont('helvetica','bold');
+    doc.text('LOAN TRACKER PRO', 12, 11);
+    doc.setFontSize(8); doc.setFont('helvetica','normal');
+    doc.setTextColor(148, 163, 184);
+    doc.text(title, 12, 19);
+    if (subtitle) doc.text(subtitle, 12, 24);
+    doc.setTextColor(148,163,184);
+    doc.text(`Generated: ${new Date().toLocaleString()}`, 210-12, 11, {align:'right'});
+    return 34;
+}
+
+function generateCombinedPDF(groups, includePayments) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    let y = pdfHeader(doc, 'All Clients Report', `${groups.length} clients`);
+
+    // Summary table
+    const summaryRows = [];
+    groups.forEach(group => {
+        group.loans.forEach((loan, li) => {
+            const interest = Math.round((loan.amount*(loan.interest/100))*loan.period);
+            const total = loan.amount + interest;
+            const paid = (loan.payments||[]).reduce((s,p)=>s+p.amount,0);
+            const due = Math.max(0, total-paid);
+            const pct = total > 0 ? Math.round((paid/total)*100) : 0;
+            summaryRows.push([
+                li===0 ? group.displayName : `  ↳ #${li+1}`,
+                loan.date,
+                'Rs. '+loan.amount.toLocaleString(),
+                loan.interest+'%',
+                'Rs. '+total.toLocaleString(),
+                'Rs. '+paid.toLocaleString(),
+                'Rs. '+due.toLocaleString(),
+                pct+'%',
+                due<=0 ? 'PAID' : 'Active'
+            ]);
+        });
+    });
+
+    doc.autoTable({
+        startY: y,
+        head: [['Client', 'Date', 'Principal', 'Rate', 'Total Due', 'Paid', 'Balance', '%', 'Status']],
+        body: summaryRows,
+        theme: 'grid',
+        styles: { fontSize: 7, cellPadding: 2, textColor:[30,30,30] },
+        headStyles: { fillColor:[59,130,246], textColor:255, fontStyle:'bold', fontSize:7 },
+        alternateRowStyles: { fillColor:[248,250,252] },
+        columnStyles: {
+            0:{cellWidth:32}, 1:{cellWidth:18}, 2:{cellWidth:20}, 3:{cellWidth:12},
+            4:{cellWidth:20}, 5:{cellWidth:20}, 6:{cellWidth:20}, 7:{cellWidth:10}, 8:{cellWidth:14}
+        },
+        didParseCell: function(data) {
+            if (data.column.index===8 && data.cell.raw==='PAID') {
+                data.cell.styles.textColor=[16,185,129]; data.cell.styles.fontStyle='bold';
+            }
+            if (data.column.index===8 && data.cell.raw==='Active') {
+                data.cell.styles.textColor=[244,63,94];
+            }
+        }
+    });
+    y = doc.lastAutoTable.finalY + 8;
+
+    // Payments per client
+    if (includePayments) {
+        groups.forEach(group => {
+            group.loans.forEach((loan, li) => {
+                const payments = [...(loan.payments||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
+                if (!payments.length) return;
+                if (y > 250) { doc.addPage(); y = pdfHeader(doc, 'Payment Details'); }
+                doc.setFontSize(9); doc.setFont('helvetica','bold');
+                doc.setTextColor(59,130,246);
+                doc.text(`${group.displayName}${group.loans.length>1?' — Loan #'+(li+1):''}  ·  Payments`, 14, y);
+                y += 3;
+                let running = 0;
+                const payRows = payments.map(p => { running+=p.amount; return [p.date, 'Rs. '+p.amount.toLocaleString(), p.note||'—', 'Rs. '+running.toLocaleString()]; });
+                doc.autoTable({
+                    startY: y, head:[['Date','Amount','Note','Cumulative']],
+                    body: payRows, theme:'striped',
+                    styles:{fontSize:7,cellPadding:2},
+                    headStyles:{fillColor:[16,185,129],textColor:255,fontStyle:'bold',fontSize:7},
+                    columnStyles:{0:{cellWidth:25},1:{cellWidth:30},2:{cellWidth:80},3:{cellWidth:35}}
+                });
+                y = doc.lastAutoTable.finalY + 6;
+            });
+        });
+    }
+
+    // Footer
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i=1; i<=pageCount; i++) {
+        doc.setPage(i); doc.setFontSize(7); doc.setTextColor(148,163,184);
+        doc.text(`Page ${i} of ${pageCount}  ·  Loan Tracker Pro`, 105, 292, {align:'center'});
+    }
+    doc.save(`LoanBook_AllClients_${new Date().toISOString().split('T')[0]}.pdf`);
+    showToast(`✅ PDF export සාර්ථකයි!`, 'emerald');
+}
+
+function generateClientPDF(group, includePayments) {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+
+    const interest_tot = group.loans.reduce((s,l)=>s+Math.round((l.amount*(l.interest/100))*l.period),0);
+    const total_tot = group.loans.reduce((s,l)=>s+l.amount,0) + interest_tot;
+    const paid_tot = group.loans.reduce((s,l)=>s+(l.payments||[]).reduce((ps,p)=>ps+p.amount,0),0);
+    const due_tot = Math.max(0, total_tot - paid_tot);
+    const pct_tot = total_tot > 0 ? Math.round((paid_tot/total_tot)*100) : 0;
+
+    let y = pdfHeader(doc, `Client Report: ${group.displayName}`, `${group.loans.length} loan${group.loans.length>1?'s':''}`);
+
+    // Client summary card
+    doc.setFillColor(248,250,252); doc.roundedRect(14, y, 182, 28, 3, 3, 'F');
+    doc.setFillColor(59,130,246); doc.roundedRect(14, y, 3, 28, 1, 1, 'F');
+    doc.setTextColor(30,30,30); doc.setFontSize(11); doc.setFont('helvetica','bold');
+    doc.text(group.displayName, 22, y+8);
+    doc.setFontSize(8); doc.setFont('helvetica','normal'); doc.setTextColor(100,116,139);
+    doc.text(`Total Principal: Rs. ${group.loans.reduce((s,l)=>s+l.amount,0).toLocaleString()}`, 22, y+15);
+    doc.text(`Recovery: ${pct_tot}%  ·  Due: Rs. ${due_tot.toLocaleString()}`, 22, y+21);
+    // Recovery bar
+    doc.setFillColor(226,232,240); doc.roundedRect(110, y+14, 80, 5, 2, 2, 'F');
+    const barW = Math.round((pct_tot/100)*80);
+    if (barW > 0) {
+        const col = pct_tot>=60?[16,185,129]:pct_tot>=30?[245,158,11]:[244,63,94];
+        doc.setFillColor(...col); doc.roundedRect(110, y+14, barW, 5, 2, 2, 'F');
+    }
+    doc.setTextColor(59,130,246); doc.setFontSize(8); doc.setFont('helvetica','bold');
+    doc.text(`${pct_tot}% Paid`, 192, y+18.5, {align:'right'});
+    y += 34;
+
+    // Per-loan details
+    group.loans.forEach((loan, li) => {
+        const interest = Math.round((loan.amount*(loan.interest/100))*loan.period);
+        const total = loan.amount + interest;
+        const paid = (loan.payments||[]).reduce((s,p)=>s+p.amount,0);
+        const due = Math.max(0, total-paid);
+        const pct = total > 0 ? Math.round((paid/total)*100) : 0;
+        if (y > 230) { doc.addPage(); y = pdfHeader(doc, `${group.displayName} — continued`); }
+
+        doc.setFontSize(9); doc.setFont('helvetica','bold'); doc.setTextColor(59,130,246);
+        doc.text(`Loan #${li+1}`, 14, y); y += 4;
+
+        doc.autoTable({
+            startY: y,
+            body: [
+                ['Principal', 'Rs. '+loan.amount.toLocaleString(), 'Interest Rate', loan.interest+'%'],
+                ['Interest', 'Rs. '+interest.toLocaleString(), 'Period', loan.period+' Months'],
+                ['Total Due', 'Rs. '+total.toLocaleString(), 'Date', loan.date],
+                ['Total Paid', 'Rs. '+paid.toLocaleString(), 'Balance', 'Rs. '+due.toLocaleString()],
+                ['Recovery', pct+'%', 'Status', due<=0?'✓ FULLY PAID':'Active'],
+            ],
+            theme: 'plain',
+            styles: { fontSize:8, cellPadding:2.5 },
+            columnStyles: {
+                0:{fontStyle:'bold',textColor:[100,116,139],cellWidth:30},
+                1:{cellWidth:45,textColor:[30,30,30]},
+                2:{fontStyle:'bold',textColor:[100,116,139],cellWidth:30},
+                3:{cellWidth:45,textColor:[30,30,30]}
+            },
+            didParseCell(d){ if(d.column.index===3&&d.row.index===4&&due<=0){d.cell.styles.textColor=[16,185,129];d.cell.styles.fontStyle='bold';} }
+        });
+        y = doc.lastAutoTable.finalY + 4;
+
+        if (includePayments) {
+            const payments = [...(loan.payments||[])].sort((a,b)=>new Date(a.date)-new Date(b.date));
+            if (payments.length > 0) {
+                let running = 0;
+                const payRows = payments.map(p => { running+=p.amount; return [p.date,'Rs. '+p.amount.toLocaleString(),p.note||'—','Rs. '+running.toLocaleString()]; });
+                doc.autoTable({
+                    startY: y, head:[['Date','Amount','Note','Running Total']],
+                    body: payRows, theme:'striped',
+                    styles:{fontSize:7,cellPadding:2},
+                    headStyles:{fillColor:[16,185,129],textColor:255,fontStyle:'bold',fontSize:7},
+                    columnStyles:{0:{cellWidth:25},1:{cellWidth:30},2:{cellWidth:85},3:{cellWidth:30}}
+                });
+                y = doc.lastAutoTable.finalY + 6;
+            }
+        }
+        y += 4;
+    });
+
+    const pageCount = doc.internal.getNumberOfPages();
+    for (let i=1;i<=pageCount;i++) {
+        doc.setPage(i); doc.setFontSize(7); doc.setTextColor(148,163,184);
+        doc.text(`Page ${i} of ${pageCount}  ·  ${group.displayName}  ·  Loan Tracker Pro`, 105, 292, {align:'center'});
+    }
+    const safeName = group.displayName.replace(/[^a-zA-Z0-9]/g,'_');
+    doc.save(`LoanBook_${safeName}_${new Date().toISOString().split('T')[0]}.pdf`);
 }
 
 // ============================================================
