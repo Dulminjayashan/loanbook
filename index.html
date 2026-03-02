@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pro Loan Book - Enhanced</title>
+    <title>Pro Loan Book - Dropbox Sync</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
@@ -77,8 +77,6 @@
         .doc-item { transition: background 0.15s; }
         .doc-item:hover { background: rgba(255,255,255,0.04); }
 
-        .badge { display: inline-flex; align-items: center; gap: 4px; }
-
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .fade-in { animation: fadeIn 0.2s ease; }
 
@@ -142,7 +140,6 @@
             background: linear-gradient(90deg, #10b981, #3b82f6);
         }
 
-        /* Toast notification */
         .toast {
             position: fixed;
             top: 1.5rem;
@@ -158,9 +155,9 @@
             gap: 0.5rem;
             animation: fadeIn 0.25s ease;
             box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+            white-space: nowrap;
         }
 
-        /* Attachment count badge */
         .att-count {
             display: inline-flex;
             align-items: center;
@@ -175,9 +172,123 @@
             border-radius: 99px;
             margin-left: 4px;
         }
+
+        /* Dropbox sync status indicator */
+        .sync-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 4px;
+        }
+        .sync-dot.synced { background: #10b981; box-shadow: 0 0 6px #10b981; }
+        .sync-dot.pending { background: #f59e0b; animation: pulse 1.5s infinite; }
+        .sync-dot.error { background: #f43f5e; }
+        .sync-dot.loading { background: #3b82f6; animation: pulse 1s infinite; }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+
+        /* Dropbox upload modal */
+        .dropbox-upload-modal {
+            background: rgba(15, 23, 42, 0.98);
+            border: 1px solid rgba(0, 97, 255, 0.3);
+        }
+
+        .dropbox-btn {
+            background: #0061FF;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            font-weight: 700;
+            font-size: 0.875rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.2s;
+            text-decoration: none;
+        }
+        .dropbox-btn:hover { background: #0052d9; }
+
+        /* Unsaved changes banner */
+        #unsaved-banner {
+            display: none;
+            position: fixed;
+            bottom: 1.5rem;
+            right: 1.5rem;
+            z-index: 500;
+            animation: fadeIn 0.3s ease;
+        }
     </style>
 </head>
 <body class="p-4 md:p-6 custom-scrollbar">
+
+    <!-- Unsaved Changes Banner -->
+    <div id="unsaved-banner">
+        <div class="glass-card border border-amber-500/30 p-3 flex items-center gap-3 shadow-2xl">
+            <span class="sync-dot pending"></span>
+            <span class="text-xs text-amber-400 font-bold">Unsaved changes</span>
+            <button onclick="triggerDropboxSave()" class="bg-amber-500 hover:bg-amber-400 text-black text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5">
+                <svg class="w-3 h-3" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L6.5 7.5h3.5V14h4V7.5H17.5L12 2zm-7 16v2h14v-2H5z"/></svg>
+                Save to Dropbox
+            </button>
+        </div>
+    </div>
+
+    <!-- Dropbox Save Modal -->
+    <div id="dropbox-save-modal" class="hidden fixed inset-0 z-[300] flex items-center justify-center p-4">
+        <div class="absolute inset-0 bg-slate-950/90 backdrop-blur-md" onclick="closeModal('dropbox-save-modal')"></div>
+        <div class="dropbox-upload-modal glass-card w-full max-w-md relative z-10 p-6 rounded-2xl">
+            <div class="text-center mb-6">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center">
+                    <svg class="w-8 h-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2L6.5 7.5h3.5V14h4V7.5H17.5L12 2zm-7 16v2h14v-2H5z"/>
+                    </svg>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-1">Save to Dropbox</h3>
+                <p class="text-slate-500 text-xs">ඔබේ data Dropbox file එකට upload කරන්න</p>
+            </div>
+
+            <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 mb-5 space-y-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-lg">1️⃣</span>
+                    <div>
+                        <p class="text-xs font-bold text-white">Download updated JSON</p>
+                        <p class="text-[10px] text-slate-500">Updated data file downlaod කරන්න</p>
+                    </div>
+                </div>
+                <button onclick="downloadJSONForDropbox()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all flex items-center justify-center gap-2">
+                    <i data-lucide="download" class="w-3.5 h-3.5"></i>
+                    Download data.json
+                </button>
+
+                <div class="border-t border-slate-800 pt-3 flex items-center gap-2">
+                    <span class="text-lg">2️⃣</span>
+                    <div>
+                        <p class="text-xs font-bold text-white">Upload to Dropbox</p>
+                        <p class="text-[10px] text-slate-500">Dropbox folder open කරලා file replace කරන්න</p>
+                    </div>
+                </div>
+                <a href="https://www.dropbox.com/home" target="_blank" class="dropbox-btn w-full justify-center text-xs">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
+                    Open Dropbox
+                </a>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="markAsSaved()" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all">
+                    ✓ Mark as Saved
+                </button>
+                <button onclick="closeModal('dropbox-save-modal')" class="px-4 py-2.5 bg-slate-800 text-slate-400 rounded-lg font-bold text-xs">
+                    Later
+                </button>
+            </div>
+        </div>
+    </div>
 
     <div class="max-w-[1600px] mx-auto">
         <!-- Header -->
@@ -186,8 +297,12 @@
                 <h1 class="text-2xl font-bold tracking-tight text-white mb-1">
                     LOAN TRACKER <span class="text-blue-500">PRO</span>
                 </h1>
-                <p class="text-slate-500 text-xs font-medium">
-                    ණය කළමනාකරණ පද්ධතිය | Loan Management System
+                <p class="text-slate-500 text-xs font-medium flex items-center gap-2">
+                    ණය කළමනාකරණ පද්ධතිය
+                    <span id="sync-status" class="flex items-center gap-1 ml-2">
+                        <span class="sync-dot loading" id="sync-dot"></span>
+                        <span id="sync-label" class="text-[10px] font-bold text-blue-400">Connecting to Dropbox...</span>
+                    </span>
                 </p>
             </div>
             
@@ -195,11 +310,15 @@
                 <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
                     <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN / නව ණය
                 </button>
-                <button onclick="setFileHandle()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> SYNC / සමමුහුර්ත
+                <button onclick="reloadFromDropbox()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all">
+                    <svg class="w-4 h-4 text-blue-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l-5 3.5L12 9 7 12.5 12 16l-5 3.5 5-3.5 5 3.5-5-3.5 5-3.5L12 9l5-3.5L12 2z"/></svg>
+                    Reload Dropbox
+                </button>
+                <button onclick="triggerDropboxSave()" class="bg-blue-700 hover:bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-blue-600 transition-all">
+                    <i data-lucide="upload-cloud" class="w-4 h-4"></i> SAVE / සුරකින්න
                 </button>
                 <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
-                    <i data-lucide="download" class="w-4 h-4"></i> EXPORT / පිටපත්
+                    <i data-lucide="download" class="w-4 h-4"></i> EXPORT
                 </button>
             </div>
         </header>
@@ -427,7 +546,6 @@
         <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg" onclick="closeModal('sheet-modal')"></div>
         <div class="glass-card w-full max-w-5xl h-[90vh] relative z-10 flex flex-col overflow-hidden border border-white/5">
             
-            <!-- Sheet Header -->
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/40 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <img id="sheet-photo" class="w-12 h-12 rounded-lg object-cover border border-slate-700">
@@ -450,7 +568,6 @@
                 </div>
             </div>
 
-            <!-- Tabs -->
             <div class="flex gap-1 px-5 pt-4 pb-0 flex-shrink-0">
                 <button onclick="switchTab('payments-tab')" id="tab-payments" class="tab-btn active px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
                     💰 Payments / ගෙවීම්
@@ -460,13 +577,9 @@
                 </button>
             </div>
 
-            <!-- Tab Content -->
             <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
-
                 <!-- PAYMENTS TAB -->
                 <div id="payments-tab" class="tab-content">
-                    
-                    <!-- CHARTS ROW -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 self-start">Recovery / ප්‍රතිලාභය</p>
@@ -482,23 +595,16 @@
                                 <span class="flex items-center gap-1 text-[9px] text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Due</span>
                             </div>
                         </div>
-
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Breakdown / ගණනය</p>
-                            <div class="relative h-36">
-                                <canvas id="client-bar-chart"></canvas>
-                            </div>
+                            <div class="relative h-36"><canvas id="client-bar-chart"></canvas></div>
                         </div>
-
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Payment Timeline</p>
-                            <div class="relative h-36">
-                                <canvas id="client-line-chart"></canvas>
-                            </div>
+                            <div class="relative h-36"><canvas id="client-line-chart"></canvas></div>
                         </div>
                     </div>
 
-                    <!-- STATS + FORM + TABLE -->
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
                         <div class="lg:col-span-4 space-y-3">
                             <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
@@ -547,14 +653,11 @@
                 <!-- ATTACHMENTS TAB -->
                 <div id="attachments-tab" class="tab-content hidden">
                     <div class="space-y-4">
-                        <!-- Storage info bar -->
                         <div id="storage-info" class="hidden bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2 text-[10px] text-amber-400 flex items-center gap-2">
                             <i data-lucide="alert-triangle" class="w-3.5 h-3.5 flex-shrink-0"></i>
                             <span id="storage-info-text"></span>
                         </div>
-
-                        <div id="drop-zone"
-                            class="drop-zone rounded-xl p-8 text-center cursor-pointer"
+                        <div id="drop-zone" class="drop-zone rounded-xl p-8 text-center cursor-pointer"
                             onclick="document.getElementById('doc-input').click()"
                             ondragover="handleDragOver(event)"
                             ondragleave="handleDragLeave(event)"
@@ -563,7 +666,6 @@
                             <i data-lucide="upload-cloud" class="w-10 h-10 mx-auto text-slate-600 mb-3"></i>
                             <p class="text-sm font-bold text-slate-400 mb-1">Drop files here or click to upload</p>
                             <p class="text-[10px] text-slate-600">PDFs, Images, Documents — Any file type</p>
-                            <p class="text-[9px] text-slate-700 mt-2">ගොනු browser session ගෙන් save වේ. Export/Import JSON ඔස්සේ permanent save කරන්න.</p>
                         </div>
                         <div id="attachment-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3"></div>
                         <div id="no-attachments" class="text-center py-6 text-slate-600 text-xs">No attachments yet. / ලේඛන නොමැත.</div>
@@ -584,6 +686,14 @@
 
     <script>
         // ============================================================
+        // DROPBOX CONFIG
+        // ============================================================
+        // Your Dropbox shared link converted to direct download URL
+        // dl=0 → dl=1 (direct download), and use dl.dropboxusercontent.com
+        const DROPBOX_DIRECT_URL = 'https://dl.dropboxusercontent.com/scl/fi/e81y21fn6xxfig19pvgw5/data.json?rlkey=3f02baxpxd9bhrbm5u15leqdo&st=l4jqqut9&dl=1';
+        const DROPBOX_UPLOAD_PAGE = 'https://www.dropbox.com/home';
+        
+        // ============================================================
         // STATE
         // ============================================================
         let loans = []; 
@@ -595,18 +705,122 @@
         let clientDonutChart, clientBarChart, clientLineChart;
         let selectedDeactiveClient = null;
         let deactiveSectionOpen = false;
+        let hasUnsavedChanges = false;
+        let dropboxLoadedSuccessfully = false;
 
-        const LS_KEY = 'loanTrackerPro_v1';
+        const LS_KEY = 'loanTrackerPro_v3_dropbox';
 
         // ============================================================
-        // PERSISTENCE — localStorage
+        // SYNC STATUS UI
+        // ============================================================
+        function setSyncStatus(status, label) {
+            const dot = document.getElementById('sync-dot');
+            const lbl = document.getElementById('sync-label');
+            dot.className = `sync-dot ${status}`;
+            lbl.textContent = label;
+            const colors = {
+                synced: 'text-emerald-400',
+                pending: 'text-amber-400',
+                error: 'text-rose-400',
+                loading: 'text-blue-400'
+            };
+            lbl.className = `text-[10px] font-bold ${colors[status] || 'text-slate-400'}`;
+        }
+
+        function markUnsaved() {
+            hasUnsavedChanges = true;
+            document.getElementById('unsaved-banner').style.display = 'block';
+            setSyncStatus('pending', 'Unsaved changes');
+        }
+
+        function markAsSaved() {
+            hasUnsavedChanges = false;
+            document.getElementById('unsaved-banner').style.display = 'none';
+            setSyncStatus('synced', 'Synced with Dropbox ✓');
+            closeModal('dropbox-save-modal');
+        }
+
+        // ============================================================
+        // DROPBOX AUTO-LOAD
+        // ============================================================
+        async function loadFromDropbox() {
+            setSyncStatus('loading', 'Loading from Dropbox...');
+            try {
+                // Add cache buster to force fresh fetch
+                const url = DROPBOX_DIRECT_URL + '&_t=' + Date.now();
+                const response = await fetch(url, {
+                    method: 'GET',
+                    headers: { 'Accept': 'application/json' }
+                });
+                
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                const text = await response.text();
+                
+                // Handle empty file
+                if (!text || text.trim() === '') {
+                    loans = [];
+                    dropboxLoadedSuccessfully = true;
+                    setSyncStatus('synced', 'Dropbox connected (empty)');
+                    saveToLocalStorage();
+                    return true;
+                }
+                
+                const data = JSON.parse(text);
+                loans = Array.isArray(data) ? data : [];
+                loans.forEach(ensureDefaults);
+                dropboxLoadedSuccessfully = true;
+                
+                saveToLocalStorage(); // Backup to localStorage
+                setSyncStatus('synced', `Dropbox synced — ${loans.length} records`);
+                showToast(`✅ Dropbox data loaded! ${loans.length} records`, 'emerald');
+                return true;
+            } catch (err) {
+                console.warn('Dropbox load failed:', err);
+                // Fallback to localStorage
+                loadFromLocalStorage();
+                if (loans.length > 0) {
+                    setSyncStatus('error', 'Dropbox offline — using local cache');
+                    showToast('⚠️ Dropbox offline. Local cache loaded.', 'amber');
+                } else {
+                    setSyncStatus('error', 'Dropbox offline — no local data');
+                    showToast('⚠️ Dropbox offline. No cached data found.', 'amber');
+                }
+                return false;
+            }
+        }
+
+        async function reloadFromDropbox() {
+            setSyncStatus('loading', 'Reloading...');
+            const ok = await loadFromDropbox();
+            if (ok) refreshUI();
+        }
+
+        // ============================================================
+        // DROPBOX SAVE WORKFLOW
+        // ============================================================
+        function triggerDropboxSave() {
+            openModal('dropbox-save-modal');
+            setTimeout(initIcons, 50);
+        }
+
+        function downloadJSONForDropbox() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
+            const dl = document.createElement('a');
+            dl.setAttribute("href", dataStr);
+            dl.setAttribute("download", "data.json"); // Same filename as Dropbox
+            dl.click();
+            showToast('📥 data.json downloaded! Now upload to Dropbox.', 'blue');
+        }
+
+        // ============================================================
+        // PERSISTENCE — localStorage (backup)
         // ============================================================
         function saveToLocalStorage() {
             try {
                 localStorage.setItem(LS_KEY, JSON.stringify(loans));
             } catch(e) {
-                // localStorage full (likely large attachments)
-                showToast('⚠️ Storage full! Export JSON to save permanently.', 'amber');
+                showToast('⚠️ Local storage full! Export JSON.', 'amber');
             }
         }
 
@@ -614,27 +828,19 @@
             try {
                 const raw = localStorage.getItem(LS_KEY);
                 if (raw) loans = JSON.parse(raw);
-            } catch(e) {
-                loans = [];
-            }
+            } catch(e) { loans = []; }
         }
 
-        // Save everywhere
         function persistAll() {
             saveToLocalStorage();
-            saveToLinkedFile();
+            markUnsaved();
         }
 
         // ============================================================
         // TOAST
         // ============================================================
         function showToast(msg, color = 'emerald') {
-            const colors = {
-                emerald: 'bg-emerald-600',
-                amber: 'bg-amber-600',
-                rose: 'bg-rose-600',
-                blue: 'bg-blue-600'
-            };
+            const colors = { emerald: 'bg-emerald-600', amber: 'bg-amber-600', rose: 'bg-rose-600', blue: 'bg-blue-600' };
             const el = document.createElement('div');
             el.className = `toast ${colors[color] || colors.emerald} text-white`;
             el.textContent = msg;
@@ -642,9 +848,6 @@
             setTimeout(() => el.remove(), 4000);
         }
 
-        // ============================================================
-        // ICONS
-        // ============================================================
         function initIcons() { lucide.createIcons(); }
 
         // ============================================================
@@ -709,9 +912,6 @@
             return groupByClient(loans).filter(g => !g.loans.every(l => isLoanPaid(l)));
         }
 
-        // ============================================================
-        // ENSURE LOAN DEFAULTS (backward compat)
-        // ============================================================
         function ensureDefaults(loan) {
             if (!loan.payments)  loan.payments  = [];
             if (!loan.documents) loan.documents = [];
@@ -796,7 +996,7 @@
                 date: document.getElementById('loan-date').value,
                 photo: currentPhoto,
                 payments: [],
-                documents: []   // ← FIX: always initialized
+                documents: []
             });
             refreshUI();
             closeModal('new-loan-modal');
@@ -880,7 +1080,6 @@
                 return;
             }
             empty.classList.add('hidden');
-
             activeGroups.forEach(group => renderGroupRows(tbody, group, false));
             renderDeactiveTable(deactiveGroups);
             initIcons();
@@ -919,8 +1118,8 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors" title="Edit"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                                <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                             </div>
                         </td>
                     </tr>
@@ -950,41 +1149,36 @@
                     </tr>
                     <tr id="subrows-${groupKey}" class="hidden">
                         <td colspan="5" class="p-0">
-                            <table class="w-full">
-                                <tbody>
-                                    ${group.loans.map(loan => {
-                                        const idx = loans.indexOf(loan);
-                                        const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-                                        const total = loan.amount + interest;
-                                        const paid = (loan.payments||[]).reduce((s, p) => s + p.amount, 0);
-                                        const due = total - paid;
-                                        return `
-                                            <tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all"
-                                                onclick="openSheet(${idx})">
-                                                <td class="px-6 py-3 pl-16">
-                                                    <div>
-                                                        <div class="text-[10px] font-bold text-slate-300">ණය #${idx+1} — ${loan.date}</div>
-                                                        <div class="text-[8px] text-slate-600">${loan.period} මාස | ${loan.interest}%</div>
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td>
-                                                <td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
-                                                <td class="px-6 py-3">
-                                                    <span class="px-2 py-1 rounded text-[8px] font-bold ${due <= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
-                                                        ${due <= 0 ? '✓ PAID' : 'Rs. ' + due.toLocaleString()}
-                                                    </span>
-                                                </td>
-                                                <td class="px-6 py-3 text-right">
-                                                    <div class="flex items-center justify-end gap-2">
-                                                        <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                                                        <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        `;
-                                    }).join('')}
-                                </tbody>
-                            </table>
+                            <table class="w-full"><tbody>
+                                ${group.loans.map(loan => {
+                                    const idx = loans.indexOf(loan);
+                                    const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+                                    const total = loan.amount + interest;
+                                    const paid = (loan.payments||[]).reduce((s, p) => s + p.amount, 0);
+                                    const due = total - paid;
+                                    return `
+                                        <tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all" onclick="openSheet(${idx})">
+                                            <td class="px-6 py-3 pl-16">
+                                                <div class="text-[10px] font-bold text-slate-300">ණය #${idx+1} — ${loan.date}</div>
+                                                <div class="text-[8px] text-slate-600">${loan.period} මාස | ${loan.interest}%</div>
+                                            </td>
+                                            <td class="px-6 py-3 text-slate-400 text-xs">Rs. ${loan.amount.toLocaleString()}</td>
+                                            <td class="px-6 py-3 text-emerald-400 text-xs font-bold">Rs. ${paid.toLocaleString()}</td>
+                                            <td class="px-6 py-3">
+                                                <span class="px-2 py-1 rounded text-[8px] font-bold ${due <= 0 ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}">
+                                                    ${due <= 0 ? '✓ PAID' : 'Rs. ' + due.toLocaleString()}
+                                                </span>
+                                            </td>
+                                            <td class="px-6 py-3 text-right">
+                                                <div class="flex items-center justify-end gap-2">
+                                                    <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                                                    <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }).join('')}
+                            </tbody></table>
                         </td>
                     </tr>
                 `;
@@ -1106,18 +1300,13 @@
                 document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
             }, 100);
 
-            // Update attachment badge
             updateAttachmentBadge();
-            
             switchTab('payments-tab');
             renderPaymentHistory();
             openModal('sheet-modal');
             setTimeout(() => renderClientCharts(loan, paid, due, total, interest), 120);
         }
 
-        // ============================================================
-        // ATTACHMENT BADGE
-        // ============================================================
         function updateAttachmentBadge() {
             if (activeLoanIndex === null) return;
             const loan = loans[activeLoanIndex];
@@ -1148,20 +1337,9 @@
                     type: 'doughnut',
                     data: {
                         labels: ['Paid', 'Due'],
-                        datasets: [{
-                            data: paid > 0 || due > 0 ? [paid, Math.max(0, due)] : [0, 1],
-                            backgroundColor: ['#10b981', '#f43f5e'],
-                            borderWidth: 0, hoverOffset: 6
-                        }]
+                        datasets: [{ data: paid > 0 || due > 0 ? [paid, Math.max(0, due)] : [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0, hoverOffset: 6 }]
                     },
-                    options: {
-                        responsive: true, maintainAspectRatio: true, cutout: '72%',
-                        animation: { animateRotate: true, duration: 900, easing: 'easeOutQuart' },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } }
-                        }
-                    }
+                    options: { responsive: true, maintainAspectRatio: true, cutout: '72%', animation: { animateRotate: true, duration: 900 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } } }
                 });
             }
 
@@ -1169,20 +1347,8 @@
             if (barCtx) {
                 clientBarChart = new Chart(barCtx, {
                     type: 'bar',
-                    data: {
-                        labels: ['Principal', 'Interest', 'Paid', 'Balance'],
-                        datasets: [{
-                            data: [loan.amount, interest, paid, Math.max(0, due)],
-                            backgroundColor: ['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'],
-                            borderRadius: 5, borderSkipped: false
-                        }]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        animation: { duration: 800, easing: 'easeOutBounce', delay: ctx => ctx.dataIndex * 80 },
-                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } },
-                        scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } } }
-                    }
+                    data: { labels: ['Principal', 'Interest', 'Paid', 'Balance'], datasets: [{ data: [loan.amount, interest, paid, Math.max(0, due)], backgroundColor: ['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'], borderRadius: 5, borderSkipped: false }] },
+                    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } } } }
                 });
             }
 
@@ -1192,26 +1358,14 @@
                 let running = 0;
                 const labels = ['Start'];
                 const cumData = [0];
-                sorted.forEach(p => {
-                    labels.push(p.date.substring(5));
-                    running += p.amount;
-                    cumData.push(running);
-                });
+                sorted.forEach(p => { labels.push(p.date.substring(5)); running += p.amount; cumData.push(running); });
                 clientLineChart = new Chart(lineCtx, {
                     type: 'line',
-                    data: {
-                        labels,
-                        datasets: [
-                            { label: 'Cumulative Paid', data: cumData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', borderWidth: 2 },
-                            { label: 'Total Due', data: labels.map(() => total), borderColor: 'rgba(244,63,94,0.3)', borderDash: [4,4], borderWidth: 1, pointRadius: 0, fill: false, tension: 0 }
-                        ]
-                    },
-                    options: {
-                        responsive: true, maintainAspectRatio: false,
-                        animation: { duration: 1000, easing: 'easeOutCubic' },
-                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } },
-                        scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 7 }, maxTicksLimit: 5 } } }
-                    }
+                    data: { labels, datasets: [
+                        { label: 'Cumulative Paid', data: cumData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', borderWidth: 2 },
+                        { label: 'Total Due', data: labels.map(() => total), borderColor: 'rgba(244,63,94,0.3)', borderDash: [4,4], borderWidth: 1, pointRadius: 0, fill: false }
+                    ]},
+                    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 7 }, maxTicksLimit: 5 } } } }
                 });
             }
         }
@@ -1239,11 +1393,7 @@
             if (!amtIn.value || !dateIn.value) return alert('Please enter amount and date.');
             
             ensureDefaults(loans[activeLoanIndex]);
-            loans[activeLoanIndex].payments.push({ 
-                amount: parseFloat(amtIn.value), 
-                date: dateIn.value,
-                note: noteIn.value || ''
-            });
+            loans[activeLoanIndex].payments.push({ amount: parseFloat(amtIn.value), date: dateIn.value, note: noteIn.value || '' });
 
             const loan = loans[activeLoanIndex];
             const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
@@ -1258,17 +1408,13 @@
             document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
             
             renderClientCharts(loan, paid, due, total, interest);
-            if (due <= 0) showPaidNotification(loan.name);
+            if (due <= 0) showToast(`🎉 ${loan.name} — ණය ගෙවා ඉවරයි! Auto-deactivated.`, 'emerald');
             
             refreshUI();
             renderPaymentHistory();
             amtIn.value = '';
             noteIn.value = '';
             persistAll();
-        }
-
-        function showPaidNotification(name) {
-            showToast(`🎉 ${name} — ණය ගෙවා ඉවරයි! Auto-deactivated.`, 'emerald');
         }
 
         function deletePayment(idx) {
@@ -1280,12 +1426,10 @@
             const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
             const due = total - paid;
             const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-
             document.getElementById('sheet-balance-due').innerText = `Rs. ${(total - paid).toLocaleString()}`;
             document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
             document.getElementById('sheet-progress-bar').style.width = pct + '%';
             document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-
             renderClientCharts(loan, paid, due, total, interest);
             refreshUI();
             renderPaymentHistory();
@@ -1318,72 +1462,25 @@
         }
 
         // ============================================================
-        // ATTACHMENTS — FIXED
+        // ATTACHMENTS
         // ============================================================
-        function handleDragOver(e) {
-            e.preventDefault();
-            document.getElementById('drop-zone').classList.add('drag-over');
-        }
-        function handleDragLeave(e) {
-            document.getElementById('drop-zone').classList.remove('drag-over');
-        }
-        function handleDrop(e) {
-            e.preventDefault();
-            document.getElementById('drop-zone').classList.remove('drag-over');
-            if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files);
-        }
-
-        function attachDocs(input) {
-            if (input.files && input.files.length) processFiles(input.files);
-            // Reset input so same file can be re-added after removal
-            input.value = '';
-        }
+        function handleDragOver(e) { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+        function handleDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
+        function handleDrop(e) { e.preventDefault(); document.getElementById('drop-zone').classList.remove('drag-over'); if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files); }
+        function attachDocs(input) { if (input.files && input.files.length) processFiles(input.files); input.value = ''; }
 
         function processFiles(files) {
-            // Ensure documents array exists
             ensureDefaults(loans[activeLoanIndex]);
-            
             let processed = 0;
             const total = files.length;
-
-            // Warn about large files
-            for (let file of files) {
-                if (file.size > 2 * 1024 * 1024) { // > 2MB
-                    const info = document.getElementById('storage-info');
-                    document.getElementById('storage-info-text').textContent = 
-                        `ගොනු ප්‍රමාණය විශාලයි (${(file.size/1048576).toFixed(1)} MB). Browser storage සසර ගනී. JSON Export ඔස්සේ permanent backup ගන්න.`;
-                    info.classList.remove('hidden');
-                    setTimeout(() => info.classList.add('hidden'), 8000);
-                    break;
-                }
-            }
-
             Array.from(files).forEach(file => {
                 const reader = new FileReader();
                 reader.onload = e => {
-                    loans[activeLoanIndex].documents.push({ 
-                        name: file.name, 
-                        data: e.target.result,
-                        size: file.size,
-                        type: file.type || '',
-                        addedDate: new Date().toISOString().split('T')[0]
-                    });
+                    loans[activeLoanIndex].documents.push({ name: file.name, data: e.target.result, size: file.size, type: file.type || '', addedDate: new Date().toISOString().split('T')[0] });
                     processed++;
-                    if (processed === total) {
-                        updateAttachmentBadge();
-                        renderAttachments();
-                        persistAll();
-                        showToast(`📎 ${total} ගොනු${total > 1 ? '' : ''} සාර්ථකව එකතු විය!`, 'blue');
-                    }
+                    if (processed === total) { updateAttachmentBadge(); renderAttachments(); persistAll(); showToast(`📎 ${total} file(s) added!`, 'blue'); }
                 };
-                reader.onerror = () => {
-                    processed++;
-                    showToast(`❌ "${file.name}" කියවීමට නොහැකි විය.`, 'rose');
-                    if (processed === total) {
-                        updateAttachmentBadge();
-                        renderAttachments();
-                    }
-                };
+                reader.onerror = () => { processed++; showToast(`❌ "${file.name}" read failed.`, 'rose'); };
                 reader.readAsDataURL(file);
             });
         }
@@ -1393,7 +1490,6 @@
             if (type === 'application/pdf') return '📄';
             if (type.includes('word') || name.endsWith('.doc') || name.endsWith('.docx')) return '📝';
             if (type.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return '📊';
-            if (type.includes('zip') || type.includes('compressed')) return '🗜️';
             return '📎';
         }
 
@@ -1407,46 +1503,25 @@
         function renderAttachments() {
             if (activeLoanIndex === null) return;
             ensureDefaults(loans[activeLoanIndex]);
-            
             const grid = document.getElementById('attachment-grid');
             const noAtt = document.getElementById('no-attachments');
             const docs = loans[activeLoanIndex].documents;
             grid.innerHTML = '';
-
-            if (docs.length === 0) {
-                noAtt.classList.remove('hidden');
-                return;
-            }
+            if (docs.length === 0) { noAtt.classList.remove('hidden'); return; }
             noAtt.classList.add('hidden');
-
             docs.forEach((doc, idx) => {
                 const isImage = doc.type && doc.type.startsWith('image/');
                 const icon = getFileIcon(doc.type || '', doc.name);
-                const size = formatSize(doc.size);
-                
                 grid.innerHTML += `
                     <div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">
-                        ${isImage ? `
-                            <div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')">
-                                <img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                            </div>
-                        ` : `
-                            <div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2 cursor-pointer" onclick="openAttachment('${idx}')">
-                                <span class="text-4xl">${icon}</span>
-                                <span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center truncate w-full text-center">${doc.type || 'File'}</span>
-                            </div>
-                        `}
+                        ${isImage ? `<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')"><img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity"></div>` : `<div class="h-32 bg-slate-950/60 flex flex-col items-center justify-center gap-2"><span class="text-4xl">${icon}</span><span class="text-[9px] text-slate-500 font-bold uppercase px-2 text-center">${doc.type || 'File'}</span></div>`}
                         <div class="p-3">
-                            <p class="text-[10px] font-bold text-slate-300 truncate mb-1" title="${doc.name}">${doc.name}</p>
+                            <p class="text-[10px] font-bold text-slate-300 truncate mb-1">${doc.name}</p>
                             <div class="flex items-center justify-between">
-                                <span class="text-[8px] text-slate-600">${size}${doc.addedDate ? ' · ' + doc.addedDate : ''}</span>
+                                <span class="text-[8px] text-slate-600">${formatSize(doc.size)}${doc.addedDate ? ' · ' + doc.addedDate : ''}</span>
                                 <div class="flex gap-2">
-                                    <a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors" title="Download">
-                                        <i data-lucide="download" class="w-3 h-3"></i>
-                                    </a>
-                                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors" title="Remove">
-                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
-                                    </button>
+                                    <a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors"><i data-lucide="download" class="w-3 h-3"></i></a>
+                                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                                 </div>
                             </div>
                         </div>
@@ -1456,20 +1531,7 @@
             initIcons();
         }
 
-        function openAttachment(idx) {
-            const doc = loans[activeLoanIndex].documents[idx];
-            // For PDFs and other files, open in new tab
-            const win = window.open();
-            if (win) {
-                win.document.write(`<iframe src="${doc.data}" style="width:100%;height:100vh;border:none;"></iframe>`);
-                win.document.title = doc.name;
-            }
-        }
-
-        function previewImage(src) {
-            document.getElementById('preview-img').src = src;
-            openModal('image-preview-modal');
-        }
+        function previewImage(src) { document.getElementById('preview-img').src = src; openModal('image-preview-modal'); }
 
         function removeDoc(idx) {
             if (!confirm('Remove this attachment?')) return;
@@ -1499,7 +1561,6 @@
             const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
             const outstanding = (principal + totalInt - collected);
             const activeCount = getActiveClients().length;
-            
             document.getElementById('total-clients').innerText = activeCount;
             document.getElementById('total-loaned').innerText = `Rs. ${principal.toLocaleString()}`;
             document.getElementById('total-collected').innerText = `Rs. ${collected.toLocaleString()}`;
@@ -1511,29 +1572,10 @@
         // CHARTS
         // ============================================================
         function initCharts() {
-            const commonOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { labels: { color: '#64748b', font: { size: 9 } } } }
-            };
-
-            recoveryChart = new Chart(document.getElementById('recoveryPieChart'), {
-                type: 'doughnut',
-                data: { labels: ['Paid', 'Due'], datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] },
-                options: { ...commonOptions, cutout: '75%' }
-            });
-
-            growthChart = new Chart(document.getElementById('growthLineChart'), {
-                type: 'line',
-                data: { labels: [], datasets: [{ label: 'Loans', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.05)', fill: true, tension: 0.4 }] },
-                options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } } }, plugins: { legend: { display: false } } }
-            });
-
-            comparisonChart = new Chart(document.getElementById('comparisonBarChart'), {
-                type: 'bar',
-                data: { labels: ['Prin.', 'Paid', 'Int.'], datasets: [{ data: [0,0,0], backgroundColor: ['#3b82f6','#10b981','#f59e0b'], borderRadius: 4 }] },
-                options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } } }, plugins: { legend: { display: false } } }
-            });
+            const commonOptions = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#64748b', font: { size: 9 } } } } };
+            recoveryChart = new Chart(document.getElementById('recoveryPieChart'), { type: 'doughnut', data: { labels: ['Paid', 'Due'], datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }] }, options: { ...commonOptions, cutout: '75%' } });
+            growthChart = new Chart(document.getElementById('growthLineChart'), { type: 'line', data: { labels: [], datasets: [{ label: 'Loans', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.05)', fill: true, tension: 0.4 }] }, options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } } }, plugins: { legend: { display: false } } } });
+            comparisonChart = new Chart(document.getElementById('comparisonBarChart'), { type: 'bar', data: { labels: ['Prin.', 'Paid', 'Int.'], datasets: [{ data: [0,0,0], backgroundColor: ['#3b82f6','#10b981','#f59e0b'], borderRadius: 4 }] }, options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } } }, plugins: { legend: { display: false } } } });
         }
 
         function updateCharts() {
@@ -1541,17 +1583,10 @@
             const collected = loans.reduce((sum, l) => sum + (l.payments||[]).reduce((ps, p) => ps + p.amount, 0), 0);
             const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
             const outstanding = (principal + totalInt - collected);
-
-            recoveryChart.data.datasets[0].data = [collected, outstanding > 0 ? outstanding : 0];
-            recoveryChart.update();
-            comparisonChart.data.datasets[0].data = [principal, collected, totalInt];
-            comparisonChart.update();
-
+            recoveryChart.data.datasets[0].data = [collected, outstanding > 0 ? outstanding : 0]; recoveryChart.update();
+            comparisonChart.data.datasets[0].data = [principal, collected, totalInt]; comparisonChart.update();
             const monthlyData = {};
-            loans.forEach(l => {
-                const month = l.date.substring(0, 7);
-                monthlyData[month] = (monthlyData[month] || 0) + l.amount;
-            });
+            loans.forEach(l => { const month = l.date.substring(0, 7); monthlyData[month] = (monthlyData[month] || 0) + l.amount; });
             const sortedMonths = Object.keys(monthlyData).sort();
             growthChart.data.labels = sortedMonths.map(m => m.split('-')[1]);
             growthChart.data.datasets[0].data = sortedMonths.map(m => monthlyData[m]);
@@ -1559,32 +1594,8 @@
         }
 
         // ============================================================
-        // FILE SYNC (File System Access API)
+        // EXPORT
         // ============================================================
-        async function setFileHandle() {
-            try {
-                [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }] });
-                const file = await fileHandle.getFile();
-                loans = JSON.parse(await file.text());
-                // Ensure all loans have defaults
-                loans.forEach(ensureDefaults);
-                refreshUI();
-                saveToLocalStorage();
-                showToast('✅ File synced successfully!', 'emerald');
-            } catch(err) { 
-                if (err.name !== 'AbortError') showToast('❌ File sync failed.', 'rose');
-            }
-        }
-
-        async function saveToLinkedFile() {
-            if (!fileHandle) return;
-            try {
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify(loans, null, 2));
-                await writable.close();
-            } catch(e) {}
-        }
-
         function downloadJSON() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
             const dl = document.createElement('a');
@@ -1602,11 +1613,19 @@
             updateCharts();
         }
 
-        window.onload = () => {
-            loadFromLocalStorage();   // ← Load from localStorage first
-            loans.forEach(ensureDefaults);
+        window.onload = async () => {
             initCharts();
-            refreshUI();
+            // Load from localStorage first (instant display)
+            loadFromLocalStorage();
+            loans.forEach(ensureDefaults);
+            if (loans.length > 0) refreshUI();
+            
+            // Then fetch from Dropbox (fresh data)
+            const ok = await loadFromDropbox();
+            if (ok) {
+                loans.forEach(ensureDefaults);
+                refreshUI();
+            }
             initIcons();
         };
     </script>
