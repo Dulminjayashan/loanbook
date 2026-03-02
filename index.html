@@ -5,82 +5,65 @@
     <title>Get Dropbox Refresh Token</title>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; }
-        .box { background: #1e293b; border: 1px solid #334155; border-radius: 1rem; padding: 2rem; max-width: 500px; width: 100%; }
+        .box { background: #1e293b; border: 1px solid #334155; border-radius: 1rem; padding: 2rem; max-width: 520px; width: 100%; }
         h2 { color: #3b82f6; margin-top: 0; }
-        button { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; width: 100%; font-size: 1rem; }
-        button:hover { background: #2563eb; }
-        .result { margin-top: 1.5rem; background: #0f172a; border: 1px solid #10b981; border-radius: 0.5rem; padding: 1rem; word-break: break-all; font-size: 0.75rem; display: none; }
+        .result { background: #0f172a; border: 1px solid #10b981; border-radius: 0.5rem; padding: 1rem; word-break: break-all; }
         .result.error { border-color: #f43f5e; }
-        .label { color: #94a3b8; font-size: 0.75rem; margin-bottom: 0.25rem; }
-        .token-value { color: #10b981; font-weight: bold; font-size: 0.7rem; line-height: 1.6; }
-        .copy-btn { background: #10b981; margin-top: 0.75rem; padding: 0.5rem; font-size: 0.8rem; }
-        .status { color: #94a3b8; font-size: 0.85rem; margin-top: 1rem; text-align: center; }
+        .token-value { color: #10b981; font-weight: bold; font-size: 0.7rem; line-height: 1.8; }
+        .copy-btn { background: #10b981; color: white; border: none; padding: 0.5rem 1rem; border-radius: 0.5rem; font-weight: bold; cursor: pointer; margin-top: 0.75rem; width: 100%; font-size: 0.9rem; }
+        .status { color: #94a3b8; font-size: 0.9rem; margin: 1rem 0; }
     </style>
 </head>
 <body>
 <div class="box">
     <h2>🔑 Dropbox Refresh Token</h2>
-    <p style="color:#94a3b8; font-size:0.85rem;">Click below to get your permanent refresh token.</p>
-    <button onclick="getToken()">Get Permanent Token</button>
-    <div class="status" id="status"></div>
-    <div class="result" id="result">
-        <div class="label">✅ REFRESH TOKEN (permanent — expires නොවෙනවා):</div>
-        <div class="token-value" id="token-display"></div>
-        <button class="copy-btn" onclick="copyToken()">📋 Copy Token</button>
+    <div class="status" id="status">⏳ Fetching token...</div>
+    <div id="result-box" style="display:none">
+        <div class="result" id="result">
+            <div style="color:#94a3b8; font-size:0.75rem; margin-bottom:0.5rem;">✅ REFRESH TOKEN (permanent — expires නොවෙනවා):</div>
+            <div class="token-value" id="token-display"></div>
+            <button class="copy-btn" onclick="copyToken()">📋 Copy → Claude ට paste කරන්න</button>
+        </div>
     </div>
 </div>
-
 <script>
+let _token = '';
 async function getToken() {
-    document.getElementById('status').textContent = 'Fetching token...';
-    document.getElementById('result').style.display = 'none';
-
     try {
-        const params = new URLSearchParams({
-            code: 'DZM8-65FbKwAAAAAAAAAGXeVlXbberdAwlJzdQ0TVAY',
-            grant_type: 'authorization_code',
-            client_id: '4xp8y1t85icp2bt',
-            client_secret: 'iuxd7p9w71ac748'
-        });
-
         const res = await fetch('https://api.dropbox.com/oauth2/token', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: params
+            body: new URLSearchParams({
+                code: 'DZM8-65FbKwAAAAAAAAAGlH8f36LpFp6W9uToSGvZSM',
+                grant_type: 'authorization_code',
+                client_id: '4xp8y1t85icp2bt',
+                client_secret: 'iuxd7p9w71ac748'
+            })
         });
-
         const data = await res.json();
-        console.log(data);
-
         if (data.refresh_token) {
-            document.getElementById('status').textContent = '';
+            _token = data.refresh_token;
+            document.getElementById('status').innerHTML = '✅ Success!';
             document.getElementById('token-display').textContent = data.refresh_token;
-            const el = document.getElementById('result');
-            el.style.display = 'block';
-            el.className = 'result';
-            // Auto copy
-            window._refreshToken = data.refresh_token;
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('result').className = 'result';
         } else {
-            document.getElementById('status').textContent = '❌ Error: ' + (data.error_description || data.error || JSON.stringify(data));
-            document.getElementById('result').style.display = 'block';
-            document.getElementById('result').className = 'result error';
+            document.getElementById('status').innerHTML = '❌ ' + (data.error_description || data.error);
             document.getElementById('token-display').textContent = JSON.stringify(data, null, 2);
+            document.getElementById('result-box').style.display = 'block';
+            document.getElementById('result').className = 'result error';
         }
     } catch(e) {
         document.getElementById('status').textContent = '❌ Network error: ' + e.message;
     }
 }
-
 function copyToken() {
-    const t = document.getElementById('token-display').textContent;
-    navigator.clipboard.writeText(t).then(() => {
+    navigator.clipboard.writeText(_token).then(() => {
         document.querySelector('.copy-btn').textContent = '✅ Copied!';
-        setTimeout(() => document.querySelector('.copy-btn').textContent = '📋 Copy Token', 2000);
+        setTimeout(() => document.querySelector('.copy-btn').textContent = '📋 Copy → Claude ට paste කරන්න', 2000);
     });
 }
-
-// Auto-run on load
-window.onload = () => getToken();
+window.onload = getToken;
 </script>
 </body>
 </html>
