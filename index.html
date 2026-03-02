@@ -74,10 +74,10 @@
             <button onclick="forceSyncFromCloud()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700 hover:border-blue-500 transition-all">
                 <i data-lucide="refresh-cw" class="w-4 h-4"></i> REFRESH
             </button>
-            <label class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-emerald-600 cursor-pointer transition-all">
+            <input type="file" id="import-json-input" accept=".json" style="position:absolute;opacity:0;pointer-events:none;" onchange="importJSON(this)">
+            <button onclick="document.getElementById('import-json-input').click()" class="bg-emerald-700 hover:bg-emerald-600 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-emerald-600 transition-all">
                 <i data-lucide="upload" class="w-4 h-4"></i> IMPORT
-                <input type="file" accept=".json" hidden onchange="importJSON(this)">
-            </label>
+            </button>
             <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
                 <i data-lucide="download" class="w-4 h-4"></i> EXPORT
             </button>
