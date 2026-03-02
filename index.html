@@ -82,15 +82,9 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
         .fade-in { animation: fadeIn 0.2s ease; }
 
-        /* Deactive section styling */
-        .deactive-row {
-            opacity: 0.6;
-        }
-        .deactive-row:hover {
-            opacity: 0.85;
-        }
+        .deactive-row { opacity: 0.6; }
+        .deactive-row:hover { opacity: 0.85; }
 
-        /* Autocomplete dropdown */
         #name-suggestions {
             position: absolute;
             top: 100%;
@@ -123,26 +117,18 @@
             border-top: 1px solid rgba(100, 116, 139, 0.15);
         }
 
-        /* Paid badge glow */
         @keyframes paidPulse {
             0%, 100% { box-shadow: 0 0 0 0 rgba(16,185,129,0.3); }
             50% { box-shadow: 0 0 0 4px rgba(16,185,129,0); }
         }
         .paid-badge { animation: paidPulse 2s ease infinite; }
 
-        /* Client chart animations */
         @keyframes countUp {
             from { opacity: 0; transform: scale(0.7); }
             to   { opacity: 1; transform: scale(1); }
         }
         #donut-pct { animation: countUp 0.6s cubic-bezier(0.34,1.56,0.64,1) both; }
 
-        @keyframes barSlide {
-            from { transform: scaleY(0); }
-            to   { transform: scaleY(1); }
-        }
-
-        /* Progress bar in sheet header */
         .progress-track {
             height: 4px;
             background: rgba(255,255,255,0.06);
@@ -155,9 +141,73 @@
             transition: width 1s cubic-bezier(0.4,0,0.2,1);
             background: linear-gradient(90deg, #10b981, #3b82f6);
         }
+
+        /* Firebase status indicator */
+        #db-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 10px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 99px;
+            border: 1px solid;
+            transition: all 0.3s;
+        }
+        #db-status.connected { color: #10b981; border-color: rgba(16,185,129,0.3); background: rgba(16,185,129,0.08); }
+        #db-status.connecting { color: #f59e0b; border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.08); }
+        #db-status.error { color: #f43f5e; border-color: rgba(244,63,94,0.3); background: rgba(244,63,94,0.08); }
+
+        #db-status .dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        #db-status.connected .dot { animation: paidPulse 1.5s ease infinite; }
+
+        /* Loading overlay */
+        #loading-overlay {
+            position: fixed; inset: 0; z-index: 9999;
+            background: #020617;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            gap: 16px;
+            transition: opacity 0.4s;
+        }
+        #loading-overlay.hidden { opacity: 0; pointer-events: none; }
+        .loader-ring {
+            width: 48px; height: 48px;
+            border: 3px solid rgba(59,130,246,0.15);
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
     </style>
 </head>
 <body class="p-4 md:p-6 custom-scrollbar">
+
+    <!-- LOADING OVERLAY -->
+    <div id="loading-overlay">
+        <div class="loader-ring"></div>
+        <p class="text-slate-500 text-xs font-bold uppercase tracking-widest">Connecting to database...</p>
+    </div>
+
+    <!-- FIREBASE CONFIG BANNER (shown only if not configured) -->
+    <div id="config-banner" class="hidden fixed inset-0 z-[9998] flex items-center justify-center p-6 bg-slate-950/95">
+        <div class="glass-card max-w-lg w-full p-8 border border-rose-500/30 text-center space-y-4">
+            <div class="text-4xl">🔥</div>
+            <h2 class="text-xl font-bold text-white">Firebase Not Configured</h2>
+            <p class="text-slate-400 text-sm">Open <code class="bg-slate-800 px-2 py-0.5 rounded text-blue-400">index.html</code> and replace the <code class="bg-slate-800 px-2 py-0.5 rounded text-blue-400">firebaseConfig</code> object at the top of the script with your project's credentials from the Firebase Console.</p>
+            <div class="bg-slate-900 rounded-lg p-4 text-left text-xs text-slate-400 font-mono">
+                const firebaseConfig = {"{"}  <br>
+                &nbsp;&nbsp;apiKey: <span class="text-rose-400">"YOUR_API_KEY"</span>,<br>
+                &nbsp;&nbsp;projectId: <span class="text-rose-400">"YOUR_PROJECT_ID"</span>,<br>
+                &nbsp;&nbsp;...<br>
+                {"}"};
+            </div>
+        </div>
+    </div>
 
     <div class="max-w-[1600px] mx-auto">
         <!-- Header -->
@@ -171,12 +221,15 @@
                 </p>
             </div>
             
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
+                <!-- Firebase Status -->
+                <div id="db-status" class="connecting">
+                    <span class="dot"></span>
+                    <span id="db-status-text">Connecting...</span>
+                </div>
+
                 <button onclick="openModal('new-loan-modal')" class="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg font-bold text-sm flex items-center gap-2 transition-all">
                     <i data-lucide="plus" class="w-4 h-4"></i> NEW LOAN / නව ණය
-                </button>
-                <button onclick="setFileHandle()" class="bg-slate-800 text-white px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
-                    <i data-lucide="refresh-cw" class="w-4 h-4"></i> SYNC / සමමුහුර්ත
                 </button>
                 <button onclick="downloadJSON()" class="bg-slate-800 text-slate-400 px-4 py-2 rounded-lg font-semibold text-sm flex items-center gap-2 border border-slate-700">
                     <i data-lucide="download" class="w-4 h-4"></i> EXPORT / පිටපත්
@@ -325,8 +378,6 @@
                         onfocus="handleNameInput(this.value)"
                         onblur="setTimeout(()=>hideSuggestions(), 200)">
                     <div id="name-suggestions" class="hidden"></div>
-
-                    <!-- Selected deactive client indicator -->
                     <div id="selected-deactive-hint" class="hidden mt-2 flex items-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
                         <img id="selected-deactive-photo" class="w-6 h-6 rounded-full object-cover">
                         <span class="text-[10px] text-amber-400 font-bold" id="selected-deactive-label"></span>
@@ -352,7 +403,7 @@
                     <input type="date" id="loan-date" required class="w-full neo-input p-3 rounded-lg text-sm">
                 </div>
                 <div class="md:col-span-2 pt-4 flex gap-2">
-                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition-all">Create Account</button>
+                    <button type="submit" id="loan-submit-btn" class="flex-1 bg-blue-600 hover:bg-blue-500 text-white py-3 rounded-lg font-bold text-sm transition-all">Create Account</button>
                     <button type="button" onclick="closeModal('new-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
                 </div>
             </form>
@@ -397,7 +448,7 @@
                     <input type="date" id="edit-date" required class="w-full neo-input p-3 rounded-lg text-sm">
                 </div>
                 <div class="md:col-span-2 pt-4 flex gap-2">
-                    <button type="submit" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm transition-all">Save Changes / සුරකින්න</button>
+                    <button type="submit" id="edit-submit-btn" class="flex-1 bg-amber-500 hover:bg-amber-400 text-black py-3 rounded-lg font-bold text-sm transition-all">Save Changes / සුරකින්න</button>
                     <button type="button" onclick="closeModal('edit-loan-modal')" class="px-6 py-3 bg-slate-800 text-slate-400 rounded-lg font-bold text-sm">Cancel</button>
                 </div>
             </form>
@@ -409,7 +460,6 @@
         <div class="absolute inset-0 bg-slate-950/95 backdrop-blur-lg" onclick="closeModal('sheet-modal')"></div>
         <div class="glass-card w-full max-w-5xl h-[90vh] relative z-10 flex flex-col overflow-hidden border border-white/5">
             
-            <!-- Sheet Header -->
             <div class="p-5 border-b border-slate-800 flex justify-between items-center bg-slate-900/40 flex-shrink-0">
                 <div class="flex items-center gap-3">
                     <img id="sheet-photo" class="w-12 h-12 rounded-lg object-cover border border-slate-700">
@@ -432,7 +482,6 @@
                 </div>
             </div>
 
-            <!-- Tabs -->
             <div class="flex gap-1 px-5 pt-4 pb-0 flex-shrink-0">
                 <button onclick="switchTab('payments-tab')" id="tab-payments" class="tab-btn active px-4 py-2 rounded-lg text-[10px] font-bold uppercase border border-transparent text-slate-400">
                     💰 Payments / ගෙවීම්
@@ -442,15 +491,11 @@
                 </button>
             </div>
 
-            <!-- Tab Content -->
             <div class="flex-1 overflow-y-auto p-5 custom-scrollbar">
 
                 <!-- PAYMENTS TAB -->
                 <div id="payments-tab" class="tab-content">
-                    
-                    <!-- CHARTS ROW -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
-                        <!-- Doughnut: Paid vs Due -->
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4 flex flex-col items-center">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3 self-start">Recovery / ප්‍රතිලාභය</p>
                             <div class="relative w-36 h-36">
@@ -465,16 +510,12 @@
                                 <span class="flex items-center gap-1 text-[9px] text-rose-400"><span class="w-2 h-2 rounded-full bg-rose-500 inline-block"></span>Due</span>
                             </div>
                         </div>
-
-                        <!-- Bar: Principal / Interest / Paid -->
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Breakdown / ගණනය</p>
                             <div class="relative h-36">
                                 <canvas id="client-bar-chart"></canvas>
                             </div>
                         </div>
-
-                        <!-- Line: Payment history over time -->
                         <div class="bg-slate-900/60 rounded-xl border border-slate-800 p-4">
                             <p class="text-[9px] font-bold text-slate-500 uppercase mb-3">Payment Timeline</p>
                             <div class="relative h-36">
@@ -483,7 +524,6 @@
                         </div>
                     </div>
 
-                    <!-- STATS + FORM + TABLE -->
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
                         <div class="lg:col-span-4 space-y-3">
                             <div class="bg-slate-900/50 p-4 rounded-xl border border-slate-800">
@@ -492,7 +532,7 @@
                                     <input type="number" id="pay-amount" placeholder="Rs. Amount" class="w-full neo-input p-2.5 rounded-lg text-xs">
                                     <input type="date" id="pay-date" class="w-full neo-input p-2.5 rounded-lg text-xs">
                                     <input type="text" id="pay-note" placeholder="Note (optional)" class="w-full neo-input p-2.5 rounded-lg text-xs">
-                                    <button onclick="addPayment()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all">Confirm Payment</button>
+                                    <button onclick="addPayment()" id="pay-btn" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-bold text-xs transition-all">Confirm Payment</button>
                                 </div>
                             </div>
                             <div class="grid grid-cols-1 gap-2">
@@ -560,21 +600,125 @@
         </div>
     </div>
 
+    <!-- ========================================================
+         FIREBASE INTEGRATION
+         ======================================================== -->
+    <script type="module">
+        // ================================================================
+        //  🔥 STEP 1: PASTE YOUR FIREBASE CONFIG HERE
+        //  Get this from: Firebase Console → Project Settings → Your Apps
+        // ================================================================
+        const firebaseConfig = {
+            apiKey:            "YOUR_API_KEY",
+            authDomain:        "YOUR_PROJECT_ID.firebaseapp.com",
+            projectId:         "YOUR_PROJECT_ID",
+            storageBucket:     "YOUR_PROJECT_ID.appspot.com",
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+            appId:             "YOUR_APP_ID"
+        };
+        // ================================================================
+
+        import { initializeApp }                          from "https://www.gstatic.com/firebasejs/11.0.1/firebase-app.js";
+        import { getFirestore, collection, doc,
+                 addDoc, setDoc, deleteDoc,
+                 onSnapshot, query, orderBy }             from "https://www.gstatic.com/firebasejs/11.0.1/firebase-firestore.js";
+
+        // ── Guard: show banner if config not filled in ──────────────────
+        const isConfigured = firebaseConfig.apiKey !== "YOUR_API_KEY";
+        if (!isConfigured) {
+            document.getElementById('loading-overlay').classList.add('hidden');
+            document.getElementById('config-banner').classList.remove('hidden');
+            throw new Error("Firebase not configured — please fill in firebaseConfig.");
+        }
+
+        // ── Init Firebase ────────────────────────────────────────────────
+        const app = initializeApp(firebaseConfig);
+        const db  = getFirestore(app);
+        const loansCol = collection(db, "loans");
+
+        // ── Expose helpers to global scope (non-module script needs them) ─
+        window._db       = db;
+        window._loansCol = loansCol;
+        window._firestoreAPI = { doc, setDoc, addDoc, deleteDoc };
+
+        // ── Real-time listener: Firestore → UI ──────────────────────────
+        setDbStatus('connecting');
+        const q = query(loansCol, orderBy("createdAt", "asc"));
+
+        onSnapshot(q,
+            (snapshot) => {
+                window.loans = [];
+                snapshot.forEach(d => window.loans.push({ _docId: d.id, ...d.data() }));
+                setDbStatus('connected');
+                hideLoading();
+                if (window._chartsReady) refreshUI();
+                else window._pendingRefresh = true;
+            },
+            (err) => {
+                console.error("Firestore error:", err);
+                setDbStatus('error', err.code || 'error');
+                hideLoading();
+            }
+        );
+
+        // ── Save (create or update) a loan to Firestore ─────────────────
+        window.saveLoanToFirestore = async function(loanData, docId = null) {
+            const { doc: _doc, setDoc: _setDoc, addDoc: _addDoc } = window._firestoreAPI;
+            loanData.updatedAt = Date.now();
+            if (docId) {
+                await _setDoc(_doc(db, "loans", docId), loanData);
+                return docId;
+            } else {
+                loanData.createdAt = Date.now();
+                const ref = await _addDoc(loansCol, loanData);
+                return ref.id;
+            }
+        };
+
+        // ── Delete a loan from Firestore ─────────────────────────────────
+        window.deleteLoanFromFirestore = async function(docId) {
+            const { doc: _doc, deleteDoc: _del } = window._firestoreAPI;
+            await _del(_doc(db, "loans", docId));
+        };
+
+    </script>
+
+    <!-- ================================================================
+         MAIN APP SCRIPT (same as original, wired to Firestore)
+         ================================================================ -->
     <script>
-        let loans = []; 
+        // ── Global state ─────────────────────────────────────────────────
+        window.loans = [];
         let activeLoanIndex = null;
-        let fileHandle = null;
-        let currentPhoto = "";
-        let editPhoto = "";
+        let currentPhoto    = "";
+        let editPhoto       = "";
         let recoveryChart, growthChart, comparisonChart;
         let clientDonutChart, clientBarChart, clientLineChart;
         let selectedDeactiveClient = null;
-        let deactiveSectionOpen = false;
+        let deactiveSectionOpen    = false;
+        window._chartsReady = false;
 
-        // ===== ICONS =====
+        // ── Status helpers ───────────────────────────────────────────────
+        function setDbStatus(state, txt) {
+            const el   = document.getElementById('db-status');
+            const span = document.getElementById('db-status-text');
+            el.className = 'db-status ' + state;
+            // Re-apply inline style classes since we use a custom style block
+            if (state === 'connected')  { el.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(16,185,129,0.3);color:#10b981;background:rgba(16,185,129,0.08)'; }
+            if (state === 'connecting') { el.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(245,158,11,0.3);color:#f59e0b;background:rgba(245,158,11,0.08)'; }
+            if (state === 'error')      { el.style.cssText='display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:700;padding:4px 10px;border-radius:99px;border:1px solid rgba(244,63,94,0.3);color:#f43f5e;background:rgba(244,63,94,0.08)'; }
+            span.textContent = txt || (state === 'connected' ? 'Live' : state === 'connecting' ? 'Connecting...' : 'DB Error');
+        }
+
+        function hideLoading() {
+            const ov = document.getElementById('loading-overlay');
+            ov.classList.add('hidden');
+        }
+
+        // ── Icons ────────────────────────────────────────────────────────
         function initIcons() { lucide.createIcons(); }
 
-        // ===== MODALS =====
+        // ── Modals ───────────────────────────────────────────────────────
         function openModal(id) {
             document.getElementById(id).classList.remove('hidden');
             document.body.style.overflow = 'hidden';
@@ -585,7 +729,7 @@
             document.body.style.overflow = 'auto';
         }
 
-        // ===== TABS =====
+        // ── Tabs ─────────────────────────────────────────────────────────
         function switchTab(tabId) {
             document.querySelectorAll('.tab-content').forEach(t => t.classList.add('hidden'));
             document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
@@ -595,7 +739,7 @@
             if (tabId === 'attachments-tab') renderAttachments();
         }
 
-        // ===== PHOTO PREVIEW =====
+        // ── Photo Preview ────────────────────────────────────────────────
         function previewPhoto(input, previewId, placeholderId) {
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
@@ -610,43 +754,29 @@
             }
         }
 
-        // ===== LOAN STATUS HELPERS =====
+        // ── Loan helpers ─────────────────────────────────────────────────
         function getLoanDue(loan) {
             const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
+            const total    = loan.amount + interest;
+            const paid     = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
             return total - paid;
         }
+        function isLoanPaid(loan) { return getLoanDue(loan) <= 0; }
 
-        function isLoanPaid(loan) {
-            return getLoanDue(loan) <= 0;
-        }
-
-        // A "client" (by name) is deactive when ALL their loans are paid
         function getDeactiveClients() {
-            const groups = groupByClient(loans);
-            return groups.filter(g => g.loans.every(l => isLoanPaid(l)));
+            return groupByClient(window.loans).filter(g => g.loans.every(l => isLoanPaid(l)));
         }
-
         function getActiveClients() {
-            const groups = groupByClient(loans);
-            return groups.filter(g => !g.loans.every(l => isLoanPaid(l)));
+            return groupByClient(window.loans).filter(g => !g.loans.every(l => isLoanPaid(l)));
         }
 
-        // ===== AUTOCOMPLETE: DEACTIVE CLIENTS =====
+        // ── Autocomplete ─────────────────────────────────────────────────
         function handleNameInput(val) {
-            if (!val || val.trim().length === 0) {
-                hideSuggestions();
-                return;
-            }
-            const deactive = getDeactiveClients();
-            const filtered = deactive.filter(g =>
+            if (!val || val.trim().length === 0) { hideSuggestions(); return; }
+            const filtered = getDeactiveClients().filter(g =>
                 g.displayName.toLowerCase().includes(val.toLowerCase())
             );
-            if (filtered.length === 0) {
-                hideSuggestions();
-                return;
-            }
+            if (filtered.length === 0) { hideSuggestions(); return; }
             showSuggestions(filtered);
         }
 
@@ -654,16 +784,15 @@
             const box = document.getElementById('name-suggestions');
             box.innerHTML = '';
             clients.forEach(client => {
-                const photoSrc = client.loans[0].photo || 
+                const photoSrc = (client.loans[0].photo) || 
                     `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
-                const totalLoans = client.loans.length;
                 const div = document.createElement('div');
                 div.className = 'suggestion-item';
                 div.innerHTML = `
                     <img src="${photoSrc}" class="w-8 h-8 rounded-lg object-cover flex-shrink-0">
                     <div class="flex-1 min-w-0">
                         <div class="text-xs font-bold text-white truncate">${client.displayName}</div>
-                        <div class="text-[9px] text-slate-500">${totalLoans} ණය — ගෙවා ඉවරයි</div>
+                        <div class="text-[9px] text-slate-500">${client.loans.length} ණය — ගෙවා ඉවරයි</div>
                     </div>
                     <span class="bg-emerald-500/10 text-emerald-400 text-[8px] font-bold px-2 py-0.5 rounded-full flex-shrink-0">✓ Paid</span>
                 `;
@@ -674,24 +803,18 @@
             initIcons();
         }
 
-        function hideSuggestions() {
-            document.getElementById('name-suggestions').classList.add('hidden');
-        }
+        function hideSuggestions() { document.getElementById('name-suggestions').classList.add('hidden'); }
 
         function selectDeactiveClient(client) {
             selectedDeactiveClient = client;
             document.getElementById('borrower-name').value = client.displayName;
             hideSuggestions();
-
-            // Show hint
-            const photoSrc = client.loans[0].photo || 
+            const photoSrc = (client.loans[0].photo) || 
                 `https://ui-avatars.com/api/?name=${encodeURIComponent(client.displayName)}&background=6366f1&color=fff`;
             document.getElementById('selected-deactive-photo').src = photoSrc;
             document.getElementById('selected-deactive-label').textContent = 
                 `"${client.displayName}" නැවත සක්‍රිය වේ — නව ණය ලබා දෙන්න`;
             document.getElementById('selected-deactive-hint').classList.remove('hidden');
-
-            // Pre-fill photo if exists
             if (client.loans[0].photo) {
                 currentPhoto = client.loans[0].photo;
                 const preview = document.getElementById('photo-preview');
@@ -708,52 +831,51 @@
             document.getElementById('borrower-name').value = '';
         }
 
-        // ===== CREATE LOAN =====
-        document.getElementById('loan-form').onsubmit = function(e) {
+        // ── CREATE LOAN ──────────────────────────────────────────────────
+        document.getElementById('loan-form').onsubmit = async function(e) {
             e.preventDefault();
-            loans.push({
-                id: Date.now(),
-                name: document.getElementById('borrower-name').value,
-                amount: parseFloat(document.getElementById('loan-amount').value),
-                interest: parseFloat(document.getElementById('loan-interest').value),
-                period: parseInt(document.getElementById('loan-period').value),
-                date: document.getElementById('loan-date').value,
-                photo: currentPhoto,
-                payments: [],
-                documents: []
-            });
-            refreshUI();
-            closeModal('new-loan-modal');
-            this.reset();
-            currentPhoto = "";
-            selectedDeactiveClient = null;
-            document.getElementById('photo-preview').classList.add('hidden');
-            document.getElementById('photo-placeholder').classList.remove('hidden');
-            document.getElementById('selected-deactive-hint').classList.add('hidden');
-            saveToLinkedFile();
+            const btn = document.getElementById('loan-submit-btn');
+            btn.textContent = 'Saving...'; btn.disabled = true;
+            try {
+                const loanData = {
+                    name:      document.getElementById('borrower-name').value,
+                    amount:    parseFloat(document.getElementById('loan-amount').value),
+                    interest:  parseFloat(document.getElementById('loan-interest').value),
+                    period:    parseInt(document.getElementById('loan-period').value),
+                    date:      document.getElementById('loan-date').value,
+                    photo:     currentPhoto,
+                    payments:  [],
+                    documents: []
+                };
+                await window.saveLoanToFirestore(loanData);
+                closeModal('new-loan-modal');
+                this.reset();
+                currentPhoto = "";
+                selectedDeactiveClient = null;
+                document.getElementById('photo-preview').classList.add('hidden');
+                document.getElementById('photo-placeholder').classList.remove('hidden');
+                document.getElementById('selected-deactive-hint').classList.add('hidden');
+            } catch(err) {
+                alert('Error saving: ' + err.message);
+            }
+            btn.textContent = 'Create Account'; btn.disabled = false;
         };
 
-        // ===== EDIT LOAN =====
+        // ── EDIT LOAN ────────────────────────────────────────────────────
         function openEditModal(index) {
             activeLoanIndex = index;
-            const loan = loans[index];
+            const loan = window.loans[index];
             editPhoto = loan.photo || "";
-            document.getElementById('edit-name').value = loan.name;
-            document.getElementById('edit-amount').value = loan.amount;
+            document.getElementById('edit-name').value     = loan.name;
+            document.getElementById('edit-amount').value   = loan.amount;
             document.getElementById('edit-interest').value = loan.interest;
-            document.getElementById('edit-period').value = loan.period;
-            document.getElementById('edit-date').value = loan.date;
-            const previewImg = document.getElementById('edit-photo-preview');
-            const placeholder = document.getElementById('edit-photo-placeholder');
-            if (loan.photo) {
-                previewImg.src = loan.photo;
-                previewImg.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-            } else {
-                previewImg.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-                previewImg.classList.remove('hidden');
-                placeholder.classList.add('hidden');
-            }
+            document.getElementById('edit-period').value   = loan.period;
+            document.getElementById('edit-date').value     = loan.date;
+            const previewImg    = document.getElementById('edit-photo-preview');
+            const placeholder   = document.getElementById('edit-photo-placeholder');
+            previewImg.src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+            previewImg.classList.remove('hidden');
+            placeholder.classList.add('hidden');
             openModal('edit-loan-modal');
         }
 
@@ -762,22 +884,33 @@
             openEditModal(activeLoanIndex);
         }
 
-        document.getElementById('edit-form').onsubmit = function(e) {
+        document.getElementById('edit-form').onsubmit = async function(e) {
             e.preventDefault();
-            const loan = loans[activeLoanIndex];
-            loan.name = document.getElementById('edit-name').value;
-            loan.amount = parseFloat(document.getElementById('edit-amount').value);
-            loan.interest = parseFloat(document.getElementById('edit-interest').value);
-            loan.period = parseInt(document.getElementById('edit-period').value);
-            loan.date = document.getElementById('edit-date').value;
-            if (editPhoto) loan.photo = editPhoto;
-            refreshUI();
-            closeModal('edit-loan-modal');
-            saveToLinkedFile();
-            setTimeout(() => openSheet(activeLoanIndex), 100);
+            const btn = document.getElementById('edit-submit-btn');
+            btn.textContent = 'Saving...'; btn.disabled = true;
+            try {
+                const loan = window.loans[activeLoanIndex];
+                const updated = {
+                    ...loan,
+                    name:     document.getElementById('edit-name').value,
+                    amount:   parseFloat(document.getElementById('edit-amount').value),
+                    interest: parseFloat(document.getElementById('edit-interest').value),
+                    period:   parseInt(document.getElementById('edit-period').value),
+                    date:     document.getElementById('edit-date').value,
+                    photo:    editPhoto || loan.photo
+                };
+                // Remove internal fields before saving
+                const { _docId, ...saveData } = updated;
+                await window.saveLoanToFirestore(saveData, loan._docId);
+                closeModal('edit-loan-modal');
+                setTimeout(() => openSheet(activeLoanIndex), 300);
+            } catch(err) {
+                alert('Error saving: ' + err.message);
+            }
+            btn.textContent = 'Save Changes / සුරකින්න'; btn.disabled = false;
         };
 
-        // ===== GROUP BY CLIENT =====
+        // ── Group by client name ─────────────────────────────────────────
         function groupByClient(data) {
             const map = {};
             data.forEach(loan => {
@@ -788,50 +921,42 @@
             return Object.values(map);
         }
 
-        // ===== RENDER DASHBOARD =====
-        function renderDashboard(data = loans) {
+        // ── RENDER DASHBOARD ─────────────────────────────────────────────
+        function renderDashboard(data) {
+            data = data || window.loans;
             const tbody = document.getElementById('loan-table-body');
             const empty = document.getElementById('empty-state');
             tbody.innerHTML = '';
 
-            // Split into active vs deactive groups from filtered data
-            const allGroups = groupByClient(data);
-            const activeGroups = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
+            const allGroups      = groupByClient(data);
+            const activeGroups   = allGroups.filter(g => !g.loans.every(l => isLoanPaid(l)));
             const deactiveGroups = allGroups.filter(g => g.loans.every(l => isLoanPaid(l)));
 
             if (activeGroups.length === 0 && deactiveGroups.length === 0) {
                 empty.classList.remove('hidden');
-                initIcons();
                 renderDeactiveTable([]);
+                initIcons();
                 return;
             }
             empty.classList.add('hidden');
-
-            // Render active groups
-            activeGroups.forEach((group) => {
-                renderGroupRows(tbody, group, false);
-            });
-
-            // Render deactive table
+            activeGroups.forEach(group => renderGroupRows(tbody, group, false));
             renderDeactiveTable(deactiveGroups);
-
             initIcons();
         }
 
         function renderGroupRows(tbody, group, isDeactive) {
-            const isMulti = group.loans.length > 1;
+            const isMulti  = group.loans.length > 1;
             const groupKey = group.displayName.trim().toLowerCase().replace(/\s+/g, '_') + '_' + (isDeactive ? 'd' : 'a');
-
             const firstLoan = group.loans[0];
-            const photoSrc = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
+            const photoSrc  = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(firstLoan.name)}&background=3b82f6&color=fff`;
 
             if (!isMulti) {
-                const loan = group.loans[0];
-                const idx = loans.indexOf(loan);
+                const loan  = group.loans[0];
+                const idx   = window.loans.indexOf(loan);
                 const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
                 const total = loan.amount + interest;
-                const paid = loan.payments.reduce((s, p) => s + p.amount, 0);
-                const due = total - paid;
+                const paid  = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
+                const due   = total - paid;
                 tbody.innerHTML += `
                     <tr class="group hover:bg-white/[0.02] transition-all cursor-pointer ${isDeactive ? 'deactive-row' : ''}" onclick="openSheet(${idx})">
                         <td class="px-6 py-4">
@@ -852,12 +977,11 @@
                         </td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors" title="Edit"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
-                                <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors" title="Delete"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="event.stopPropagation(); openEditModal(${idx})" class="text-slate-600 hover:text-amber-400 transition-colors"><i data-lucide="pencil" class="w-3.5 h-3.5"></i></button>
+                                <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                             </div>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             } else {
                 tbody.innerHTML += `
                     <tr class="bg-violet-950/20 border-l-2 border-violet-500/40 cursor-pointer hover:bg-violet-950/30 transition-all ${isDeactive ? 'deactive-row' : ''}"
@@ -874,9 +998,7 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4">
-                            ${isDeactive ? '<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>' : ''}
-                        </td>
+                        <td class="px-6 py-4">${isDeactive ? '<span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-400 paid-badge">✓ ALL PAID</span>' : ''}</td>
                         <td class="px-6 py-4 text-right">
                             <i data-lucide="chevron-down" class="w-4 h-4 text-violet-400 inline transition-transform" id="chevron-${groupKey}"></i>
                         </td>
@@ -886,14 +1008,13 @@
                             <table class="w-full">
                                 <tbody>
                                     ${group.loans.map(loan => {
-                                        const idx = loans.indexOf(loan);
+                                        const idx = window.loans.indexOf(loan);
                                         const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
                                         const total = loan.amount + interest;
-                                        const paid = loan.payments.reduce((s, p) => s + p.amount, 0);
-                                        const due = total - paid;
+                                        const paid  = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
+                                        const due   = total - paid;
                                         return `
-                                            <tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all"
-                                                onclick="openSheet(${idx})">
+                                            <tr class="bg-slate-900/40 hover:bg-white/[0.03] cursor-pointer border-l-4 border-violet-500/20 transition-all" onclick="openSheet(${idx})">
                                                 <td class="px-6 py-3 pl-16">
                                                     <div>
                                                         <div class="text-[10px] font-bold text-slate-300">ණය #${idx+1} — ${loan.date}</div>
@@ -913,41 +1034,31 @@
                                                         <button onclick="event.stopPropagation(); deleteLoan(${idx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                                                     </div>
                                                 </td>
-                                            </tr>
-                                        `;
+                                            </tr>`;
                                     }).join('')}
                                 </tbody>
                             </table>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             }
         }
 
-        // ===== DEACTIVE TABLE =====
+        // ── Deactive table ───────────────────────────────────────────────
         function renderDeactiveTable(deactiveGroups) {
             const section = document.getElementById('deactive-section');
-            const tbody = document.getElementById('deactive-table-body');
-            const badge = document.getElementById('deactive-count-badge');
-
-            if (deactiveGroups.length === 0) {
-                section.classList.add('hidden');
-                return;
-            }
-
+            const tbody   = document.getElementById('deactive-table-body');
+            const badge   = document.getElementById('deactive-count-badge');
+            if (deactiveGroups.length === 0) { section.classList.add('hidden'); return; }
             section.classList.remove('hidden');
             badge.textContent = deactiveGroups.length;
-            tbody.innerHTML = '';
-
+            tbody.innerHTML   = '';
             deactiveGroups.forEach(group => {
-                const firstLoan = group.loans[0];
-                const photoSrc = firstLoan.photo || 
-                    `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
-                const totalPaid = group.loans.reduce((s, l) => s + l.payments.reduce((ps, p) => ps + p.amount, 0), 0);
-                const totalPrincipal = group.loans.reduce((s, l) => s + l.amount, 0);
-                const latestLoan = group.loans[group.loans.length - 1];
-                const latestIdx = loans.indexOf(latestLoan);
-
+                const firstLoan    = group.loans[0];
+                const photoSrc     = firstLoan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(group.displayName)}&background=475569&color=fff`;
+                const totalPaid    = group.loans.reduce((s, l) => s + (l.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
+                const totalPrinc   = group.loans.reduce((s, l) => s + l.amount, 0);
+                const latestLoan   = group.loans[group.loans.length - 1];
+                const latestIdx    = window.loans.indexOf(latestLoan);
                 tbody.innerHTML += `
                     <tr class="deactive-row hover:bg-white/[0.02] transition-all cursor-pointer" onclick="openSheet(${latestIdx})">
                         <td class="px-6 py-4">
@@ -964,46 +1075,35 @@
                                 </div>
                             </div>
                         </td>
-                        <td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrincipal.toLocaleString()}</td>
+                        <td class="px-6 py-4 text-slate-600 text-xs">Rs. ${totalPrinc.toLocaleString()}</td>
                         <td class="px-6 py-4 text-emerald-600 text-xs font-bold">Rs. ${totalPaid.toLocaleString()}</td>
-                        <td class="px-6 py-4">
-                            <span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span>
-                        </td>
+                        <td class="px-6 py-4"><span class="px-2 py-1 rounded text-[8px] font-bold bg-emerald-500/10 text-emerald-500">✓ COMPLETED</span></td>
                         <td class="px-6 py-4 text-right">
                             <div class="flex items-center justify-end gap-2">
-                                <button onclick="event.stopPropagation(); openNewLoanForDeactive('${group.displayName.replace(/'/g, "\\'")}')" 
-                                    class="text-slate-600 hover:text-blue-400 transition-colors text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded" 
-                                    title="නව ණය">
+                                <button onclick="event.stopPropagation(); openNewLoanForDeactive('${group.displayName.replace(/'/g, "\\'")}')"
+                                    class="text-slate-600 hover:text-blue-400 transition-colors text-[8px] font-bold flex items-center gap-1 border border-slate-700 hover:border-blue-500 px-2 py-1 rounded">
                                     <i data-lucide="plus" class="w-3 h-3"></i> නව ණය
                                 </button>
                                 <button onclick="event.stopPropagation(); deleteLoan(${latestIdx})" class="text-slate-600 hover:text-rose-500 transition-colors"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
                             </div>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             });
-
             initIcons();
         }
 
         function toggleDeactiveSection() {
             deactiveSectionOpen = !deactiveSectionOpen;
-            const wrapper = document.getElementById('deactive-table-wrapper');
-            const chevron = document.getElementById('deactive-chevron');
-            const label = document.getElementById('deactive-toggle-label');
-            wrapper.classList.toggle('hidden', !deactiveSectionOpen);
-            chevron.style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
-            label.textContent = deactiveSectionOpen ? 'Hide' : 'Show';
+            document.getElementById('deactive-table-wrapper').classList.toggle('hidden', !deactiveSectionOpen);
+            document.getElementById('deactive-chevron').style.transform = deactiveSectionOpen ? 'rotate(180deg)' : '';
+            document.getElementById('deactive-toggle-label').textContent = deactiveSectionOpen ? 'Hide' : 'Show';
         }
 
-        // Quick open new loan modal pre-filled with deactive client name
         function openNewLoanForDeactive(name) {
             openModal('new-loan-modal');
             setTimeout(() => {
                 document.getElementById('borrower-name').value = name;
-                // Find the deactive client and auto-select
-                const deactive = getDeactiveClients();
-                const client = deactive.find(g => g.displayName === name);
+                const client = getDeactiveClients().find(g => g.displayName === name);
                 if (client) selectDeactiveClient(client);
             }, 100);
         }
@@ -1018,267 +1118,129 @@
         }
 
         function searchLoans(val) {
-            const filtered = loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase()));
+            const filtered = window.loans.filter(l => l.name.toLowerCase().includes(val.toLowerCase()));
             renderDashboard(filtered);
         }
 
-        // ===== OPEN SHEET =====
+        // ── OPEN SHEET ───────────────────────────────────────────────────
         function openSheet(index) {
             activeLoanIndex = index;
-            const loan = loans[index];
+            const loan     = window.loans[index];
             const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
-            const due = total - paid;
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+            const total    = loan.amount + interest;
+            const paid     = (loan.payments || []).reduce((sum, p) => sum + p.amount, 0);
+            const due      = total - paid;
+            const pct      = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
-            document.getElementById('sheet-photo').src = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
-            document.getElementById('sheet-title').innerText = loan.name;
-            document.getElementById('sheet-subtitle').innerText = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
-            document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
+            document.getElementById('sheet-photo').src            = loan.photo || `https://ui-avatars.com/api/?name=${encodeURIComponent(loan.name)}&background=3b82f6&color=fff`;
+            document.getElementById('sheet-title').innerText      = loan.name;
+            document.getElementById('sheet-subtitle').innerText   = `Rs. ${loan.amount.toLocaleString()} | ${loan.interest}% | ${loan.period} Months | ${loan.date}`;
+            document.getElementById('sheet-balance-due').innerText         = `Rs. ${due.toLocaleString()}`;
+            document.getElementById('sheet-total-paid').innerText          = `Rs. ${paid.toLocaleString()}`;
             document.getElementById('sheet-total-with-interest').innerText = `Rs. ${total.toLocaleString()}`;
 
-            // Progress bar
             setTimeout(() => {
-                document.getElementById('sheet-progress-bar').style.width = pct + '%';
+                document.getElementById('sheet-progress-bar').style.width  = pct + '%';
                 document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
             }, 100);
-            
+
             switchTab('payments-tab');
             renderPaymentHistory();
             openModal('sheet-modal');
-
-            // Render client charts after modal is visible
             setTimeout(() => renderClientCharts(loan, paid, due, total, interest), 120);
         }
 
-        // ===== CLIENT CHARTS =====
+        // ── CLIENT CHARTS ────────────────────────────────────────────────
         function renderClientCharts(loan, paid, due, total, interest) {
-            // --- Destroy old instances ---
             if (clientDonutChart) { clientDonutChart.destroy(); clientDonutChart = null; }
-            if (clientBarChart)   { clientBarChart.destroy();   clientBarChart = null; }
-            if (clientLineChart)  { clientLineChart.destroy();  clientLineChart = null; }
+            if (clientBarChart)   { clientBarChart.destroy();   clientBarChart   = null; }
+            if (clientLineChart)  { clientLineChart.destroy();  clientLineChart  = null; }
 
             const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-
-            // Animate percentage text
             animateCount('donut-pct', 0, pct, '%', 900);
 
-            // 1. DOUGHNUT
             const donutCtx = document.getElementById('client-donut-chart');
             if (donutCtx) {
                 clientDonutChart = new Chart(donutCtx, {
                     type: 'doughnut',
-                    data: {
-                        labels: ['Paid', 'Due'],
-                        datasets: [{
-                            data: paid > 0 || due > 0 ? [paid, Math.max(0, due)] : [0, 1],
-                            backgroundColor: ['#10b981', '#f43f5e'],
-                            borderWidth: 0,
-                            hoverOffset: 6
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: true,
-                        cutout: '72%',
-                        animation: {
-                            animateRotate: true,
-                            duration: 900,
-                            easing: 'easeOutQuart'
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: ctx => ` Rs. ${ctx.raw.toLocaleString()}`
-                                }
-                            }
-                        }
-                    }
+                    data: { labels: ['Paid','Due'], datasets: [{ data: paid > 0 || due > 0 ? [paid, Math.max(0,due)] : [0,1], backgroundColor: ['#10b981','#f43f5e'], borderWidth: 0, hoverOffset: 6 }] },
+                    options: { responsive: true, maintainAspectRatio: true, cutout: '72%', animation: { animateRotate: true, duration: 900, easing: 'easeOutQuart' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } } }
                 });
             }
 
-            // 2. BAR: Principal / Interest / Paid / Balance
             const barCtx = document.getElementById('client-bar-chart');
             if (barCtx) {
                 clientBarChart = new Chart(barCtx, {
                     type: 'bar',
-                    data: {
-                        labels: ['Principal', 'Interest', 'Paid', 'Balance'],
-                        datasets: [{
-                            data: [loan.amount, interest, paid, Math.max(0, due)],
-                            backgroundColor: [
-                                'rgba(59,130,246,0.75)',
-                                'rgba(245,158,11,0.75)',
-                                'rgba(16,185,129,0.75)',
-                                'rgba(244,63,94,0.75)'
-                            ],
-                            borderRadius: 5,
-                            borderSkipped: false
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        animation: {
-                            duration: 800,
-                            easing: 'easeOutBounce',
-                            delay: ctx => ctx.dataIndex * 80
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: ctx => ` Rs. ${ctx.raw.toLocaleString()}`
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                display: false,
-                                beginAtZero: true
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: { color: '#64748b', font: { size: 8 } }
-                            }
-                        }
-                    }
+                    data: { labels: ['Principal','Interest','Paid','Balance'], datasets: [{ data: [loan.amount, interest, paid, Math.max(0,due)], backgroundColor: ['rgba(59,130,246,0.75)','rgba(245,158,11,0.75)','rgba(16,185,129,0.75)','rgba(244,63,94,0.75)'], borderRadius: 5, borderSkipped: false }] },
+                    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 800, easing: 'easeOutBounce', delay: ctx => ctx.dataIndex * 80 }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#64748b', font: { size: 8 } } } } }
                 });
             }
 
-            // 3. LINE: Cumulative payments over time
             const lineCtx = document.getElementById('client-line-chart');
             if (lineCtx) {
-                // Build cumulative series sorted by date
-                const sorted = [...loan.payments].sort((a, b) => new Date(a.date) - new Date(b.date));
-                const labels = [];
-                const cumData = [];
-                let running = 0;
-                sorted.forEach(p => {
-                    labels.push(p.date.substring(5)); // MM-DD
-                    running += p.amount;
-                    cumData.push(running);
-                });
-
-                // Add a zero start point
+                const sorted  = [...(loan.payments || [])].sort((a, b) => new Date(a.date) - new Date(b.date));
+                const labels  = []; const cumData = []; let running = 0;
+                sorted.forEach(p => { labels.push(p.date.substring(5)); running += p.amount; cumData.push(running); });
                 const lineLabels = labels.length > 0 ? ['Start', ...labels] : ['Start'];
                 const lineData   = labels.length > 0 ? [0, ...cumData] : [0];
-
                 clientLineChart = new Chart(lineCtx, {
                     type: 'line',
-                    data: {
-                        labels: lineLabels,
-                        datasets: [
-                            {
-                                label: 'Cumulative Paid',
-                                data: lineData,
-                                borderColor: '#10b981',
-                                backgroundColor: 'rgba(16,185,129,0.08)',
-                                fill: true,
-                                tension: 0.4,
-                                pointRadius: 3,
-                                pointBackgroundColor: '#10b981',
-                                borderWidth: 2
-                            },
-                            {
-                                label: 'Total Due',
-                                data: lineLabels.map(() => total),
-                                borderColor: 'rgba(244,63,94,0.3)',
-                                borderDash: [4, 4],
-                                borderWidth: 1,
-                                pointRadius: 0,
-                                fill: false,
-                                tension: 0
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        animation: {
-                            duration: 1000,
-                            easing: 'easeOutCubic'
-                        },
-                        plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                                callbacks: {
-                                    label: ctx => ` Rs. ${ctx.raw.toLocaleString()}`
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                display: false,
-                                beginAtZero: true
-                            },
-                            x: {
-                                grid: { display: false },
-                                ticks: {
-                                    color: '#475569',
-                                    font: { size: 7 },
-                                    maxTicksLimit: 5
-                                }
-                            }
-                        }
-                    }
+                    data: { labels: lineLabels, datasets: [
+                        { label: 'Cumulative Paid', data: lineData, borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.08)', fill: true, tension: 0.4, pointRadius: 3, pointBackgroundColor: '#10b981', borderWidth: 2 },
+                        { label: 'Total Due', data: lineLabels.map(() => total), borderColor: 'rgba(244,63,94,0.3)', borderDash: [4,4], borderWidth: 1, pointRadius: 0, fill: false, tension: 0 }
+                    ]},
+                    options: { responsive: true, maintainAspectRatio: false, animation: { duration: 1000, easing: 'easeOutCubic' }, plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => ` Rs. ${ctx.raw.toLocaleString()}` } } }, scales: { y: { display: false, beginAtZero: true }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 7 }, maxTicksLimit: 5 } } } }
                 });
             }
         }
 
-        // Animated number count-up helper
         function animateCount(elemId, from, to, suffix, duration) {
             const el = document.getElementById(elemId);
             if (!el) return;
             const start = performance.now();
             function step(now) {
                 const progress = Math.min((now - start) / duration, 1);
-                const ease = 1 - Math.pow(1 - progress, 3);
+                const ease     = 1 - Math.pow(1 - progress, 3);
                 el.textContent = Math.round(from + (to - from) * ease) + suffix;
                 if (progress < 1) requestAnimationFrame(step);
             }
             requestAnimationFrame(step);
         }
 
-        // ===== PAYMENTS =====
-        function addPayment() {
-            const amtIn = document.getElementById('pay-amount');
+        // ── ADD PAYMENT ──────────────────────────────────────────────────
+        async function addPayment() {
+            const amtIn  = document.getElementById('pay-amount');
             const dateIn = document.getElementById('pay-date');
             const noteIn = document.getElementById('pay-note');
             if (!amtIn.value || !dateIn.value) return alert('Please enter amount and date.');
-            loans[activeLoanIndex].payments.push({ 
-                amount: parseFloat(amtIn.value), 
-                date: dateIn.value,
-                note: noteIn.value || ''
-            });
-            refreshUI();
-            const loan = loans[activeLoanIndex];
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
-            const due = total - paid;
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
 
-            document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-progress-bar').style.width = pct + '%';
-            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-            
-            // Refresh client charts with animation
-            renderClientCharts(loan, paid, due, total, interest);
+            const btn = document.getElementById('pay-btn');
+            btn.textContent = 'Saving...'; btn.disabled = true;
 
-            // If loan is now fully paid, show a congratulation note
-            if (due <= 0) {
-                showPaidNotification(loan.name);
+            try {
+                const loan = window.loans[activeLoanIndex];
+                const updatedPayments = [...(loan.payments || []), {
+                    amount: parseFloat(amtIn.value),
+                    date:   dateIn.value,
+                    note:   noteIn.value || ''
+                }];
+                const { _docId, ...saveData } = loan;
+                saveData.payments = updatedPayments;
+                await window.saveLoanToFirestore(saveData, loan._docId);
+
+                amtIn.value = '';
+                noteIn.value = '';
+
+                // Check if paid — notification handled by real-time listener re-render
+                const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+                const total    = loan.amount + interest;
+                const newPaid  = updatedPayments.reduce((s, p) => s + p.amount, 0);
+                if (total - newPaid <= 0) showPaidNotification(loan.name);
+            } catch(err) {
+                alert('Error: ' + err.message);
             }
-            
-            renderPaymentHistory();
-            amtIn.value = '';
-            noteIn.value = '';
-            saveToLinkedFile();
+            btn.textContent = 'Confirm Payment'; btn.disabled = false;
         }
 
         function showPaidNotification(name) {
@@ -1289,36 +1251,23 @@
             setTimeout(() => notif.remove(), 4000);
         }
 
-        function deletePayment(idx) {
+        async function deletePayment(idx) {
             if (!confirm('Delete this payment?')) return;
-            loans[activeLoanIndex].payments.splice(idx, 1);
-            const loan = loans[activeLoanIndex];
-            const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
-            const total = loan.amount + interest;
-            const paid = loan.payments.reduce((sum, p) => sum + p.amount, 0);
-            const due = total - paid;
-            const pct = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
-
-            document.getElementById('sheet-balance-due').innerText = `Rs. ${(total - paid).toLocaleString()}`;
-            document.getElementById('sheet-total-paid').innerText = `Rs. ${paid.toLocaleString()}`;
-            document.getElementById('sheet-progress-bar').style.width = pct + '%';
-            document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
-
-            renderClientCharts(loan, paid, due, total, interest);
-            refreshUI();
+            const loan = window.loans[activeLoanIndex];
+            const updatedPayments = [...(loan.payments || [])];
+            updatedPayments.splice(idx, 1);
+            const { _docId, ...saveData } = loan;
+            saveData.payments = updatedPayments;
+            await window.saveLoanToFirestore(saveData, loan._docId);
             renderPaymentHistory();
-            saveToLinkedFile();
         }
 
         function renderPaymentHistory() {
-            const tbody = document.getElementById('payment-history-body');
+            const tbody      = document.getElementById('payment-history-body');
             const noPayments = document.getElementById('no-payments');
-            tbody.innerHTML = '';
-            const payments = loans[activeLoanIndex].payments;
-            if (payments.length === 0) {
-                noPayments.classList.remove('hidden');
-                return;
-            }
+            tbody.innerHTML  = '';
+            const payments   = window.loans[activeLoanIndex]?.payments || [];
+            if (payments.length === 0) { noPayments.classList.remove('hidden'); return; }
             noPayments.classList.add('hidden');
             const sorted = [...payments].map((p, i) => ({ ...p, i })).sort((a, b) => new Date(b.date) - new Date(a.date));
             sorted.forEach(p => {
@@ -1332,50 +1281,38 @@
                                 <i data-lucide="trash-2" class="w-3 h-3"></i>
                             </button>
                         </td>
-                    </tr>
-                `;
+                    </tr>`;
             });
             initIcons();
         }
 
-        // ===== ATTACHMENTS =====
-        function handleDragOver(e) {
-            e.preventDefault();
-            document.getElementById('drop-zone').classList.add('drag-over');
-        }
-        function handleDragLeave(e) {
-            document.getElementById('drop-zone').classList.remove('drag-over');
-        }
+        // ── ATTACHMENTS ──────────────────────────────────────────────────
+        function handleDragOver(e)  { e.preventDefault(); document.getElementById('drop-zone').classList.add('drag-over'); }
+        function handleDragLeave(e) { document.getElementById('drop-zone').classList.remove('drag-over'); }
         function handleDrop(e) {
             e.preventDefault();
             document.getElementById('drop-zone').classList.remove('drag-over');
-            const files = e.dataTransfer.files;
-            if (files.length) processFiles(files);
+            if (e.dataTransfer.files.length) processFiles(e.dataTransfer.files);
         }
-
-        function attachDocs(input) {
-            if (!input.files.length) return;
-            processFiles(input.files);
-        }
+        function attachDocs(input) { if (!input.files.length) return; processFiles(input.files); }
 
         function processFiles(files) {
-            if (!loans[activeLoanIndex].documents) loans[activeLoanIndex].documents = [];
+            const loan = window.loans[activeLoanIndex];
+            if (!loan.documents) loan.documents = [];
             let processed = 0;
             for (let file of files) {
                 const reader = new FileReader();
-                reader.onload = e => {
-                    loans[activeLoanIndex].documents.push({ 
-                        name: file.name, 
-                        data: e.target.result,
-                        size: file.size,
-                        type: file.type,
+                reader.onload = async e => {
+                    const updatedDocs = [...(loan.documents || []), {
+                        name: file.name, data: e.target.result,
+                        size: file.size, type: file.type,
                         addedDate: new Date().toISOString().split('T')[0]
-                    });
+                    }];
+                    const { _docId, ...saveData } = loan;
+                    saveData.documents = updatedDocs;
+                    await window.saveLoanToFirestore(saveData, loan._docId);
                     processed++;
-                    if (processed === files.length) {
-                        renderAttachments();
-                        saveToLinkedFile();
-                    }
+                    if (processed === files.length) renderAttachments();
                 };
                 reader.readAsDataURL(file);
             }
@@ -1389,7 +1326,6 @@
             if (type.includes('zip') || type.includes('compressed')) return '🗜️';
             return '📎';
         }
-
         function formatSize(bytes) {
             if (bytes < 1024) return bytes + ' B';
             if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
@@ -1397,49 +1333,32 @@
         }
 
         function renderAttachments() {
-            const grid = document.getElementById('attachment-grid');
+            const grid  = document.getElementById('attachment-grid');
             const noAtt = document.getElementById('no-attachments');
-            const docs = loans[activeLoanIndex].documents || [];
+            const docs  = window.loans[activeLoanIndex]?.documents || [];
             grid.innerHTML = '';
-
-            if (docs.length === 0) {
-                noAtt.classList.remove('hidden');
-                return;
-            }
+            if (docs.length === 0) { noAtt.classList.remove('hidden'); return; }
             noAtt.classList.add('hidden');
-
             docs.forEach((doc, idx) => {
                 const isImage = doc.type && doc.type.startsWith('image/');
-                const icon = getFileIcon(doc.type || '', doc.name);
-                const size = doc.size ? formatSize(doc.size) : '';
-                
+                const icon    = getFileIcon(doc.type || '', doc.name);
+                const size    = doc.size ? formatSize(doc.size) : '';
                 grid.innerHTML += `
                     <div class="doc-item fade-in bg-slate-900/60 rounded-xl border border-slate-800 overflow-hidden group">
-                        ${isImage ? `
-                            <div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')">
-                                <img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
-                            </div>
-                        ` : `
-                            <div class="h-32 bg-slate-950/60 flex items-center justify-center text-4xl cursor-pointer" onclick="window.open('${doc.data}', '_blank')">
-                                ${icon}
-                            </div>
-                        `}
+                        ${isImage ? `<div class="h-32 bg-slate-950 overflow-hidden cursor-pointer" onclick="previewImage('${doc.data}')">
+                            <img src="${doc.data}" class="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity">
+                        </div>` : `<div class="h-32 bg-slate-950/60 flex items-center justify-center text-4xl cursor-pointer" onclick="window.open('${doc.data}', '_blank')">${icon}</div>`}
                         <div class="p-3">
                             <p class="text-[10px] font-bold text-slate-300 truncate mb-1" title="${doc.name}">${doc.name}</p>
                             <div class="flex items-center justify-between">
                                 <span class="text-[8px] text-slate-600">${size}${doc.addedDate ? ' · ' + doc.addedDate : ''}</span>
                                 <div class="flex gap-2">
-                                    <a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors" title="Download">
-                                        <i data-lucide="download" class="w-3 h-3"></i>
-                                    </a>
-                                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors" title="Remove">
-                                        <i data-lucide="trash-2" class="w-3 h-3"></i>
-                                    </button>
+                                    <a href="${doc.data}" download="${doc.name}" class="text-emerald-500 hover:text-emerald-400 transition-colors"><i data-lucide="download" class="w-3 h-3"></i></a>
+                                    <button onclick="removeDoc(${idx})" class="text-rose-500/60 hover:text-rose-400 transition-colors"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                `;
+                    </div>`;
             });
             initIcons();
         }
@@ -1449,101 +1368,70 @@
             openModal('image-preview-modal');
         }
 
-        function removeDoc(idx) {
+        async function removeDoc(idx) {
             if (!confirm('Remove this attachment?')) return;
-            loans[activeLoanIndex].documents.splice(idx, 1);
+            const loan = window.loans[activeLoanIndex];
+            const updatedDocs = [...(loan.documents || [])];
+            updatedDocs.splice(idx, 1);
+            const { _docId, ...saveData } = loan;
+            saveData.documents = updatedDocs;
+            await window.saveLoanToFirestore(saveData, loan._docId);
             renderAttachments();
-            saveToLinkedFile();
         }
 
-        // ===== DELETE LOAN =====
-        function deleteLoan(index) {
-            if (confirm('මෙම ගනුදෙනුකරු ඉවත් කිරීමට ඔබට විශ්වාසද?')) {
-                loans.splice(index, 1);
-                refreshUI();
-                saveToLinkedFile();
-            }
+        // ── DELETE LOAN ──────────────────────────────────────────────────
+        async function deleteLoan(index) {
+            if (!confirm('මෙම ගනුදෙනුකරු ඉවත් කිරීමට ඔබට විශ්වාසද?')) return;
+            const loan = window.loans[index];
+            await window.deleteLoanFromFirestore(loan._docId);
+            // UI updates automatically via onSnapshot
         }
 
-        // ===== STATS =====
+        // ── STATS ────────────────────────────────────────────────────────
         function updateStats() {
-            const principal = loans.reduce((sum, l) => sum + l.amount, 0);
-            const collected = loans.reduce((sum, l) => sum + l.payments.reduce((ps, p) => ps + p.amount, 0), 0);
-            const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
-            const outstanding = (principal + totalInt - collected);
-
-            // Only count ACTIVE clients (those with at least one unpaid loan)
+            const principal   = window.loans.reduce((sum, l) => sum + l.amount, 0);
+            const collected   = window.loans.reduce((sum, l) => sum + (l.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
+            const totalInt    = window.loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
+            const outstanding = principal + totalInt - collected;
             const activeCount = getActiveClients().length;
-            
-            document.getElementById('total-clients').innerText = activeCount;
-            document.getElementById('total-loaned').innerText = `Rs. ${principal.toLocaleString()}`;
-            document.getElementById('total-collected').innerText = `Rs. ${collected.toLocaleString()}`;
+
+            document.getElementById('total-clients').innerText     = activeCount;
+            document.getElementById('total-loaned').innerText      = `Rs. ${principal.toLocaleString()}`;
+            document.getElementById('total-collected').innerText   = `Rs. ${collected.toLocaleString()}`;
             document.getElementById('total-outstanding').innerText = `Rs. ${outstanding.toLocaleString()}`;
-            document.getElementById('total-interest').innerText = `Rs. ${totalInt.toLocaleString()}`;
+            document.getElementById('total-interest').innerText    = `Rs. ${totalInt.toLocaleString()}`;
         }
 
-        // ===== CHARTS =====
+        // ── GLOBAL CHARTS ────────────────────────────────────────────────
         function initCharts() {
             const commonOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
+                responsive: true, maintainAspectRatio: false,
                 plugins: { legend: { labels: { color: '#64748b', font: { size: 9 } } } }
             };
-
             recoveryChart = new Chart(document.getElementById('recoveryPieChart'), {
                 type: 'doughnut',
-                data: {
-                    labels: ['Paid', 'Due'],
-                    datasets: [{ data: [0, 1], backgroundColor: ['#10b981', '#f43f5e'], borderWidth: 0 }]
-                },
+                data: { labels: ['Paid','Due'], datasets: [{ data: [0,1], backgroundColor: ['#10b981','#f43f5e'], borderWidth: 0 }] },
                 options: { ...commonOptions, cutout: '75%' }
             });
-
             growthChart = new Chart(document.getElementById('growthLineChart'), {
                 type: 'line',
-                data: {
-                    labels: [],
-                    datasets: [{
-                        label: 'Loans',
-                        data: [],
-                        borderColor: '#3b82f6',
-                        backgroundColor: 'rgba(59, 130, 246, 0.05)',
-                        fill: true,
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    ...commonOptions,
-                    scales: {
-                        y: { display: false },
-                        x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
+                data: { labels: [], datasets: [{ label: 'Loans', data: [], borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.05)', fill: true, tension: 0.4 }] },
+                options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 8 } } } }, plugins: { legend: { display: false } } }
             });
-
             comparisonChart = new Chart(document.getElementById('comparisonBarChart'), {
                 type: 'bar',
-                data: {
-                    labels: ['Prin.', 'Paid', 'Int.'],
-                    datasets: [{ data: [0, 0, 0], backgroundColor: ['#3b82f6', '#10b981', '#f59e0b'], borderRadius: 4 }]
-                },
-                options: {
-                    ...commonOptions,
-                    scales: {
-                        y: { display: false },
-                        x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } }
-                    },
-                    plugins: { legend: { display: false } }
-                }
+                data: { labels: ['Prin.','Paid','Int.'], datasets: [{ data: [0,0,0], backgroundColor: ['#3b82f6','#10b981','#f59e0b'], borderRadius: 4 }] },
+                options: { ...commonOptions, scales: { y: { display: false }, x: { grid: { display: false }, ticks: { color: '#475569', font: { size: 9 } } } }, plugins: { legend: { display: false } } }
             });
+            window._chartsReady = true;
+            if (window._pendingRefresh) { refreshUI(); window._pendingRefresh = false; }
         }
 
         function updateCharts() {
-            const principal = loans.reduce((sum, l) => sum + l.amount, 0);
-            const collected = loans.reduce((sum, l) => sum + l.payments.reduce((ps, p) => ps + p.amount, 0), 0);
-            const totalInt = loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
-            const outstanding = (principal + totalInt - collected);
+            const principal   = window.loans.reduce((sum, l) => sum + l.amount, 0);
+            const collected   = window.loans.reduce((sum, l) => sum + (l.payments || []).reduce((ps, p) => ps + p.amount, 0), 0);
+            const totalInt    = window.loans.reduce((sum, l) => sum + Math.round((l.amount * (l.interest / 100)) * l.period), 0);
+            const outstanding = principal + totalInt - collected;
 
             recoveryChart.data.datasets[0].data = [collected, outstanding > 0 ? outstanding : 0];
             recoveryChart.update();
@@ -1551,7 +1439,7 @@
             comparisonChart.update();
 
             const monthlyData = {};
-            loans.forEach(l => {
+            window.loans.forEach(l => {
                 const month = l.date.substring(0, 7);
                 monthlyData[month] = (monthlyData[month] || 0) + l.amount;
             });
@@ -1561,45 +1449,70 @@
             growthChart.update();
         }
 
-        // ===== FILE SYNC =====
-        async function setFileHandle() {
-            try {
-                [fileHandle] = await window.showOpenFilePicker({ types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }] });
-                const file = await fileHandle.getFile();
-                loans = JSON.parse(await file.text());
-                refreshUI();
-            } catch (err) { }
-        }
-
-        async function saveToLinkedFile() {
-            if (!fileHandle) return;
-            try {
-                const writable = await fileHandle.createWritable();
-                await writable.write(JSON.stringify(loans, null, 2));
-                await writable.close();
-            } catch(e) {}
-        }
-
+        // ── EXPORT ───────────────────────────────────────────────────────
         function downloadJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(loans, null, 2));
+            const cleaned = window.loans.map(({ _docId, ...rest }) => rest);
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(cleaned, null, 2));
             const dl = document.createElement('a');
             dl.setAttribute("href", dataStr);
             dl.setAttribute("download", `loan_book_${new Date().toISOString().split('T')[0]}.json`);
             dl.click();
         }
 
-        // ===== MAIN =====
+        // ── MAIN ─────────────────────────────────────────────────────────
         function refreshUI() {
             renderDashboard();
             updateStats();
             updateCharts();
+            // Refresh open sheet if visible
+            if (!document.getElementById('sheet-modal').classList.contains('hidden') && activeLoanIndex !== null) {
+                const loan = window.loans[activeLoanIndex];
+                if (loan) {
+                    const interest = Math.round((loan.amount * (loan.interest / 100)) * loan.period);
+                    const total    = loan.amount + interest;
+                    const paid     = (loan.payments || []).reduce((s, p) => s + p.amount, 0);
+                    const due      = total - paid;
+                    const pct      = total > 0 ? Math.min(100, Math.round((paid / total) * 100)) : 0;
+                    document.getElementById('sheet-balance-due').innerText = `Rs. ${due.toLocaleString()}`;
+                    document.getElementById('sheet-total-paid').innerText  = `Rs. ${paid.toLocaleString()}`;
+                    document.getElementById('sheet-progress-bar').style.width  = pct + '%';
+                    document.getElementById('sheet-progress-label').textContent = pct + '% Recovered';
+                    renderPaymentHistory();
+                }
+            }
         }
 
         window.onload = () => {
             initCharts();
-            refreshUI();
             initIcons();
         };
+
+        // ── Make functions available globally ────────────────────────────
+        window.openModal              = openModal;
+        window.closeModal             = closeModal;
+        window.switchTab              = switchTab;
+        window.previewPhoto           = previewPhoto;
+        window.handleNameInput        = handleNameInput;
+        window.hideSuggestions        = hideSuggestions;
+        window.clearSelectedDeactive  = clearSelectedDeactive;
+        window.openEditModal          = openEditModal;
+        window.openEditFromSheet      = openEditFromSheet;
+        window.toggleDeactiveSection  = toggleDeactiveSection;
+        window.openNewLoanForDeactive = openNewLoanForDeactive;
+        window.toggleClientGroup      = toggleClientGroup;
+        window.searchLoans            = searchLoans;
+        window.openSheet              = openSheet;
+        window.addPayment             = addPayment;
+        window.deletePayment          = deletePayment;
+        window.deleteLoan             = deleteLoan;
+        window.handleDragOver         = handleDragOver;
+        window.handleDragLeave        = handleDragLeave;
+        window.handleDrop             = handleDrop;
+        window.attachDocs             = attachDocs;
+        window.previewImage           = previewImage;
+        window.removeDoc              = removeDoc;
+        window.downloadJSON           = downloadJSON;
+        window.refreshUI              = refreshUI;
     </script>
 </body>
 </html>
