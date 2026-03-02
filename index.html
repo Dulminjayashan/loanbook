@@ -430,8 +430,7 @@ const LS_DATA_KEY     = 'loanTrackerPro_v3_dropbox';
 const LS_PKCE_VERIFIER= 'dbx_pkce_verifier';
 const LS_PKCE_STATE   = 'dbx_pkce_state';
 
-// Your shared direct download URL (read-only, for initial load)
-const DROPBOX_DIRECT_URL = 'https://dl.dropboxusercontent.com/scl/fi/e81y21fn6xxfig19pvgw5/data.json?rlkey=3f02baxpxd9bhrbm5u15leqdo&st=l4jqqut9&dl=1';
+// No hardcoded URL needed — we load via OAuth token
 
 // ============================================================
 // PKCE HELPERS
@@ -733,27 +732,71 @@ async function saveToDropbox() {
 }
 
 // ============================================================
-// LOAD FROM DROPBOX (shared URL — read-only)
+// LOAD FROM DROPBOX (via OAuth token — download file)
 // ============================================================
 async function loadFromDropbox() {
+    if (!isDropboxConnected()) {
+        // Not connected — just use local cache silently
+        loadFromLocalStorage();
+        setSyncStatus('error', 'Not connected — click ⚙️');
+        return false;
+    }
+
     setSyncStatus('loading', 'Loading from Dropbox...');
+
     try {
-        const url = DROPBOX_DIRECT_URL + '&_t=' + Date.now();
-        const response = await fetch(url, { method: 'GET', headers: { 'Accept': 'application/json' } });
+        const token = await getValidAccessToken();
+        if (!token) {
+            loadFromLocalStorage();
+            setSyncStatus('error', 'Auth failed — reconnect');
+            return false;
+        }
+
+        const filePath = localStorage.getItem(LS_PATH_KEY) || '/data.json';
+
+        // 8 second timeout
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+
+        const response = await fetch('https://content.dropboxapi.com/2/files/download', {
+            method: 'POST',
+            signal: controller.signal,
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Dropbox-API-Arg': JSON.stringify({ path: filePath })
+            }
+        });
+        clearTimeout(timer);
+
+        if (response.status === 409) {
+            // File doesn't exist yet — start fresh
+            loans = [];
+            saveToLocalStorage();
+            setSyncStatus('synced', 'Ready — no data yet');
+            showToast('☁️ Dropbox connected! Start adding loans.', 'blue');
+            return true;
+        }
+
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
         const text = await response.text();
         const data = text.trim() ? JSON.parse(text) : [];
         loans = Array.isArray(data) ? data : [];
         loans.forEach(ensureDefaults);
         saveToLocalStorage();
-        if (isDropboxConnected()) setSyncStatus('synced', `Synced ✓ — ${loans.length} records`);
-        else setSyncStatus('pending', `Loaded ✓ — Click ⚙️ to connect`);
+        setSyncStatus('synced', `Synced ✓ — ${loans.length} records`);
+        showToast(`✅ Loaded ${loans.length} records from Dropbox`, 'emerald');
         return true;
+
     } catch (err) {
         console.warn('Dropbox load failed:', err);
         loadFromLocalStorage();
-        if (loans.length > 0) { setSyncStatus('error', 'Offline — local cache'); showToast('⚠️ Using local cache.', 'amber'); }
-        else { setSyncStatus('error', 'No data'); if (!isDropboxConnected()) { setTimeout(() => { prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal'); }, 1000); } }
+        if (loans.length > 0) {
+            setSyncStatus('error', 'Dropbox offline — local cache');
+            showToast('⚠️ Dropbox offline. Using local cache.', 'amber');
+        } else {
+            setSyncStatus('error', 'No data found');
+        }
         return false;
     }
 }
@@ -1001,7 +1044,6 @@ function renderDeactiveTable(deactiveGroups) {
     initIcons();
 }
 
-let deactiveSectionOpen = false;
 function toggleDeactiveSection() {
     deactiveSectionOpen = !deactiveSectionOpen;
     document.getElementById('deactive-table-wrapper').classList.toggle('hidden', !deactiveSectionOpen);
@@ -1190,32 +1232,32 @@ function refreshUI() { renderDashboard(); updateStats(); updateCharts(); }
 // ============================================================
 window.onload = async () => {
     initCharts();
-    // Show current URL in setup modal
     document.getElementById('current-url-display').textContent = getRedirectUri();
 
-    // Check if this is an OAuth callback redirect
+    // ① OAuth callback check (returning from Dropbox login)
     const isCallback = await handleOAuthCallback();
 
-    // Load local cache first for instant display
+    // ② Instant display from local cache
     loadFromLocalStorage();
     loans.forEach(ensureDefaults);
-    if (loans.length > 0) refreshUI();
+    refreshUI();
 
-    // Then sync from Dropbox
-    const ok = await loadFromDropbox();
-    if (ok) { loans.forEach(ensureDefaults); refreshUI(); }
-
-    // If OAuth just completed, open setup to show connected state
+    // ③ Decide based on connection state
     if (isCallback && isDropboxConnected()) {
-        setTimeout(() => {
-            showConnectedView();
-            openModal('dropbox-setup-modal');
-        }, 500);
-    }
-
-    // First time — no data, no connection
-    if (!isDropboxConnected() && loans.length === 0) {
-        setTimeout(() => { prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal'); }, 1200);
+        const ok = await loadFromDropbox();
+        if (ok) { loans.forEach(ensureDefaults); refreshUI(); }
+        setTimeout(() => { showConnectedView(); openModal('dropbox-setup-modal'); }, 400);
+    } else if (isDropboxConnected()) {
+        setSyncStatus('loading', 'Syncing...');
+        const ok = await loadFromDropbox();
+        if (ok) { loans.forEach(ensureDefaults); refreshUI(); }
+    } else {
+        setSyncStatus('error', 'Not connected — click ⚙️');
+        if (loans.length === 0) {
+            setTimeout(() => { prefillSetupModal(); showSetupView(); openModal('dropbox-setup-modal'); }, 600);
+        } else {
+            showToast('⚡ Local data loaded. Click ⚙️ to connect Dropbox.', 'blue');
+        }
     }
 
     initIcons();
