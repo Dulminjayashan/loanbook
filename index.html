@@ -73,6 +73,8 @@
         .battery-body {
             position: relative;
             flex: 1;
+            min-width: 80px;
+            max-width: 150px;
             height: 14px;
             background: rgba(15,23,42,0.8);
             border-radius: 4px;
@@ -719,8 +721,13 @@
                 <div class="flex-1 min-w-0">
                     <h2 id="sheet-title" class="text-lg font-bold">Client</h2>
                     <p id="sheet-subtitle" class="text-slate-500 text-[10px] mb-1.5"></p>
-                    <div class="progress-track w-48"><div class="progress-fill" id="sheet-progress-bar" style="width:0%"></div></div>
-                    <p id="sheet-progress-label" class="text-[8px] text-slate-600 mt-0.5">0% Recovered</p>
+                    <div class="battery-wrap" style="max-width:220px">
+                        <div class="battery-body" style="min-width:140px;max-width:180px">
+                            <div class="battery-fill green animating" id="sheet-progress-bar" style="width:0%"></div>
+                        </div>
+                        <div class="battery-tip"></div>
+                        <span class="battery-pct text-emerald-400" id="sheet-progress-label">0%</span>
+                    </div>
                 </div>
             </div>
             <div class="flex gap-2">
@@ -1593,7 +1600,16 @@ function openSheet(index){
     document.getElementById('sheet-balance-due').innerText=`Rs. ${due.toLocaleString()}`;
     document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;
     document.getElementById('sheet-total-with-interest').innerText=`Rs. ${total.toLocaleString()}`;
-    setTimeout(()=>{document.getElementById('sheet-progress-bar').style.width=pct+'%';document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';},100);
+    setTimeout(()=>{
+        const sf=document.getElementById('sheet-progress-bar');
+        const sl=document.getElementById('sheet-progress-label');
+        const sc=pct>=60?'green':pct>=30?'amber':'rose';
+        const stc=pct>=60?'text-emerald-400':pct>=30?'text-amber-400':'text-rose-400';
+        sf.className=`battery-fill ${sc} animating`;
+        sf.style.width=pct+'%';
+        sl.className=`battery-pct ${stc}`;
+        sl.textContent=pct+'% Recovered';
+    },100);
     updateAttachmentBadge();switchTab('payments-tab');renderPaymentHistory();openModal('sheet-modal');
     setTimeout(()=>renderClientCharts(loan,paid,due,total,interest),120);
 }
@@ -1635,7 +1651,10 @@ function addPayment(){
     ensureDefaults(loans[activeLoanIndex]);
     loans[activeLoanIndex].payments.push({amount:parseFloat(amtIn.value),date:dateIn.value,note:noteIn.value||''});
     const loan=loans[activeLoanIndex];const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);const total=loan.amount+interest;const paid=loan.payments.reduce((s,p)=>s+p.amount,0);const due=total-paid;const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
-    document.getElementById('sheet-balance-due').innerText=`Rs. ${due.toLocaleString()}`;document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;document.getElementById('sheet-progress-bar').style.width=pct+'%';document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
+    document.getElementById('sheet-balance-due').innerText=`Rs. ${due.toLocaleString()}`;document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;
+    const af=document.getElementById('sheet-progress-bar');const al=document.getElementById('sheet-progress-label');
+    const ac=pct>=60?'green':pct>=30?'amber':'rose';const atc=pct>=60?'text-emerald-400':pct>=30?'text-amber-400':'text-rose-400';
+    af.className=`battery-fill ${ac} animating`;af.style.width=pct+'%';al.className=`battery-pct ${atc}`;al.textContent=pct+'% Recovered';
     renderClientCharts(loan,paid,due,total,interest);
     if(due<=0) showToast(`🎉 ${loan.name} — ණය ගෙවා ඉවරයි!`,'emerald');
     refreshUI();renderPaymentHistory();amtIn.value='';noteIn.value='';persistAll();
@@ -1644,7 +1663,10 @@ function deletePayment(idx){
     if(!confirm('Delete this payment?'))return;
     loans[activeLoanIndex].payments.splice(idx,1);
     const loan=loans[activeLoanIndex];const interest=Math.round((loan.amount*(loan.interest/100))*loan.period);const total=loan.amount+interest;const paid=loan.payments.reduce((s,p)=>s+p.amount,0);const due=total-paid;const pct=total>0?Math.min(100,Math.round((paid/total)*100)):0;
-    document.getElementById('sheet-balance-due').innerText=`Rs. ${(total-paid).toLocaleString()}`;document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;document.getElementById('sheet-progress-bar').style.width=pct+'%';document.getElementById('sheet-progress-label').textContent=pct+'% Recovered';
+    document.getElementById('sheet-balance-due').innerText=`Rs. ${(total-paid).toLocaleString()}`;document.getElementById('sheet-total-paid').innerText=`Rs. ${paid.toLocaleString()}`;
+    const df=document.getElementById('sheet-progress-bar');const dl=document.getElementById('sheet-progress-label');
+    const dc=pct>=60?'green':pct>=30?'amber':'rose';const dtc=pct>=60?'text-emerald-400':pct>=30?'text-amber-400':'text-rose-400';
+    df.className=`battery-fill ${dc} animating`;df.style.width=pct+'%';dl.className=`battery-pct ${dtc}`;dl.textContent=pct+'% Recovered';
     renderClientCharts(loan,paid,due,total,interest);
     refreshUI();renderPaymentHistory();persistAll();
 }
