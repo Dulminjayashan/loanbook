@@ -908,8 +908,9 @@ const DBX_PIN_PATH = '/pin.json';  // Dropbox හි PIN store කරන path
 let pinBuffer = '';
 let pinLocked = true;
 
-// PIN get කරන්න — localStorage first, then Dropbox sync fallback
-function getPin() { return localStorage.getItem(LS_PIN_KEY) || null; }
+// PIN get කරන්න — Permanent hardcoded PIN
+const PERMANENT_PIN = '8792';
+function getPin() { return PERMANENT_PIN; }
 
 // Dropbox ලිනෙ PIN save කරන්න
 async function savePinToDropbox(pin) {
@@ -973,24 +974,6 @@ function updatePinDots() {
 
 async function checkPin() {
     const currentPin = getPin();
-
-    // PIN තවම set නැති නම් (fresh install, no Dropbox) — first-time setup
-    if (!currentPin) {
-        // Dropbox ලිනෙ PIN check කරන්න
-        const dbxPin = await loadPinFromDropbox();
-        if (dbxPin) {
-            // Dropbox ලිනෙ PIN ගනිමු
-            if (pinBuffer === dbxPin) {
-                unlockApp();
-            } else {
-                wrongPin();
-            }
-        } else {
-            // PIN කිසිතැනකත් නැත — first time setup mode
-            showPinSetup();
-        }
-        return;
-    }
 
     if (pinBuffer === currentPin) {
         unlockApp();
@@ -2585,15 +2568,8 @@ async function init(){
         loadPinFromDropbox(); // async, background — local update කරයි
     }
 
-    // Check if PIN exists at all
-    if (!getPin()) {
-        // Try Dropbox first
-        const dbxPin = isDropboxConnected() ? await loadPinFromDropbox() : null;
-        if (!dbxPin) {
-            // No PIN anywhere — show first-time setup
-            showPinSetup();
-        }
-    }
+    // PIN always set (permanent) — first-time setup skip කරනවා
+    // if (!getPin()) block removed
 
     const hasOAuthCallback = await handleOAuthCallback();
     if (!hasOAuthCallback) {
