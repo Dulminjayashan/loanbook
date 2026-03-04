@@ -1,24 +1,14 @@
 {
-  "name": "MBC Finance",
-  "short_name": "MBC",
-  "description": "MBC Personal Wealth Tracker",
+  "name": "Pro Loan Book",
+  "short_name": "LoanBook",
+  "description": "Pro Loan Book Tracker",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#060B18",
   "theme_color": "#060B18",
   "icons": [
-    {
-      "src": "/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
   ]
 }
